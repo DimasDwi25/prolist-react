@@ -20,6 +20,7 @@ import {
   ListItemIcon,
   ListItemText,
   Chip,
+  Grid,
 } from "@mui/material";
 import SettingsIcon from "@mui/icons-material/Settings";
 import api from "../../api/api";
@@ -231,122 +232,90 @@ export default function ProjectFormModal({
               </List>
             </Alert>
           )}
-
-          <Stack spacing={3}>
-            {/* Project Info */}
+          <Box sx={{ p: 2 }}>
             <Box
               sx={{
-                backgroundColor: "#f9fafb",
-                p: 2.5,
-                borderRadius: 2,
-                border: "1px solid",
-                borderColor: "divider",
+                display: "grid",
+                gridTemplateColumns: "1fr",
+                gap: 3,
               }}
             >
-              <Typography
-                variant="subtitle1"
+              {/* Project Info */}
+              <Box
                 sx={{
-                  color: "text.primary",
-                  mb: 2,
-                  display: "flex",
-                  alignItems: "center",
-                  fontWeight: 600,
+                  backgroundColor: "#f9fafb",
+                  p: 2.5,
+                  borderRadius: 2,
+                  border: "1px solid",
+                  borderColor: "divider",
                 }}
               >
-                <BusinessIcon
-                  sx={{ mr: 1, fontSize: 18, color: "primary.main" }}
-                />
-                Project Info
-              </Typography>
-
-              <Stack spacing={2}>
-                <TextField
-                  size="small"
-                  label="Project Name *"
-                  placeholder="e.g. Network Upgrade for Bank XYZ"
-                  value={form.project_name}
-                  onChange={(e) => handleChange("project_name", e.target.value)}
-                  error={!!errors.project_name}
-                  helperText={errors.project_name}
-                  fullWidth
-                />
-
-                {/* Project Category */}
-                <Autocomplete
-                  size="small"
-                  options={memoCategories}
-                  getOptionLabel={(option) => option.name || ""}
-                  value={
-                    form.categories_project_id
-                      ? memoCategories.find(
-                          (c) => c.id === form.categories_project_id
-                        ) || null
-                      : null
-                  }
-                  onChange={(e, newVal) =>
-                    handleChange(
-                      "categories_project_id",
-                      newVal ? newVal.id : ""
-                    )
-                  }
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="Project Category *"
-                      placeholder="Select project category"
-                      error={!!errors.categories_project_id}
-                      helperText={errors.categories_project_id}
-                      fullWidth
-                    />
-                  )}
-                />
-
-                {/* Client */}
-                <Autocomplete
-                  size="small"
-                  options={memoClients}
-                  getOptionLabel={(option) => option.name || ""}
-                  value={selectedClient}
-                  onChange={(e, newVal) =>
-                    handleChange("client_id", newVal ? newVal.id : "")
-                  }
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="Client *"
-                      placeholder="Search client..."
-                      error={!!errors.client_id}
-                      helperText={errors.client_id}
-                      fullWidth
-                    />
-                  )}
-                />
-
-                {/* Quotation */}
-                <Autocomplete
-                  size="small"
-                  options={filteredQuotations}
-                  getOptionLabel={(option) => option.no_quotation || ""}
-                  value={selectedQuotation || null}
-                  onChange={(e, newVal) => {
-                    setSelectedQuotation(newVal);
-                    handleChange("quotations_id", newVal ? newVal.id : "");
+                <Typography
+                  variant="subtitle1"
+                  sx={{
+                    color: "text.primary",
+                    mb: 2,
+                    display: "flex",
+                    alignItems: "center",
+                    fontWeight: 600,
                   }}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="Quotation *"
-                      placeholder="Search quotation..."
-                      error={!!errors.quotations_id}
-                      helperText={errors.quotations_id}
-                      fullWidth
-                    />
-                  )}
-                />
+                >
+                  <BusinessIcon
+                    sx={{ mr: 1, fontSize: 18, color: "primary.main" }}
+                  />
+                  Project Info
+                </Typography>
 
-                {/* Badge info */}
-                {selectedClient && (
-                  <Box sx={{ mt: 1 }}>
+                <Stack spacing={2}>
+                  <Stack direction="row" spacing={2}>
+                    {/* Client */}
+                    <Autocomplete
+                      size="small"
+                      fullWidth
+                      options={memoClients}
+                      getOptionLabel={(option) => option.name || ""}
+                      value={selectedClient}
+                      onChange={(e, newVal) =>
+                        handleChange("client_id", newVal ? newVal.id : "")
+                      }
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Client *"
+                          placeholder="Search client..."
+                          error={!!errors.client_id}
+                          helperText={errors.client_id}
+                          fullWidth
+                        />
+                      )}
+                    />
+
+                    {/* Quotation */}
+                    <Autocomplete
+                      size="small"
+                      fullWidth
+                      options={filteredQuotations}
+                      getOptionLabel={(option) => option.no_quotation || ""}
+                      value={selectedQuotation || null}
+                      onChange={(e, newVal) => {
+                        setSelectedQuotation(newVal);
+                        handleChange("quotations_id", newVal ? newVal.id : "");
+                      }}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Quotation *"
+                          placeholder="Search quotation..."
+                          error={!!errors.quotations_id}
+                          helperText={errors.quotations_id}
+                          fullWidth
+                        />
+                      )}
+                    />
+                  </Stack>
+
+                  {/* Badge info */}
+                  {selectedClient && (
                     <Chip
                       label={`Filtered by client: ${selectedClient.name}`}
                       size="small"
@@ -354,315 +323,366 @@ export default function ProjectFormModal({
                       variant="outlined"
                       sx={{ fontSize: "0.75rem" }}
                     />
-                  </Box>
-                )}
+                  )}
 
-                {/* Quotation Detail */}
-                {selectedQuotation && (
-                  <Paper
-                    variant="outlined"
-                    sx={{
-                      p: 2,
-                      mt: 1,
-                      borderRadius: 2,
-                      bgcolor: "#fafafa",
-                    }}
-                  >
-                    <Typography
-                      variant="subtitle2"
-                      sx={{ fontWeight: 600, mb: 1 }}
+                  {/* Quotation Detail */}
+                  {selectedQuotation && (
+                    <Paper
+                      variant="outlined"
+                      sx={{
+                        p: 2,
+                        borderRadius: 2,
+                        bgcolor: "#fafafa",
+                      }}
                     >
-                      Quotation Detail
-                    </Typography>
-                    <Stack spacing={0.5}>
-                      <Typography variant="body2">
-                        <strong>Client:</strong>{" "}
-                        {selectedQuotation.client?.name || "-"}
+                      <Typography
+                        variant="subtitle2"
+                        sx={{ fontWeight: 600, mb: 1 }}
+                      >
+                        Quotation Detail
                       </Typography>
-                      <Typography variant="body2">
-                        <strong>Value:</strong> Rp{" "}
-                        {new Intl.NumberFormat("id-ID").format(
-                          selectedQuotation.quotation_value || 0
-                        )}
-                      </Typography>
-                      <Typography variant="body2">
-                        <strong>Date:</strong>{" "}
-                        {new Date(
-                          selectedQuotation.quotation_date
-                        ).toLocaleDateString("id-ID")}
-                      </Typography>
-                    </Stack>
-                  </Paper>
-                )}
+                      <Stack spacing={0.5}>
+                        <Typography variant="body2">
+                          <strong>Client:</strong>{" "}
+                          {selectedQuotation.client?.name || "-"}
+                        </Typography>
+                        <Typography variant="body2">
+                          <strong>Value:</strong> Rp{" "}
+                          {new Intl.NumberFormat("id-ID").format(
+                            selectedQuotation.quotation_value || 0
+                          )}
+                        </Typography>
+                        <Typography variant="body2">
+                          <strong>Date:</strong>{" "}
+                          {new Date(
+                            selectedQuotation.quotation_date
+                          ).toLocaleDateString("id-ID")}
+                        </Typography>
+                      </Stack>
+                    </Paper>
+                  )}
 
-                {/* Override Client */}
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={form.useDifferentClient || false}
-                      onChange={(e) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          useDifferentClient: e.target.checked,
-                          client_id: e.target.checked
-                            ? ""
-                            : selectedQuotation?.client_id || "",
-                        }))
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={form.useDifferentClient || false}
+                        onChange={(e) =>
+                          setForm((prev) => ({
+                            ...prev,
+                            useDifferentClient: e.target.checked,
+                            client_id: e.target.checked
+                              ? ""
+                              : selectedQuotation?.client_id || "",
+                          }))
+                        }
+                      />
+                    }
+                    label="Use Different Client"
+                  />
+
+                  {form.useDifferentClient && (
+                    <Autocomplete
+                      size="small"
+                      options={memoClients}
+                      getOptionLabel={(option) => option.name || ""}
+                      value={
+                        form.client_id
+                          ? memoClients.find((c) => c.id === form.client_id) ||
+                            null
+                          : null
                       }
+                      onChange={(e, newVal) =>
+                        handleChange("client_id", newVal ? newVal.id : "")
+                      }
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Client *"
+                          placeholder="Select different client"
+                          error={!!errors.client_id}
+                          helperText={errors.client_id}
+                          fullWidth
+                        />
+                      )}
                     />
-                  }
-                  label="Use Different Client"
-                />
+                  )}
 
-                {form.useDifferentClient && (
+                  <Stack direction="row" spacing={2}>
+                    <TextField
+                      size="small"
+                      label="Project Name *"
+                      placeholder="e.g. Network Upgrade for Bank XYZ"
+                      value={form.project_name}
+                      onChange={(e) =>
+                        handleChange("project_name", e.target.value)
+                      }
+                      error={!!errors.project_name}
+                      helperText={errors.project_name}
+                      fullWidth
+                    />
+
+                    <Autocomplete
+                      size="small"
+                      fullWidth
+                      options={memoCategories}
+                      getOptionLabel={(option) => option.name || ""}
+                      value={
+                        form.categories_project_id
+                          ? memoCategories.find(
+                              (c) => c.id === form.categories_project_id
+                            ) || null
+                          : null
+                      }
+                      onChange={(e, newVal) =>
+                        handleChange(
+                          "categories_project_id",
+                          newVal ? newVal.id : ""
+                        )
+                      }
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Project Category *"
+                          placeholder="Select project category"
+                          error={!!errors.categories_project_id}
+                          helperText={errors.categories_project_id}
+                          fullWidth
+                        />
+                      )}
+                    />
+                  </Stack>
+
+                  <Stack direction="row" spacing={2}>
+                    <TextField
+                      size="small"
+                      label="Project Number"
+                      value={form.project_number}
+                      InputProps={{ readOnly: true }}
+                      fullWidth
+                    />
+
+                    <TextField
+                      size="small"
+                      label="Target Completion Date"
+                      type="date"
+                      value={form.target_dates}
+                      onChange={(e) =>
+                        handleChange("target_dates", e.target.value)
+                      }
+                      InputLabelProps={{ shrink: true }}
+                      fullWidth
+                    />
+                  </Stack>
+                </Stack>
+              </Box>
+
+              {/* Purchase Order */}
+              <Box
+                sx={{
+                  backgroundColor: "#fdfdfd",
+                  p: 2.5,
+                  borderRadius: 2,
+                  border: "1px solid",
+                  borderColor: "divider",
+                }}
+              >
+                <Typography
+                  variant="subtitle1"
+                  sx={{
+                    color: "text.primary",
+                    mb: 2,
+                    display: "flex",
+                    alignItems: "center",
+                    fontWeight: 600,
+                  }}
+                >
+                  <ReceiptIcon
+                    sx={{ mr: 1, fontSize: 18, color: "secondary.main" }}
+                  />
+                  Purchase Order
+                </Typography>
+
+                <Stack direction="row" spacing={2}>
+                  <TextField
+                    size="small"
+                    label="PO Number *"
+                    value={form.po_number}
+                    onChange={(e) => handleChange("po_number", e.target.value)}
+                    error={!!errors.po_number}
+                    helperText={errors.po_number}
+                    fullWidth
+                  />
+
+                  <TextField
+                    size="small"
+                    label="PO Date *"
+                    type="date"
+                    value={form.po_date}
+                    onChange={(e) => handleChange("po_date", e.target.value)}
+                    InputLabelProps={{ shrink: true }}
+                    error={!!errors.po_date}
+                    helperText={errors.po_date}
+                    fullWidth
+                  />
+                </Stack>
+                <Stack direction="row" spacing={2} mt={4}>
+                  <TextField
+                    size="small"
+                    label="PO Value (IDR) *"
+                    value={formatCurrency(form.po_value)}
+                    onChange={(e) => handleCurrencyChange(e.target.value)}
+                    error={!!errors.po_value}
+                    helperText={errors.po_value}
+                    fullWidth
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">Rp</InputAdornment>
+                      ),
+                    }}
+                  />
+
+                  <TextField
+                    size="small"
+                    label="Sales Week"
+                    value={form.sales_weeks}
+                    InputProps={{ readOnly: true }}
+                    fullWidth
+                  />
+                </Stack>
+              </Box>
+
+              {/* Options */}
+              <Box
+                sx={{
+                  backgroundColor: "#fafafa",
+                  p: 2.5,
+                  borderRadius: 2,
+                  border: "1px solid",
+                  borderColor: "divider",
+                }}
+              >
+                <Typography
+                  variant="subtitle1"
+                  sx={{
+                    mb: 2,
+                    display: "flex",
+                    alignItems: "center",
+                    fontWeight: 600,
+                  }}
+                >
+                  <SettingsIcon
+                    sx={{ mr: 1, fontSize: 18, color: "warning.main" }}
+                  />
+                  Options
+                </Typography>
+
+                <Stack direction="row" spacing={3}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={form.is_confirmation_order}
+                        onChange={(e) =>
+                          handleChange(
+                            "is_confirmation_order",
+                            e.target.checked
+                          )
+                        }
+                      />
+                    }
+                    label="Confirmation Order"
+                  />
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={form.is_variant_order}
+                        onChange={(e) =>
+                          handleChange("is_variant_order", e.target.checked)
+                        }
+                      />
+                    }
+                    label="Variant Order"
+                  />
+                </Stack>
+
+                {form.is_variant_order && (
                   <Autocomplete
                     size="small"
-                    options={memoClients}
-                    getOptionLabel={(option) => option.name || ""}
+                    options={memoProjects}
+                    getOptionLabel={(option) => option.project_number}
                     value={
-                      form.client_id
-                        ? memoClients.find((c) => c.id === form.client_id) ||
-                          null
+                      form.parent_pn_number
+                        ? memoProjects.find(
+                            (p) => p.project_number === form.parent_pn_number
+                          ) || null
                         : null
                     }
                     onChange={(e, newVal) =>
-                      handleChange("client_id", newVal ? newVal.id : "")
+                      handleChange(
+                        "parent_pn_number",
+                        newVal ? newVal.project_number : ""
+                      )
                     }
                     renderInput={(params) => (
                       <TextField
                         {...params}
-                        label="Client *"
-                        placeholder="Select different client"
-                        error={!!errors.client_id}
-                        helperText={errors.client_id}
+                        label="Parent Project Number"
                         fullWidth
                       />
                     )}
                   />
                 )}
+              </Box>
 
-                <TextField
-                  size="small"
-                  label="Project Number"
-                  value={form.project_number}
-                  InputProps={{ readOnly: true }}
-                  fullWidth
-                />
-
-                <TextField
-                  size="small"
-                  label="Target Completion Date"
-                  type="date"
-                  value={form.target_dates}
-                  onChange={(e) => handleChange("target_dates", e.target.value)}
-                  InputLabelProps={{ shrink: true }}
-                  fullWidth
-                />
-              </Stack>
-            </Box>
-
-            {/* Purchase Order */}
-            <Box
-              sx={{
-                backgroundColor: "#fdfdfd",
-                p: 2.5,
-                borderRadius: 2,
-                border: "1px solid",
-                borderColor: "divider",
-              }}
-            >
-              <Typography
-                variant="subtitle1"
+              {/* Mandays */}
+              <Box
                 sx={{
-                  color: "text.primary",
-                  mb: 2,
-                  display: "flex",
-                  alignItems: "center",
-                  fontWeight: 600,
+                  backgroundColor: "#f9fdf9",
+                  p: 2.5,
+                  borderRadius: 2,
+                  border: "1px solid",
+                  borderColor: "divider",
                 }}
               >
-                <ReceiptIcon
-                  sx={{ mr: 1, fontSize: 18, color: "secondary.main" }}
-                />
-                Purchase Order
-              </Typography>
-
-              <Stack spacing={2}>
-                <TextField
-                  size="small"
-                  label="PO Number *"
-                  value={form.po_number}
-                  onChange={(e) => handleChange("po_number", e.target.value)}
-                  error={!!errors.po_number}
-                  helperText={errors.po_number}
-                  fullWidth
-                />
-
-                <TextField
-                  size="small"
-                  label="PO Date *"
-                  type="date"
-                  value={form.po_date}
-                  onChange={(e) => handleChange("po_date", e.target.value)}
-                  InputLabelProps={{ shrink: true }}
-                  error={!!errors.po_date}
-                  helperText={errors.po_date}
-                  fullWidth
-                />
-
-                <TextField
-                  size="small"
-                  label="PO Value (IDR) *"
-                  value={formatCurrency(form.po_value)}
-                  onChange={(e) => handleCurrencyChange(e.target.value)}
-                  error={!!errors.po_value}
-                  helperText={errors.po_value}
-                  fullWidth
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">Rp</InputAdornment>
-                    ),
+                <Typography
+                  variant="subtitle1"
+                  sx={{
+                    mb: 2,
+                    display: "flex",
+                    alignItems: "center",
+                    fontWeight: 600,
                   }}
-                />
+                >
+                  <EngineeringIcon
+                    sx={{ mr: 1, fontSize: 18, color: "success.main" }}
+                  />
+                  Mandays
+                </Typography>
 
-                <TextField
-                  size="small"
-                  label="Sales Week"
-                  value={form.sales_weeks}
-                  InputProps={{ readOnly: true }}
-                  fullWidth
-                />
-              </Stack>
+                <Stack direction="row" spacing={2}>
+                  <TextField
+                    size="small"
+                    label="Mandays Engineer"
+                    type="number"
+                    value={form.mandays_engineer}
+                    onChange={(e) =>
+                      handleChange("mandays_engineer", e.target.value)
+                    }
+                    fullWidth
+                  />
+                  <TextField
+                    size="small"
+                    label="Mandays Technician"
+                    type="number"
+                    value={form.mandays_technician}
+                    onChange={(e) =>
+                      handleChange("mandays_technician", e.target.value)
+                    }
+                    fullWidth
+                  />
+                </Stack>
+              </Box>
             </Box>
-
-            {/* Options */}
-            <Box
-              sx={{
-                backgroundColor: "#fafafa",
-                p: 2.5,
-                borderRadius: 2,
-                border: "1px solid",
-                borderColor: "divider",
-              }}
-            >
-              <Typography
-                variant="subtitle1"
-                sx={{
-                  mb: 2,
-                  display: "flex",
-                  alignItems: "center",
-                  fontWeight: 600,
-                }}
-              >
-                <SettingsIcon
-                  sx={{ mr: 1, fontSize: 18, color: "warning.main" }}
-                />
-                Options
-              </Typography>
-
-              <Stack direction="row" spacing={3}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={form.is_confirmation_order}
-                      onChange={(e) =>
-                        handleChange("is_confirmation_order", e.target.checked)
-                      }
-                    />
-                  }
-                  label="Confirmation Order"
-                />
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={form.is_variant_order}
-                      onChange={(e) =>
-                        handleChange("is_variant_order", e.target.checked)
-                      }
-                    />
-                  }
-                  label="Variant Order"
-                />
-              </Stack>
-
-              {form.is_variant_order && (
-                <Autocomplete
-                  size="small"
-                  options={memoProjects}
-                  getOptionLabel={(option) => option.project_number}
-                  value={
-                    form.parent_pn_number
-                      ? memoProjects.find(
-                          (p) => p.project_number === form.parent_pn_number
-                        ) || null
-                      : null
-                  }
-                  onChange={(e, newVal) =>
-                    handleChange(
-                      "parent_pn_number",
-                      newVal ? newVal.project_number : ""
-                    )
-                  }
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="Parent Project Number"
-                      fullWidth
-                    />
-                  )}
-                />
-              )}
-            </Box>
-
-            {/* Mandays */}
-            <Box
-              sx={{
-                backgroundColor: "#f9fdf9",
-                p: 2.5,
-                borderRadius: 2,
-                border: "1px solid",
-                borderColor: "divider",
-              }}
-            >
-              <Typography
-                variant="subtitle1"
-                sx={{
-                  mb: 2,
-                  display: "flex",
-                  alignItems: "center",
-                  fontWeight: 600,
-                }}
-              >
-                <EngineeringIcon
-                  sx={{ mr: 1, fontSize: 18, color: "success.main" }}
-                />
-                Mandays
-              </Typography>
-
-              <Stack direction="row" spacing={2}>
-                <TextField
-                  size="small"
-                  label="Mandays Engineer"
-                  type="number"
-                  value={form.mandays_engineer}
-                  onChange={(e) =>
-                    handleChange("mandays_engineer", e.target.value)
-                  }
-                  fullWidth
-                />
-                <TextField
-                  size="small"
-                  label="Mandays Technician"
-                  type="number"
-                  value={form.mandays_technician}
-                  onChange={(e) =>
-                    handleChange("mandays_technician", e.target.value)
-                  }
-                  fullWidth
-                />
-              </Stack>
-            </Box>
-          </Stack>
+          </Box>
         </DialogContent>
 
         {/* Footer */}

@@ -228,7 +228,6 @@ export default function QuotationTable() {
       headerName: "Revision",
       flex: 1,
       editable: true,
-      type: "number",
       renderCell: (params) => (
         <Typography color="text.secondary" noWrap>
           {params.value || "-"}
@@ -518,12 +517,20 @@ export default function QuotationTable() {
               </Typography>
               <Box sx={{ display: "flex", gap: 2 }}>
                 <Chip
-                  label={changedCell.oldValue || "—"}
+                  label={
+                    changedCell.oldValue instanceof Date
+                      ? changedCell.oldValue.toLocaleDateString("id-ID")
+                      : changedCell.oldValue || "—"
+                  }
                   color="error"
                   variant="outlined"
                 />
                 <Chip
-                  label={changedCell.newValue || "—"}
+                  label={
+                    changedCell.newValue instanceof Date
+                      ? changedCell.newValue.toLocaleDateString("id-ID")
+                      : changedCell.newValue || "—"
+                  }
                   color="success"
                   variant="outlined"
                 />

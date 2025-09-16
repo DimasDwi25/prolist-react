@@ -157,12 +157,17 @@ export default function ProjectTable() {
       const projectsData = resProjects.data?.data?.map((p) => {
         // Client fallback
         let clientName = "-";
-        if (p.client?.name) clientName = p.client.name;
-        else if (p.quotation?.client_id) {
-          const c = clientsData.find(
-            (cl) => cl.id === Number(p.quotation.client_id)
-          );
-          if (c) clientName = c.name;
+
+        // Cek dulu project.client_id dan cari di clientsData
+        const projectClient = clientsData.find(
+          (cl) => cl.id == p.client_id // pakai "==" untuk cocokan string/number
+        );
+
+        if (projectClient) {
+          clientName = projectClient.name;
+        } else if (p.quotation?.client?.name) {
+          // fallback ke client dari quotation
+          clientName = p.quotation.client.name;
         }
 
         return {
