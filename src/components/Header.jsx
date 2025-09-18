@@ -2,6 +2,7 @@ import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import ProfileDropdown from "./ProfileDropdown";
 // import NotificationDropdown from "./NotificationDropdown";
+import LogoCitasys from "../assets/CITASys Logo.jpg";
 
 export default function Header({
   user,
@@ -33,6 +34,17 @@ export default function Header({
           </svg>
         </button>
 
+        {/* Logo */}
+        <div className="flex items-center gap-2">
+          <img
+            src={LogoCitasys}
+            alt="CITASys Logo"
+            className="max-h-8 object-contain"
+          />
+        </div>
+      </div>
+
+      <div className="flex items-center gap-3">
         {/* Tombol Fullscreen */}
         <button
           onClick={() =>
@@ -51,14 +63,6 @@ export default function Header({
             <FullscreenIcon />
           )}
         </button>
-      </div>
-
-      <div className="flex items-center gap-3">
-        {/* Dropdown Notifikasi */}
-        {/* <NotificationDropdown
-          notifications={notifications}
-          onRead={onReadNotification}
-        /> */}
 
         {/* Profil */}
         <ProfileDropdown user={user} />

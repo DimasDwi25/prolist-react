@@ -157,22 +157,25 @@ export default function CategorieProjectTable() {
           Add
         </button>
       </div>
-
-      <DataGrid
-        rows={categories}
-        columns={columns}
-        pagination
-        loading={loading}
-        paginationModel={paginationModel}
-        onPaginationModelChange={setPaginationModel}
-        pageSizeOptions={[10, 20, 50]}
-        disableSelectionOnClick
-        processRowUpdate={handleProcessRowUpdate}
-        columnVisibilityModel={columnVisibility}
-        onColumnVisibilityModelChange={(newModel) =>
-          setColumnVisibility(newModel)
-        }
-      />
+      <div className="table-wrapper">
+        <div className="table-inner">
+          <DataGrid
+            rows={categories}
+            columns={columns}
+            pagination
+            loading={loading}
+            paginationModel={paginationModel}
+            onPaginationModelChange={setPaginationModel}
+            pageSizeOptions={[10, 20, 50]}
+            disableSelectionOnClick
+            processRowUpdate={handleProcessRowUpdate}
+            columnVisibilityModel={columnVisibility}
+            onColumnVisibilityModelChange={(newModel) =>
+              setColumnVisibility(newModel)
+            }
+          />
+        </div>
+      </div>
 
       {/* Snackbar */}
       <Snackbar

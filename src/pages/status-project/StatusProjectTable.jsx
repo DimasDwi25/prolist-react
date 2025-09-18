@@ -148,23 +148,26 @@ export default function StatusProjectTable() {
           Add
         </button>
       </div>
-
-      <DataGrid
-        rows={statuses}
-        columns={columns}
-        pagination
-        loading={loading}
-        pageSizeOptions={[10, 20, 50]}
-        paginationModel={paginationModel}
-        onPaginationModelChange={setPaginationModel}
-        rowsPerPageOptions={[10, 20, 50]}
-        disableSelectionOnClick
-        processRowUpdate={handleProcessRowUpdate}
-        columnVisibilityModel={columnVisibility}
-        onColumnVisibilityModelChange={(newModel) =>
-          setColumnVisibility(newModel)
-        }
-      />
+      <div className="table-wrapper">
+        <div className="table-inner">
+          <DataGrid
+            rows={statuses}
+            columns={columns}
+            pagination
+            loading={loading}
+            pageSizeOptions={[10, 20, 50]}
+            paginationModel={paginationModel}
+            onPaginationModelChange={setPaginationModel}
+            rowsPerPageOptions={[10, 20, 50]}
+            disableSelectionOnClick
+            processRowUpdate={handleProcessRowUpdate}
+            columnVisibilityModel={columnVisibility}
+            onColumnVisibilityModelChange={(newModel) =>
+              setColumnVisibility(newModel)
+            }
+          />
+        </div>
+      </div>
 
       {/* Snackbar */}
       <Snackbar

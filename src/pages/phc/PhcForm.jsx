@@ -10,6 +10,8 @@ import {
 } from "@mui/material";
 import api from "../../api/api";
 import { useLocation, useNavigate } from "react-router-dom";
+import BoqModal from "../../components/modal/BoqModal";
+import Swal from "sweetalert2";
 
 export default function CreatePhcPage() {
   const navigate = useNavigate();
@@ -24,6 +26,10 @@ export default function CreatePhcPage() {
   const { state } = useLocation();
   const project = state?.project;
 
+  const [openBoq, setOpenBoq] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [phcCreated, setPhcCreated] = useState(false);
+
   // State form
   const [formData, setFormData] = useState({
     handover_date: "",
@@ -33,7 +39,7 @@ export default function CreatePhcPage() {
     client_mobile: "",
     client_reps_office_address: "",
     client_site_address: "",
-    client_site_representative: "",
+    client_site_representatives: "",
     site_phone_number: "",
     ho_marketings_id: "",
     pic_marketing_id: "",
@@ -81,40 +87,52 @@ export default function CreatePhcPage() {
 
   const onSubmit = async (e) => {
     e.preventDefault();
+    if (submitting || phcCreated) return; // prevent double submit
     try {
+      setSubmitting(true);
       console.log("📤 Data PHC dikirim:", formData);
 
       const res = await api.post("/phc", {
         ...formData,
-        project_id: project?.pn_number, // pakai PN number sebagai PK
+        project_id: project?.pn_number,
       });
 
       if (res.data.status === "success") {
-        alert("✅ PHC berhasil disimpan");
-        console.log("PHC data:", res.data.phc);
-        console.log("Approvers:", res.data.approvers);
+        setPhcCreated(true);
 
-        // ⬅️ redirect ke detail project setelah sukses
+        // tampilkan success alert
+        await Swal.fire({
+          icon: "success",
+          title: "PHC Berhasil Disimpan",
+          text: "Data PHC telah berhasil dibuat.",
+          confirmButtonText: "OK",
+        });
+
+        // close BOQ modal otomatis setelah PHC dibuat
+        setOpenBoq(false);
+        setSubmitting(false);
+
+        // Redirect ke detail project
         navigate(`/projects/${project?.pn_number}`, {
-          state: { project }, // kalau mau bawa state project sekalian
+          state: { project },
         });
       } else {
-        alert("⚠️ Gagal menyimpan PHC");
-        console.log("Respon gagal:", res.data);
+        Swal.fire({
+          icon: "error",
+          title: "Gagal Menyimpan PHC",
+          text: res.data.message || "Terjadi kesalahan saat menyimpan PHC",
+        });
+        setSubmitting(false);
       }
     } catch (err) {
       console.error("❌ Error submit PHC:", err);
-
-      if (err.response) {
-        console.error("📩 Response error:", err.response.data);
-        alert(
-          `Error ${err.response.status}: ${
-            err.response.data.message || "Gagal menyimpan PHC"
-          }`
-        );
-      } else {
-        alert("Terjadi error jaringan atau server");
-      }
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text:
+          err.response?.data?.message || "Terjadi error jaringan atau server",
+      });
+      setSubmitting(false);
     }
   };
 
@@ -303,10 +321,10 @@ export default function CreatePhcPage() {
                     />
                     <TextField
                       label="Client Representative"
-                      value={formData.client_site_representative}
+                      value={formData.client_site_representatives}
                       onChange={(e) =>
                         handleChange(
-                          "client_site_representative",
+                          "client_site_representatives",
                           e.target.value
                         )
                       }
@@ -405,8 +423,12 @@ export default function CreatePhcPage() {
                     key: "costing_by_marketing",
                     label: "Costing by Marketing",
                   },
-                  { key: "boq", label: "Bill of Quantity (BOQ)" },
-                  { key: "retention", label: "Retention", hasDetail: true },
+                  {
+                    key: "boq",
+                    label: "Bill of Quantity (BOQ)",
+                    hasDetail: true,
+                  },
+                  { key: "retention", label: "Retention" },
                   { key: "warranty", label: "Warranty", hasDetail: true },
                   { key: "penalty", label: "Penalty", hasDetail: true },
                 ].map(({ key, label, hasDetail }) => (
@@ -441,7 +463,8 @@ export default function CreatePhcPage() {
                         <span className="ml-2 text-sm">Not Applicable</span>
                       </label>
                     </div>
-                    {hasDetail && formData[key] === "A" && (
+                    {/* 🔹 Kalau ada detail field selain BOQ */}
+                    {hasDetail && formData[key] === "A" && key !== "boq" && (
                       <TextField
                         placeholder={`${label} Detail`}
                         value={formData[`${key}_detail`]}
@@ -450,6 +473,19 @@ export default function CreatePhcPage() {
                         }
                         fullWidth
                       />
+                    )}
+
+                    {/* 🔹 Kalau BOQ Applicable → tampilkan tombol + modal */}
+                    {key === "boq" && formData[key] === "A" && (
+                      <div className="pt-2">
+                        <button
+                          type="button"
+                          onClick={() => setOpenBoq(true)}
+                          className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm"
+                        >
+                          ➕ Create / Edit BOQ
+                        </button>
+                      </div>
                     )}
                   </div>
                 ))}
@@ -466,15 +502,25 @@ export default function CreatePhcPage() {
 
                 <button
                   type="submit"
-                  className="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded"
+                  disabled={submitting || phcCreated}
+                  className={`bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded ${
+                    submitting ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
                 >
-                  💾 Save PHC
+                  {submitting ? "💾 Saving..." : "💾 Save PHC"}
                 </button>
               </div>
             </div>
           )}
         </form>
       )}
+      {/* 🔹 Modal BOQ (inline edit dengan DataGrid) */}
+      <BoqModal
+        open={openBoq}
+        handleClose={() => setOpenBoq(false)}
+        projectId={project?.pn_number}
+        projectValue={project?.po_value}
+      />
     </div>
   );
 }

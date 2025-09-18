@@ -11,9 +11,9 @@ import {
   FaChartBar,
   FaChartPie,
 } from "react-icons/fa";
-import api from "../../api/api"; // pakai axios instance
+import api from "../../api/api";
+import LoadingScreen from "../../components/loading/loadingScreen"; // import component loading
 
-// Mapping warna agar aman di Tailwind
 const colorMap = {
   blue: { bg: "bg-blue-100", text: "text-blue-600" },
   orange: { bg: "bg-orange-100", text: "text-orange-600" },
@@ -22,11 +22,9 @@ const colorMap = {
   purple: { bg: "bg-purple-100", text: "text-purple-600" },
 };
 
-// Card dengan state lokal untuk mask
 const DashboardCard = ({ title, value, color, icon, mask, showAll }) => {
   const [show, setShow] = useState(false);
   const colors = colorMap[color] || colorMap.blue;
-
   const isVisible = showAll !== null ? showAll : show;
 
   return (
@@ -55,22 +53,9 @@ const DashboardCard = ({ title, value, color, icon, mask, showAll }) => {
 };
 
 export default function MarketingDashboard() {
-  const [stats, setStats] = useState({
-    totalQuotation: 0,
-    totalQuotationValue: 0,
-    totalSalesValue: 0,
-    totalProject: 0,
-    outstandingQuotation: 0,
-    months: [],
-    quotationPerMonthData: [],
-    salesPerMonthData: [],
-    labels: [],
-    data: [],
-    colors: [],
-    role: "",
-  });
-
-  const [toggleAllNominal] = useState(null); // null = default, true/false = global toggle
+  const [stats, setStats] = useState(null); // awalnya null
+  const [loading, setLoading] = useState(true);
+  const [toggleAllNominal] = useState(null);
 
   const barChartRef = useRef(null);
   const pieChartRef = useRef(null);
@@ -95,12 +80,31 @@ export default function MarketingDashboard() {
           {
             data: [data.totalQuotationValue, data.totalSalesValue],
             backgroundColor: ["#3b82f6", "#a78bfa"],
-            borderRadius: 8,
-            barThickness: 50,
+            borderRadius: 6, // dikurangi
+            barThickness: 30, // lebih tipis
+            categoryPercentage: 0.6, // jarak antar kategori lebih rapat
+            barPercentage: 0.8, // lebar batang relatif
           },
         ],
       },
-      options: { responsive: true, plugins: { legend: { display: false } } },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false },
+        },
+        layout: {
+          padding: 10, // padding lebih kecil
+        },
+        scales: {
+          x: {
+            ticks: { font: { size: 10 } }, // font lebih kecil
+          },
+          y: {
+            ticks: { font: { size: 10 } },
+            beginAtZero: true,
+          },
+        },
+      },
     });
 
     pieChartRef.current = new Chart(document.getElementById("statusPieChart"), {
@@ -148,19 +152,22 @@ export default function MarketingDashboard() {
   useEffect(() => {
     api
       .get("/marketing")
-      .then((res) => setStats(res.data))
+      .then((res) => {
+        setStats(res.data);
+        setLoading(false);
+      })
       .catch((err) => {
         console.error("❌ API error:", err.response?.data || err.message);
-        if (err.response?.status === 401) {
-          // Token expired / invalid → redirect ke login
-          window.location.href = "/login";
-        }
+        setLoading(false);
+        if (err.response?.status === 401) window.location.href = "/login";
       });
   }, []);
 
   useEffect(() => {
-    if (stats.months?.length > 0) renderCharts(stats);
+    if (stats?.months?.length > 0) renderCharts(stats);
   }, [stats, renderCharts]);
+
+  if (loading || !stats) return <LoadingScreen />; // tampilkan loading
 
   const hideSensitive = stats.role === "marketing_estimator";
 
@@ -206,29 +213,36 @@ export default function MarketingDashboard() {
 
   return (
     <div className="max-w-7xl mx-auto p-4 lg:p-6 space-y-6">
-      {/* Cards Row 1 */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
         {cardsRow1.map((c, i) => (
-          <DashboardCard key={i} {...c} showAll={null} />
+          <DashboardCard
+            key={i}
+            {...c}
+            showAll={null}
+            compact={true} // optional prop untuk styling compact
+          />
         ))}
       </div>
 
-      {/* Cards Row 2 */}
       {cardsRow2.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {cardsRow2.map((c, i) => (
-            <DashboardCard key={i} {...c} showAll={toggleAllNominal} />
+            <DashboardCard
+              key={i}
+              {...c}
+              showAll={toggleAllNominal}
+              compact={true}
+            />
           ))}
         </div>
       )}
 
-      {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="bg-white shadow rounded-xl p-4">
           <div className="flex items-center gap-2 mb-3">
             <FaChartBar className="text-blue-500" />
             <h2 className="text-sm font-semibold text-gray-700">
-              Quotation vs Sales Value
+              Quotation & Sales Value
             </h2>
           </div>
           <canvas id="barChart" className="h-60"></canvas>

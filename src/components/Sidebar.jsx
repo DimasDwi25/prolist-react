@@ -20,6 +20,9 @@ const roleMapping = {
   marketing_admin: "marketing",
   marketing_estimator: "marketing",
   engineering_director: "engineer",
+  engineer: "engineer",
+  "project controller": "engineer",
+  "project manager": "engineer",
   // tambahkan role engineer lainnya jika ada
 };
 
@@ -61,6 +64,7 @@ const menuByRole = {
     { name: "Work Order", path: "/work-order", icon: <FaFileInvoice /> },
     { name: "Projects", path: "/projects", icon: <FaTools /> },
     { name: "Tasks", path: "/tasks", icon: <FaTasks /> },
+    { name: "Approvall", path: "/approvall", icon: <FaCheckCircle /> },
   ],
 };
 

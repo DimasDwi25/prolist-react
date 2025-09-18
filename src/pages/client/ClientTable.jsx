@@ -214,45 +214,48 @@ export default function ClientTable() {
           Add
         </button>
       </div>
-
-      <DataGrid
-        rows={clients}
-        columns={columns.map((col) =>
-          col.field === "actions"
-            ? {
-                ...col,
-                getActions: (params) => [
-                  <GridActionsCellItem
-                    key="edit"
-                    icon={<EditIcon />}
-                    label="Edit Row"
-                    onClick={() => handleEditRowClick(params.row)}
-                  />,
-                  <GridActionsCellItem
-                    key="delete"
-                    icon={<Typography color="error">🗑️</Typography>}
-                    label="Delete"
-                    onClick={() => handleDeleteClient(params.row.id)}
-                  />,
-                ],
-              }
-            : col
-        )}
-        pagination
-        loading={loading}
-        paginationModel={paginationModel}
-        onPaginationModelChange={setPaginationModel}
-        rowsPerPageOptions={[10, 20, 50]}
-        disableSelectionOnClick
-        experimentalFeatures={{ newEditingApi: true }}
-        processRowUpdate={handleProcessRowUpdate}
-        pageSizeOptions={[10, 20, 50]}
-        columnVisibilityModel={columnVisibility}
-        onColumnVisibilityModelChange={(newModel) =>
-          setColumnVisibility(newModel)
-        }
-        showToolbar
-      />
+      <div className="table-wrapper">
+        <div className="table-inner">
+          <DataGrid
+            rows={clients}
+            columns={columns.map((col) =>
+              col.field === "actions"
+                ? {
+                    ...col,
+                    getActions: (params) => [
+                      <GridActionsCellItem
+                        key="edit"
+                        icon={<EditIcon />}
+                        label="Edit Row"
+                        onClick={() => handleEditRowClick(params.row)}
+                      />,
+                      <GridActionsCellItem
+                        key="delete"
+                        icon={<Typography color="error">🗑️</Typography>}
+                        label="Delete"
+                        onClick={() => handleDeleteClient(params.row.id)}
+                      />,
+                    ],
+                  }
+                : col
+            )}
+            pagination
+            loading={loading}
+            paginationModel={paginationModel}
+            onPaginationModelChange={setPaginationModel}
+            rowsPerPageOptions={[10, 20, 50]}
+            disableSelectionOnClick
+            experimentalFeatures={{ newEditingApi: true }}
+            processRowUpdate={handleProcessRowUpdate}
+            pageSizeOptions={[10, 20, 50]}
+            columnVisibilityModel={columnVisibility}
+            onColumnVisibilityModelChange={(newModel) =>
+              setColumnVisibility(newModel)
+            }
+            showToolbar
+          />
+        </div>
+      </div>
 
       {/* Snackbar */}
       <Snackbar

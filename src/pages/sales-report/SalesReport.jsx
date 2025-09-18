@@ -113,27 +113,29 @@ export default function SalesReportTable() {
   }, []);
 
   return (
-    <div style={{ height: 600, width: "100%" }}>
-      <DataGrid
-        rows={projects}
-        columns={columns}
-        getRowId={(row) => row.pn_number}
-        loading={loading}
-        showToolbar
-        pagination
-        rowsPerPageOptions={[10, 20, 50]}
-        disableSelectionOnClick
-        pageSizeOptions={[10, 20, 50]}
-        sx={{
-          borderRadius: 2,
-          ".MuiDataGrid-cell": { py: 1.2 },
-          ".MuiDataGrid-columnHeaders": {
-            backgroundColor: "#f5f5f5",
-            fontWeight: 600,
-          },
-          ".MuiDataGrid-footerContainer": { borderTop: "1px solid #e0e0e0" },
-        }}
-      />
+    <div className="table-wrapper">
+      <div className="table-inner">
+        <DataGrid
+          rows={projects}
+          columns={columns}
+          getRowId={(row) => row.pn_number}
+          loading={loading}
+          showToolbar
+          pagination
+          rowsPerPageOptions={[10, 20, 50]}
+          disableSelectionOnClick
+          pageSizeOptions={[10, 20, 50]}
+          sx={{
+            borderRadius: 2,
+            ".MuiDataGrid-cell": { py: 1.2 },
+            ".MuiDataGrid-columnHeaders": {
+              backgroundColor: "#f5f5f5",
+              fontWeight: 600,
+            },
+            ".MuiDataGrid-footerContainer": { borderTop: "1px solid #e0e0e0" },
+          }}
+        />
+      </div>
     </div>
   );
 }

@@ -19,8 +19,11 @@ import api from "../../api/api";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import IconButton from "@mui/material/IconButton";
+import ViewPhcModal from "../../components/modal/ViewPhcModal";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 
 export default function ApprovalPage() {
+  const [openModal, setOpenModal] = useState(false);
   const [approvals, setApprovals] = useState([]);
   const [loading, setLoading] = useState(false);
   const [counts, setCounts] = useState({
@@ -37,6 +40,7 @@ export default function ApprovalPage() {
     message: "",
     severity: "success",
   });
+  const [selectedProjectId, setSelectedProjectId] = useState(null);
 
   const fetchApprovals = async () => {
     setLoading(true);
@@ -105,35 +109,41 @@ export default function ApprovalPage() {
     }
   };
 
+  const handleViewPhc = (pnNumber) => {
+    setSelectedProjectId(pnNumber);
+    setOpenModal(true);
+  };
+
   const columns = [
     {
       field: "actions",
       type: "actions",
       headerName: "Actions",
-      width: 120,
+      width: 150,
       getActions: (params) => [
         <GridActionsCellItem
           key="approve"
-          icon={
-            <IconButton color="success" size="small">
-              <CheckIcon />
-            </IconButton>
-          }
+          icon={<CheckIcon color="success" />}
           label="Approve"
           onClick={() => handleActionClick(params.row, "approved")}
           disabled={params.row?.status !== "pending"}
-          showInMenu={false} // agar tidak muncul di menu dropdown
+          showInMenu={false}
         />,
+
         <GridActionsCellItem
           key="reject"
-          icon={
-            <IconButton color="error" size="small">
-              <CloseIcon />
-            </IconButton>
-          }
+          icon={<CloseIcon color="error" />}
           label="Reject"
           onClick={() => handleActionClick(params.row, "rejected")}
           disabled={params.row?.status !== "pending"}
+          showInMenu={false}
+        />,
+
+        <GridActionsCellItem
+          key="view"
+          icon={<VisibilityIcon color="primary" />}
+          label="View PHC"
+          onClick={() => handleViewPhc(params.row.approvable.project.pn_number)}
           showInMenu={false}
         />,
       ],
@@ -174,7 +184,21 @@ export default function ApprovalPage() {
       field: "validated_at",
       headerName: "Validated At",
       width: 180,
-      valueGetter: (params) => params?.row?.validated_at ?? "-",
+      renderCell: (params) => {
+        const date = params?.row?.validated_at;
+        if (!date) return "-";
+
+        // Format tanggal, misal jadi YYYY-MM-DD HH:mm
+        const formatted = new Date(date).toLocaleString("id-ID", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+
+        return <span>{formatted}</span>;
+      },
     },
   ];
 
@@ -203,15 +227,17 @@ export default function ApprovalPage() {
       </Stack>
 
       {/* DataGrid */}
-      <div style={{ height: 500, width: "100%" }}>
-        <DataGrid
-          rows={approvals}
-          columns={columns}
-          loading={loading}
-          getRowId={(row) => Number(row.id)}
-          pageSize={10}
-          rowsPerPageOptions={[5, 10, 20]}
-        />
+      <div className="table-wrapper">
+        <div className="table-inner">
+          <DataGrid
+            rows={approvals}
+            columns={columns}
+            loading={loading}
+            getRowId={(row) => Number(row.id)}
+            pageSize={10}
+            rowsPerPageOptions={[5, 10, 20]}
+          />
+        </div>
       </div>
 
       {/* Modal PIN */}
@@ -243,6 +269,11 @@ export default function ApprovalPage() {
       >
         <Alert severity={alert.severity}>{alert.message}</Alert>
       </Snackbar>
+      <ViewPhcModal
+        open={openModal}
+        handleClose={() => setOpenModal(false)}
+        projectId={selectedProjectId}
+      />
     </Box>
   );
 }

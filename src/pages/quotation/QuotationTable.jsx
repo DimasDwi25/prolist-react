@@ -449,35 +449,40 @@ export default function QuotationTable() {
           }
         />
       </div>
-
-      <DataGrid
-        rows={quotations}
-        getRowId={(row) => row.id}
-        columns={columns}
-        loading={loading}
-        showToolbar
-        pagination
-        paginationModel={paginationModel}
-        onPaginationModelChange={setPaginationModel}
-        rowsPerPageOptions={[10, 20, 50]}
-        disableSelectionOnClick
-        experimentalFeatures={{ newEditingApi: true }}
-        processRowUpdate={handleProcessRowUpdate}
-        pageSizeOptions={[10, 20, 50]}
-        columnVisibilityModel={columnVisibility}
-        onColumnVisibilityModelChange={(newModel) =>
-          setColumnVisibility(newModel)
-        }
-        sx={{
-          borderRadius: 2,
-          ".MuiDataGrid-cell": { py: 1.2 },
-          ".MuiDataGrid-columnHeaders": {
-            backgroundColor: "#f5f5f5",
-            fontWeight: 600,
-          },
-          ".MuiDataGrid-footerContainer": { borderTop: "1px solid #e0e0e0" },
-        }}
-      />
+      <div className="table-wrapper">
+        <div className="table-inner">
+          <DataGrid
+            rows={quotations}
+            getRowId={(row) => row.id}
+            columns={columns}
+            loading={loading}
+            showToolbar
+            pagination
+            paginationModel={paginationModel}
+            onPaginationModelChange={setPaginationModel}
+            rowsPerPageOptions={[10, 20, 50]}
+            disableSelectionOnClick
+            experimentalFeatures={{ newEditingApi: true }}
+            processRowUpdate={handleProcessRowUpdate}
+            pageSizeOptions={[10, 20, 50]}
+            columnVisibilityModel={columnVisibility}
+            onColumnVisibilityModelChange={(newModel) =>
+              setColumnVisibility(newModel)
+            }
+            sx={{
+              borderRadius: 2,
+              ".MuiDataGrid-cell": { py: 1.2 },
+              ".MuiDataGrid-columnHeaders": {
+                backgroundColor: "#f5f5f5",
+                fontWeight: 600,
+              },
+              ".MuiDataGrid-footerContainer": {
+                borderTop: "1px solid #e0e0e0",
+              },
+            }}
+          />
+        </div>
+      </div>
 
       {/* Snackbar */}
       <Snackbar

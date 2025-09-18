@@ -11,3 +11,12 @@ body {
 main {
   min-height: calc(100vh - 80px); /* Sesuaikan tinggi header/footer */
 }
+
+/* global.css */
+.table-wrapper {
+  @apply w-full overflow-x-auto;
+}
+
+.table-inner {
+  @apply min-w-[1200px];
+}

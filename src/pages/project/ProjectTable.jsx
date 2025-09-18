@@ -21,6 +21,8 @@ import { useNavigate } from "react-router-dom";
 import ColumnVisibilityModal from "../../components/ColumnVisibilityModal";
 import api from "../../api/api"; // Axios instance
 import ProjectFormModal from "../project/ProjectFormModal";
+import { getUser } from "../../utils/storage";
+import LoadingScreen from "../../components/loading/loadingScreen";
 
 export default function ProjectTable() {
   const navigate = useNavigate();
@@ -44,6 +46,32 @@ export default function ProjectTable() {
   });
   const [openCreateModal, setOpenCreateModal] = useState(false);
 
+  const user = getUser();
+  const userRole = user?.role?.name?.toLowerCase();
+
+  const marketingRoles = [
+    "marketing_admin",
+    "manager_marketing",
+    "sales_supervisor",
+    "super_admin",
+    "marketing_director",
+    "supervisor marketing",
+    "sales_supervisor",
+    "marketing_estimator",
+    "engineering_director",
+  ].includes(userRole);
+
+  const engineerRoles = ["project controller", "project manager"].includes(
+    userRole
+  );
+
+  const sensitiveCols = [
+    "po_value",
+    "jumlah_invoice",
+    "sales_weeks",
+    "is_confirmation_order",
+  ];
+
   const columns = [
     {
       field: "actions",
@@ -55,14 +83,20 @@ export default function ProjectTable() {
           key="view"
           icon={<Typography color="primary">👁️</Typography>}
           label="View"
-          onClick={() => navigate(`/projects/${params.row.pn_number}`)}
+          onClick={() => {
+            if (marketingRoles) {
+              navigate(`/projects/${params.row.pn_number}`);
+            } else if (engineerRoles) {
+              navigate(`/engineer/projects/${params.row.pn_number}`);
+            }
+          }}
         />,
       ],
     },
     {
       field: "project_number",
-      headerName: "PN Number",
-      flex: 1,
+      headerName: "Project Code",
+      flex: 4,
       renderCell: (params) => (
         <Typography fontWeight={600}>{params.value}</Typography>
       ),
@@ -70,8 +104,7 @@ export default function ProjectTable() {
     {
       field: "project_name",
       headerName: "Project Name",
-      flex: 2,
-      editable: true,
+      flex: 5,
       renderCell: (params) => (
         <Typography noWrap fontWeight={500}>
           {params.value}
@@ -79,27 +112,25 @@ export default function ProjectTable() {
       ),
     },
     {
-      field: "client_name",
-      headerName: "Client",
-      flex: 1,
+      field: "categories_name",
+      headerName: "Category",
+      flex: 6,
       renderCell: (params) => (
-        <Typography color="text.secondary" noWrap>
-          {params.value || "-"}
-        </Typography>
+        <Typography color="text.secondary">{params.value || "-"}</Typography>
       ),
     },
     {
       field: "no_quotation",
       headerName: "No. Quotation",
-      flex: 1,
+      flex: 5,
       renderCell: (params) => (
         <Typography fontWeight={500}>{params.value || "-"}</Typography>
       ),
     },
     {
-      field: "categories_name",
-      headerName: "Category",
-      flex: 1,
+      field: "client_name",
+      headerName: "Client",
+      flex: 5,
       renderCell: (params) => (
         <Typography color="text.secondary" noWrap>
           {params.value || "-"}
@@ -107,28 +138,61 @@ export default function ProjectTable() {
       ),
     },
     {
+      field: "phc_dates",
+      headerName: "PHC Date",
+      flex: 4,
+      renderCell: (params) =>
+        params.value ? formatDate(params.value) : <Typography>-</Typography>,
+    },
+    {
+      field: "mandays_engineer",
+      headerName: "Mandays Engineer",
+      flex: 2,
+      renderCell: (params) => params.value || "-",
+    },
+    {
+      field: "mandays_technician",
+      headerName: "Mandays Technician",
+      flex: 2,
+      renderCell: (params) => params.value || "-",
+    },
+    {
       field: "target_dates",
       headerName: "Target Date",
-      flex: 1,
-      renderCell: (params) => {
-        if (!params.value)
-          return <Typography color="text.secondary">-</Typography>;
-        const date = new Date(params.value);
-        return (
-          <Typography color="text.secondary" noWrap>{`${String(
-            date.getDate()
-          ).padStart(2, "0")}-${String(date.getMonth() + 1).padStart(
-            2,
-            "0"
-          )}-${date.getFullYear()}`}</Typography>
-        );
-      },
+      flex: 5,
+      renderCell: (params) =>
+        params.value ? formatDate(params.value) : <Typography>-</Typography>,
+    },
+    {
+      field: "material_status",
+      headerName: "Material Status",
+      flex: 2,
+      renderCell: (params) => params.value || "-",
+    },
+    {
+      field: "dokumen_finish_date",
+      headerName: "Document Finish Date",
+      flex: 2,
+      renderCell: (params) =>
+        params.value ? formatDate(params.value) : <Typography>-</Typography>,
+    },
+    {
+      field: "engineering_finish_date",
+      headerName: "Engineering Finish Date",
+      flex: 2,
+      renderCell: (params) =>
+        params.value ? formatDate(params.value) : <Typography>-</Typography>,
+    },
+    {
+      field: "jumlah_invoice",
+      headerName: "Jumlah Invoice",
+      flex: 2,
+      renderCell: (params) => params.value || "-",
     },
     {
       field: "status_project",
       headerName: "Status",
-      flex: 1,
-      editable: true,
+      flex: 2,
       renderCell: (params) => {
         const statusName = params.value?.name || "-";
         return (
@@ -141,7 +205,70 @@ export default function ProjectTable() {
         );
       },
     },
+    {
+      field: "project_progress",
+      headerName: "Progress (%)",
+      flex: 2,
+      renderCell: (params) => `${params.value || 0}%`,
+    },
+    {
+      field: "po_date",
+      headerName: "PO Date",
+      flex: 2,
+      renderCell: (params) =>
+        params.value ? formatDate(params.value) : <Typography>-</Typography>,
+    },
+    {
+      field: "sales_weeks",
+      headerName: "Sales Weeks",
+      flex: 2,
+      renderCell: (params) => params.value || "-",
+    },
+    {
+      field: "po_number",
+      headerName: "PO Number",
+      flex: 2,
+      renderCell: (params) => params.value || "-",
+    },
+    {
+      field: "po_value",
+      headerName: "PO Value",
+      flex: 2,
+      renderCell: (params) => params.value || "-",
+    },
+    {
+      field: "is_confirmation_order",
+      headerName: "Confirmation Order",
+      flex: 2,
+      renderCell: (params) =>
+        Number(params.value) === 1 ? (
+          <Chip label="Yes" color="success" size="small" />
+        ) : (
+          <Chip label="No" color="error" size="small" variant="outlined" />
+        ),
+    },
+    {
+      field: "parent_pn_number",
+      headerName: "Parent PN",
+      flex: 2,
+      renderCell: (params) => params.value || "-",
+    },
   ];
+
+  const filteredColumns = engineerRoles
+    ? columns.filter((col) => !sensitiveCols.includes(col.field))
+    : columns;
+
+  function formatDate(value) {
+    const date = new Date(value);
+    return (
+      <Typography color="text.secondary" noWrap>
+        {`${String(date.getDate()).padStart(2, "0")}-${String(
+          date.getMonth() + 1
+        ).padStart(2, "0")}-${date.getFullYear()}`}
+      </Typography>
+    );
+  }
 
   const [columnVisibility, setColumnVisibility] = useState(
     columns.reduce((acc, col) => ({ ...acc, [col.field]: true }), {})
@@ -319,55 +446,57 @@ export default function ProjectTable() {
   return (
     <div style={{ height: 600, width: "100%" }}>
       <div className="flex justify-end mb-2">
-        <IconButton
-          onClick={() => setOpenCreateModal(true)}
-          sx={{
-            backgroundColor: "#2563eb",
-            color: "#fff",
-            width: 36,
-            height: 36,
-            "&:hover": { backgroundColor: "#1d4ed8" },
-          }}
-        >
-          <Plus fontSize="small" />
-        </IconButton>
-        <ColumnVisibilityModal
-          columns={columns}
-          columnVisibility={columnVisibility}
-          handleToggleColumn={(field) =>
-            setColumnVisibility((prev) => ({ ...prev, [field]: !prev[field] }))
-          }
-        />
+        {!engineerRoles && ( // hanya tampil kalau BUKAN engineer
+          <IconButton
+            onClick={() => setOpenCreateModal(true)}
+            sx={{
+              backgroundColor: "#2563eb",
+              color: "#fff",
+              width: 36,
+              height: 36,
+              "&:hover": { backgroundColor: "#1d4ed8" },
+            }}
+          >
+            <Plus fontSize="small" />
+          </IconButton>
+        )}
       </div>
-
-      <DataGrid
-        rows={projects}
-        getRowId={(row) => row.pn_number}
-        columns={columns}
-        loading={loading}
-        showToolbar
-        pagination
-        paginationModel={paginationModel}
-        onPaginationModelChange={setPaginationModel}
-        rowsPerPageOptions={[10, 20, 50]}
-        disableSelectionOnClick
-        experimentalFeatures={{ newEditingApi: true }}
-        processRowUpdate={handleProcessRowUpdate}
-        pageSizeOptions={[10, 20, 50]}
-        columnVisibilityModel={columnVisibility}
-        onColumnVisibilityModelChange={(newModel) =>
-          setColumnVisibility(newModel)
-        }
-        sx={{
-          borderRadius: 2,
-          ".MuiDataGrid-cell": { py: 1.2 },
-          ".MuiDataGrid-columnHeaders": {
-            backgroundColor: "#f5f5f5",
-            fontWeight: 600,
-          },
-          ".MuiDataGrid-footerContainer": { borderTop: "1px solid #e0e0e0" },
-        }}
-      />
+      <div className="table-wrapper">
+        <div className="table-inner">
+          <DataGrid
+            rows={projects}
+            getRowId={(row) => row.pn_number}
+            columns={filteredColumns.map((col) => ({
+              ...col,
+              minWidth: col.minWidth || 150, // kasih default minWidth
+              flex: col.flex || 1,
+            }))}
+            loading={loading}
+            showToolbar
+            pagination
+            paginationModel={paginationModel}
+            onPaginationModelChange={setPaginationModel}
+            pageSizeOptions={[10, 20, 50]}
+            disableSelectionOnClick
+            processRowUpdate={handleProcessRowUpdate}
+            columnVisibilityModel={columnVisibility}
+            onColumnVisibilityModelChange={(newModel) =>
+              setColumnVisibility(newModel)
+            }
+            sx={{
+              borderRadius: 2,
+              ".MuiDataGrid-cell": { py: 1.2 },
+              ".MuiDataGrid-columnHeaders": {
+                backgroundColor: "#f5f5f5",
+                fontWeight: 600,
+              },
+              ".MuiDataGrid-footerContainer": {
+                borderTop: "1px solid #e0e0e0",
+              },
+            }}
+          />
+        </div>
+      </div>
 
       <Snackbar
         open={snackbar.open}

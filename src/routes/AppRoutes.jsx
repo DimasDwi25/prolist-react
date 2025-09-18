@@ -20,6 +20,9 @@ import ProjectTable from "../pages/project/ProjectTable";
 import ProjectDetails from "../pages/project/ProjectDetails";
 import PhcForm from "../pages/phc/PhcForm";
 import ApprovalPage from "../pages/approvall/ApprovallPage";
+import EngineerDashboard from "../pages/dashboard/EngineerDashboard";
+import ViewProjects from "../pages/engineer-page/project/ViewProjects";
+import UpdateDocumentPhc from "../pages/engineer-page/phc/UpdateDocumentPhc";
 
 function AppRoutes() {
   return (
@@ -37,6 +40,12 @@ function AppRoutes() {
                 "marketing_admin",
                 "manager_marketing",
                 "sales_supervisor",
+                "super_admin",
+                "marketing_director",
+                "supervisor marketing",
+                "sales_supervisor",
+                "marketing_estimator",
+                "engineering_director",
               ]}
             >
               <MainLayout>
@@ -54,6 +63,12 @@ function AppRoutes() {
                 "marketing_admin",
                 "manager_marketing",
                 "sales_supervisor",
+                "super_admin",
+                "marketing_director",
+                "supervisor marketing",
+                "sales_supervisor",
+                "marketing_estimator",
+                "engineering_director",
               ]}
             >
               <MainLayout>
@@ -71,6 +86,12 @@ function AppRoutes() {
                 "marketing_admin",
                 "manager_marketing",
                 "sales_supervisor",
+                "super_admin",
+                "marketing_director",
+                "supervisor marketing",
+                "sales_supervisor",
+                "marketing_estimator",
+                "engineering_director",
               ]}
             >
               <MainLayout>
@@ -88,6 +109,12 @@ function AppRoutes() {
                 "marketing_admin",
                 "manager_marketing",
                 "sales_supervisor",
+                "super_admin",
+                "marketing_director",
+                "supervisor marketing",
+                "sales_supervisor",
+                "marketing_estimator",
+                "engineering_director",
               ]}
             >
               <MainLayout>
@@ -105,6 +132,12 @@ function AppRoutes() {
                 "marketing_admin",
                 "manager_marketing",
                 "sales_supervisor",
+                "super_admin",
+                "marketing_director",
+                "supervisor marketing",
+                "sales_supervisor",
+                "marketing_estimator",
+                "engineering_director",
               ]}
             >
               <MainLayout>
@@ -122,6 +155,12 @@ function AppRoutes() {
                 "marketing_admin",
                 "manager_marketing",
                 "sales_supervisor",
+                "super_admin",
+                "marketing_director",
+                "supervisor marketing",
+                "sales_supervisor",
+                "marketing_estimator",
+                "engineering_director",
               ]}
             >
               <MainLayout>
@@ -139,6 +178,12 @@ function AppRoutes() {
                 "marketing_admin",
                 "manager_marketing",
                 "sales_supervisor",
+                "super_admin",
+                "marketing_director",
+                "supervisor marketing",
+                "sales_supervisor",
+                "marketing_estimator",
+                "engineering_director",
               ]}
             >
               <MainLayout>
@@ -156,6 +201,14 @@ function AppRoutes() {
                 "marketing_admin",
                 "manager_marketing",
                 "sales_supervisor",
+                "super_admin",
+                "marketing_director",
+                "supervisor marketing",
+                "sales_supervisor",
+                "marketing_estimator",
+                "engineering_director",
+                "project controller",
+                "project manager",
               ]}
             >
               <MainLayout>
@@ -173,6 +226,14 @@ function AppRoutes() {
                 "marketing_admin",
                 "manager_marketing",
                 "sales_supervisor",
+                "super_admin",
+                "marketing_director",
+                "supervisor marketing",
+                "sales_supervisor",
+                "marketing_estimator",
+                "engineering_director",
+                "project controller",
+                "project manager",
               ]}
             >
               <MainLayout>
@@ -190,6 +251,12 @@ function AppRoutes() {
                 "marketing_admin",
                 "manager_marketing",
                 "sales_supervisor",
+                "super_admin",
+                "marketing_director",
+                "supervisor marketing",
+                "sales_supervisor",
+                "marketing_estimator",
+                "engineering_director",
               ]}
             >
               <MainLayout>
@@ -207,10 +274,72 @@ function AppRoutes() {
                 "marketing_admin",
                 "manager_marketing",
                 "sales_supervisor",
+                "super_admin",
+                "marketing_director",
+                "supervisor marketing",
+                "sales_supervisor",
+                "marketing_estimator",
+                "engineering_director",
+                "engineer",
+                "project controller",
+                "project manager",
               ]}
             >
               <MainLayout>
                 <ApprovalPage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Engineer */}
+        <Route
+          path="/engineer"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "engineer",
+                "project controller",
+                "project manager",
+                "engineering_director",
+              ]}
+            >
+              <MainLayout>
+                <EngineerDashboard />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/engineer/projects/:pn_number"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "project controller",
+                "project manager",
+                "engineering_director",
+              ]}
+            >
+              <MainLayout>
+                <ViewProjects />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/engineer/phc/:pn_number"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "project controller",
+                "project manager",
+                "engineering_director",
+              ]}
+            >
+              <MainLayout>
+                <UpdateDocumentPhc />
               </MainLayout>
             </ProtectedRoute>
           }

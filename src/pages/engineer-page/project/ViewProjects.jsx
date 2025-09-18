@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { format, parseISO } from "date-fns";
-import api from "../../api/api";
-import LoadingScreen from "../../components/loading/loadingScreen";
+import api from "../../../api/api";
+import LoadingScreen from "../../../components/loading/loadingScreen";
 
-const ProjectDetails = () => {
+const ViewProjects = () => {
   const { pn_number } = useParams();
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -31,10 +31,6 @@ const ProjectDetails = () => {
     fetchProject();
   }, [pn_number]);
 
-  if (loading) {
-    return <LoadingScreen />;
-  }
-
   // Helper functions
   const display = (value) => value || "—";
 
@@ -52,10 +48,9 @@ const ProjectDetails = () => {
     return new Intl.NumberFormat("id-ID").format(parseFloat(value));
   };
 
-  if (loading)
-    return (
-      <div className="flex justify-center items-center h-64">Loading...</div>
-    );
+  if (loading) {
+    return <LoadingScreen />;
+  }
   if (error)
     return <div className="text-red-500 text-center p-8">Error: {error}</div>;
   if (!project) return <div className="text-center p-8">Project not found</div>;
@@ -109,33 +104,10 @@ const ProjectDetails = () => {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          {/* Edit Project Button */}
-          <Link
-            to={`/project/edit/${project.id}`}
-            className="flex items-center gap-1 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-              />
-            </svg>
-            Edit Project
-          </Link>
-
-          {/* PHC Actions */}
-          {project.phc ? (
-            <>
+          {project.phc && (
+            <div className="flex gap-2">
               <Link
-                to={`/phc/edit/${project.phc.id}`}
+                to={`/engineer/phc/${project.pn_number}`}
                 className="flex items-center gap-1 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm"
               >
                 <svg
@@ -152,7 +124,7 @@ const ProjectDetails = () => {
                     d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
                   />
                 </svg>
-                Edit PHC
+                Update PHC
               </Link>
 
               <Link
@@ -181,52 +153,8 @@ const ProjectDetails = () => {
                 </svg>
                 View PHC
               </Link>
-            </>
-          ) : (
-            <Link
-              to={`/phc/${project.pn_number}`}
-              state={{ project }}
-              className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M12 4v16m8-8H4"
-                />
-              </svg>
-              Create PHC
-            </Link>
+            </div>
           )}
-
-          {/* View Logs */}
-          <Link
-            to={`/supervisor/projects/logs/${project.pn_number}`}
-            className="flex items-center gap-1 bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
-            </svg>
-            View Logs
-          </Link>
         </div>
       </div>
 
@@ -798,4 +726,4 @@ const ProjectDetails = () => {
   );
 };
 
-export default ProjectDetails;
+export default ViewProjects;
