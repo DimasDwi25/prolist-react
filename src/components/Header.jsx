@@ -2,7 +2,7 @@ import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import ProfileDropdown from "./ProfileDropdown";
 // import NotificationDropdown from "./NotificationDropdown";
-import LogoCitasys from "../assets/CITASys Logo.jpg";
+import LogoCitasys from "../../public/assets/CITASys Logo.jpg";
 
 export default function Header({
   user,

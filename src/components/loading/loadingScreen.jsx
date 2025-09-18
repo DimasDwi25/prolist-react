@@ -1,5 +1,5 @@
 import React from "react";
-import loadingImg from "../../assets/CITASys-Logo.gif";
+import loadingImg from "../../../public/assets/CITASys-Logo.gif";
 
 export default function LoadingScreen() {
   return (
