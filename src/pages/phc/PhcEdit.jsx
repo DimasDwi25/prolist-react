@@ -1,38 +1,31 @@
 import { useState, useEffect } from "react";
 import {
-  Box,
-  Button,
   TextField,
-  Typography,
-  Grid,
   Autocomplete,
   CircularProgress,
+  Button,
 } from "@mui/material";
 import api from "../../api/api";
-import { useLocation, useNavigate } from "react-router-dom";
-import BoqModal from "../../components/modal/BoqModal";
+import { useNavigate, useParams } from "react-router-dom";
 import Swal from "sweetalert2";
+import BoqModal from "../../components/modal/BoqModal";
 
-export default function CreatePhcPage() {
+export default function PhcEdit() {
+  const { projectId } = useParams();
+
   const navigate = useNavigate();
-  // 🔹 Mulai default Step 1
   const [step, setStep] = useState(1);
-
-  // State users
+  const [phc, setPhc] = useState(null);
   const [marketingUsers, setMarketingUsers] = useState([]);
   const [engineeringUsers, setEngineeringUsers] = useState([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
 
-  const { state } = useLocation();
-  const project = state?.project;
-
   const [openBoq, setOpenBoq] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [phcCreated, setPhcCreated] = useState(false);
 
   const [documents, setDocuments] = useState([]);
 
-  // State form
+  // 🔹 Form state
   const [formData, setFormData] = useState({
     handover_date: "",
     start_date: "",
@@ -58,6 +51,7 @@ export default function CreatePhcPage() {
     penalty_detail: "",
   });
 
+  // 🔹 Fetch users
   useEffect(() => {
     const fetchUsers = async () => {
       try {
@@ -79,9 +73,46 @@ export default function CreatePhcPage() {
     fetchUsers();
   }, []);
 
+  // 🔹 Fetch existing PHC untuk edit
   useEffect(() => {
-    console.log("Project dari state:", project);
-  }, [project]);
+    const fetchPhc = async () => {
+      try {
+        const res = await api.get(`/phc/${projectId}`);
+        console.log("🔍 Fetch PHC:", res.data);
+
+        if (res.data.success && res.data.data) {
+          const phc = res.data.data;
+          setPhc(phc);
+
+          setFormData((prev) => ({
+            ...prev,
+            handover_date: phc.handover_date || "",
+            start_date: phc.start_date || "",
+            target_finish_date: phc.target_finish_date || "",
+            client_pic_name: phc.client_pic_name || "",
+            client_mobile: phc.client_mobile || "",
+            client_reps_office_address: phc.client_reps_office_address || "",
+            client_site_address: phc.client_site_address || "",
+            client_site_representatives: phc.client_site_representatives || "",
+            site_phone_number: phc.site_phone_number || "",
+            ho_marketings_id: phc.ho_marketing?.id || "",
+            pic_marketing_id: phc.pic_marketing?.id || "",
+            ho_engineering_id: phc.ho_engineering?.id || "",
+            pic_engineering_id: phc.pic_engineering?.id || "",
+            notes: phc.notes || "",
+            costing_by_marketing: normalizeValue(phc.costing_by_marketing),
+            boq: normalizeValue(phc.boq),
+            retention: normalizeValue(phc.retention),
+            warranty: normalizeValue(phc.warranty),
+            penalty: normalizeValue(phc.penalty),
+          }));
+        }
+      } catch (err) {
+        console.error("❌ Error fetch PHC:", err);
+      }
+    };
+    if (projectId) fetchPhc();
+  }, [projectId]);
 
   useEffect(() => {
     const fetchDocuments = async () => {
@@ -103,71 +134,64 @@ export default function CreatePhcPage() {
   }, []);
 
   const handleChange = (field, value) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
   };
-
+  // 🔹 Submit Update
   const onSubmit = async (e) => {
     e.preventDefault();
-    if (submitting || phcCreated) return; // prevent double submit
+    if (submitting) return;
     try {
       setSubmitting(true);
-      console.log("📤 Data PHC dikirim:", formData);
+      console.log("📤 Update PHC:", formData);
 
-      const res = await api.post("/phc", {
-        ...formData,
-        project_id: project?.pn_number,
-      });
+      const res = await api.put(`/phc/${projectId}`, formData);
 
-      if (res.data.status === "success") {
-        setPhcCreated(true);
-
-        // tampilkan success alert
+      if (res.data.success) {
         await Swal.fire({
           icon: "success",
-          title: "PHC Berhasil Disimpan",
-          text: "Data PHC telah berhasil dibuat.",
+          title: "PHC Updated",
+          text: "Data PHC berhasil diperbarui",
           confirmButtonText: "OK",
         });
 
-        // close BOQ modal otomatis setelah PHC dibuat
-        setOpenBoq(false);
-        setSubmitting(false);
-
-        // Redirect ke detail project
-        navigate(`/projects/${project?.pn_number}`, {
-          state: { project },
-        });
+        navigate(`/projects/${phc?.project?.pn_number}`);
       } else {
         Swal.fire({
           icon: "error",
-          title: "Gagal Menyimpan PHC",
-          text: res.data.message || "Terjadi kesalahan saat menyimpan PHC",
+          title: "Gagal Update PHC",
+          text: res.data.message || "Terjadi kesalahan saat update",
         });
-        setSubmitting(false);
       }
     } catch (err) {
-      console.error("❌ Error submit PHC:", err);
+      console.error("❌ Error update PHC:", err);
       Swal.fire({
         icon: "error",
         title: "Error",
         text:
           err.response?.data?.message || "Terjadi error jaringan atau server",
       });
+    } finally {
       setSubmitting(false);
     }
   };
 
   const formatDate = (value) => {
-    if (!value) return "-";
-
+    if (!value) return "";
     const date = new Date(value);
-    if (isNaN(date.getTime())) return "-"; // cek valid date
-
-    const day = String(date.getDate()).padStart(2, "0");
-    const month = String(date.getMonth() + 1).padStart(2, "0");
+    if (isNaN(date.getTime())) return "";
     const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`; // ✅ format sesuai input[type="date"]
+  };
 
-    return `${day}-${month}-${year}`;
+  const normalizeValue = (val) => {
+    if (val === "0") return "NA";
+    if (val === "1") return "A"; // kalau backend nanti pakai 1
+    return val; // biarin kalau sudah "A" / "NA"
   };
 
   return (
@@ -175,16 +199,14 @@ export default function CreatePhcPage() {
       <div className="mb-4">
         <button
           type="button"
-          onClick={() =>
-            navigate(`/projects/${project?.pn_number}`, { state: { project } })
-          }
+          onClick={() => navigate(`/projects/${phc?.project?.pn_number}`)}
           className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-md text-sm"
         >
           ⬅️ Back to Project
         </button>
       </div>
       <h2 className="text-2xl font-bold mb-8 text-center">
-        ➕ Create Project Handover Checklist (PHC)
+        ✏️ Edit Project Handover Checklist (PHC)
       </h2>
 
       {/* Step Indicator */}
@@ -210,34 +232,33 @@ export default function CreatePhcPage() {
       <div className="flex flex-col md:flex-row justify-center mb-6 gap-3 md:space-x-4">
         <button
           type="button"
-          onClick={() => setStep(1)}
-          className={`px-4 py-2 rounded-md font-medium transition w-full md:w-40 text-sm md:text-base ${
+          className={`px-4 py-2 rounded-md w-full md:w-40 text-sm md:text-base ${
             step === 1 ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700"
           }`}
+          onClick={() => setStep(1)}
         >
           1️⃣ Information
         </button>
         <button
           type="button"
-          onClick={() => setStep(2)}
-          className={`px-4 py-2 rounded-md font-medium transition w-full md:w-40 text-sm md:text-base ${
+          className={`px-4 py-2 rounded-md w-full md:w-40 text-sm md:text-base ${
             step === 2 ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700"
           }`}
+          onClick={() => setStep(2)}
         >
           2️⃣ Checklist
         </button>
         <button
           type="button"
-          onClick={() => setStep(3)}
-          className={`px-4 py-2 rounded-md font-medium transition w-full md:w-40 text-sm md:text-base ${
+          className={`px-4 py-2 rounded-md w-full md:w-40 text-sm md:text-base ${
             step === 3 ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700"
           }`}
+          onClick={() => setStep(3)}
         >
           3️⃣ Documents
         </button>
       </div>
 
-      {/* ---------------- LOADING ---------------- */}
       {loadingUsers ? (
         <div className="flex justify-center items-center h-40">
           <CircularProgress />
@@ -251,49 +272,51 @@ export default function CreatePhcPage() {
                 {/* 🔹 Project info → read-only */}
                 <TextField
                   label="Project"
-                  value={project?.project_name || ""}
+                  value={phc?.project?.project_name || ""}
                   fullWidth
                   InputProps={{ readOnly: true }}
                 />
                 <TextField
                   label="PN Number"
-                  value={project?.project_number || ""}
+                  value={phc?.project?.project_number || ""}
                   fullWidth
                   InputProps={{ readOnly: true }}
                 />
                 <TextField
                   label="Quotation Number"
-                  value={project?.quotation?.no_quotation || ""}
+                  value={phc?.project?.quotation?.no_quotation || ""}
                   fullWidth
                   InputProps={{ readOnly: true }}
                 />
                 <TextField
                   label="Quotation Date"
-                  value={formatDate(project?.quotation?.quotation_date || "")}
+                  value={formatDate(
+                    phc?.project?.quotation?.quotation_date || ""
+                  )}
                   fullWidth
                   InputProps={{ readOnly: true }}
                 />
                 <TextField
                   label="PO Number"
-                  value={project?.po_number || ""}
+                  value={phc?.project?.po_number || ""}
                   fullWidth
                   InputProps={{ readOnly: true }}
                 />
                 <TextField
                   label="PO Date"
-                  value={formatDate(project?.po_date || "")}
+                  value={formatDate(phc?.project?.po_date || "")}
                   fullWidth
                   InputProps={{ readOnly: true }}
                 />
 
+                {/* 🔹 Dates (editable) */}
                 <div className="md:col-span-2">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {/* Dates */}
                     <TextField
                       type="date"
                       label="Handover Date"
                       InputLabelProps={{ shrink: true }}
-                      value={formData.handover_date}
+                      value={formatDate(formData.handover_date)}
                       onChange={(e) =>
                         handleChange("handover_date", e.target.value)
                       }
@@ -303,7 +326,7 @@ export default function CreatePhcPage() {
                       type="date"
                       label="Start Date"
                       InputLabelProps={{ shrink: true }}
-                      value={formData.start_date}
+                      value={formatDate(formData.start_date)}
                       onChange={(e) =>
                         handleChange("start_date", e.target.value)
                       }
@@ -313,7 +336,7 @@ export default function CreatePhcPage() {
                       type="date"
                       label="Target Finish Date"
                       InputLabelProps={{ shrink: true }}
-                      value={formData.target_finish_date}
+                      value={formatDate(formData.target_finish_date)}
                       onChange={(e) =>
                         handleChange("target_finish_date", e.target.value)
                       }
@@ -322,7 +345,7 @@ export default function CreatePhcPage() {
                   </div>
                 </div>
 
-                {/* Client Info */}
+                {/* 🔹 Client info (editable) */}
                 <TextField
                   label="Client PIC Name"
                   value={formData.client_pic_name}
@@ -353,84 +376,105 @@ export default function CreatePhcPage() {
                   />
                 </div>
 
-                {/* Client Site Info - 3 columns */}
-                <div className="md:col-span-2">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <TextField
-                      label="Client Site Address"
-                      value={formData.client_site_address}
-                      onChange={(e) =>
-                        handleChange("client_site_address", e.target.value)
-                      }
-                      fullWidth
-                    />
-                    <TextField
-                      label="Client Representative"
-                      value={formData.client_site_representatives}
-                      onChange={(e) =>
-                        handleChange(
-                          "client_site_representatives",
-                          e.target.value
-                        )
-                      }
-                      fullWidth
-                    />
-                    <TextField
-                      label="Site Phone Number"
-                      value={formData.site_phone_number}
-                      onChange={(e) =>
-                        handleChange("site_phone_number", e.target.value)
-                      }
-                      fullWidth
-                    />
-                  </div>
+                <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <TextField
+                    label="Client Site Address"
+                    value={formData.client_site_address}
+                    onChange={(e) =>
+                      handleChange("client_site_address", e.target.value)
+                    }
+                    fullWidth
+                  />
+                  <TextField
+                    label="Client Representative"
+                    value={formData.client_site_representatives}
+                    onChange={(e) =>
+                      handleChange(
+                        "client_site_representatives",
+                        e.target.value
+                      )
+                    }
+                    fullWidth
+                  />
+                  <TextField
+                    label="Site Phone Number"
+                    value={formData.site_phone_number}
+                    onChange={(e) =>
+                      handleChange("site_phone_number", e.target.value)
+                    }
+                    fullWidth
+                  />
                 </div>
 
-                {/* Marketing */}
+                {/* 🔹 HO Marketing */}
                 <Autocomplete
                   options={marketingUsers}
                   getOptionLabel={(option) => option.name || ""}
-                  onChange={(e, value) =>
-                    handleChange("ho_marketings_id", value?.id || "")
+                  value={
+                    marketingUsers.find(
+                      (u) => u.id === formData.ho_marketings_id
+                    ) || null
+                  }
+                  onChange={(e, newValue) =>
+                    handleChange("ho_marketings_id", newValue?.id || "")
                   }
                   renderInput={(params) => (
                     <TextField {...params} label="HO Marketing" fullWidth />
                   )}
                 />
+
+                {/* 🔹 PIC Marketing */}
                 <Autocomplete
                   options={marketingUsers}
                   getOptionLabel={(option) => option.name || ""}
-                  onChange={(e, value) =>
-                    handleChange("pic_marketing_id", value?.id || "")
+                  value={
+                    marketingUsers.find(
+                      (u) => u.id === formData.pic_marketing_id
+                    ) || null
+                  }
+                  onChange={(e, newValue) =>
+                    handleChange("pic_marketing_id", newValue?.id || "")
                   }
                   renderInput={(params) => (
                     <TextField {...params} label="PIC Marketing" fullWidth />
                   )}
                 />
 
-                {/* Engineering */}
+                {/* 🔹 HO Engineering */}
                 <Autocomplete
                   options={engineeringUsers}
                   getOptionLabel={(option) => option.name || ""}
-                  onChange={(e, value) =>
-                    handleChange("ho_engineering_id", value?.id || "")
+                  value={
+                    engineeringUsers.find(
+                      (u) => u.id === formData.ho_engineering_id
+                    ) || null
+                  }
+                  onChange={(e, newValue) =>
+                    handleChange("ho_engineering_id", newValue?.id || "")
                   }
                   renderInput={(params) => (
                     <TextField {...params} label="HO Engineering" fullWidth />
                   )}
                 />
+
+                {/* 🔹 PIC Engineering */}
                 <Autocomplete
                   options={engineeringUsers}
                   getOptionLabel={(option) => option.name || ""}
-                  onChange={(e, value) =>
-                    handleChange("pic_engineering_id", value?.id || "")
+                  value={
+                    engineeringUsers.find(
+                      (u) => u.id === formData.pic_engineering_id
+                    ) || null
+                  }
+                  onChange={(e, newValue) =>
+                    handleChange("pic_engineering_id", newValue?.id || "")
                   }
                   renderInput={(params) => (
                     <TextField {...params} label="PIC Engineering" fullWidth />
                   )}
                 />
 
-                {/* Notes */}
+                {/* 🔹 Notes */}
                 <div className="md:col-span-2">
                   <TextField
                     label="Notes"
@@ -443,14 +487,14 @@ export default function CreatePhcPage() {
                 </div>
               </div>
 
-              <div className="flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => setStep(2)}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded"
-                >
-                  ⏭️ Next: Checklist
-                </button>
+              {/* 🔹 Navigation */}
+              <div className="flex justify-between mt-8">
+                <Button variant="outlined" onClick={() => navigate(-1)}>
+                  Back
+                </Button>
+                <Button variant="contained" onClick={() => setStep(2)}>
+                  Next: Checklist
+                </Button>
               </div>
             </div>
           )}
@@ -473,7 +517,7 @@ export default function CreatePhcPage() {
                     label: "Bill of Quantity (BOQ)",
                     hasDetail: true,
                   },
-                  { key: "retention", label: "Retention" },
+                  { key: "retention", label: "Retention", hasDetail: true },
                   { key: "warranty", label: "Warranty", hasDetail: true },
                   { key: "penalty", label: "Penalty", hasDetail: true },
                 ].map(({ key, label, hasDetail }) => (
@@ -484,6 +528,8 @@ export default function CreatePhcPage() {
                     <label className="block text-sm font-medium text-gray-700">
                       {label}
                     </label>
+
+                    {/* Radio A / NA */}
                     <div className="flex items-center gap-4">
                       <label className="inline-flex items-center">
                         <input
@@ -508,11 +554,12 @@ export default function CreatePhcPage() {
                         <span className="ml-2 text-sm">Not Applicable</span>
                       </label>
                     </div>
-                    {/* 🔹 Kalau ada detail field selain BOQ */}
+
+                    {/* Kalau applicable → detail field */}
                     {hasDetail && formData[key] === "A" && key !== "boq" && (
                       <TextField
                         placeholder={`${label} Detail`}
-                        value={formData[`${key}_detail`]}
+                        value={formData[`${key}_detail`] || ""}
                         onChange={(e) =>
                           handleChange(`${key}_detail`, e.target.value)
                         }
@@ -520,7 +567,7 @@ export default function CreatePhcPage() {
                       />
                     )}
 
-                    {/* 🔹 Kalau BOQ Applicable → tampilkan tombol + modal */}
+                    {/* Kalau BOQ applicable → tombol modal */}
                     {key === "boq" && formData[key] === "A" && (
                       <div className="pt-2">
                         <button
@@ -536,6 +583,7 @@ export default function CreatePhcPage() {
                 ))}
               </div>
 
+              {/* Navigasi */}
               <div className="flex justify-between pt-4">
                 <button
                   type="button"
@@ -547,12 +595,12 @@ export default function CreatePhcPage() {
 
                 <button
                   type="submit"
-                  disabled={submitting || phcCreated}
+                  disabled={submitting}
                   className={`bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded ${
                     submitting ? "opacity-50 cursor-not-allowed" : ""
                   }`}
                 >
-                  {submitting ? "💾 Saving..." : "💾 Save PHC"}
+                  {submitting ? "💾 Updating..." : "💾 Update PHC"}
                 </button>
               </div>
             </div>
@@ -609,12 +657,13 @@ export default function CreatePhcPage() {
           )}
         </form>
       )}
-      {/* 🔹 Modal BOQ (inline edit dengan DataGrid) */}
+
+      {/* 🔹 Modal BOQ */}
       <BoqModal
         open={openBoq}
         handleClose={() => setOpenBoq(false)}
-        projectId={project?.pn_number}
-        projectValue={project?.po_value}
+        projectId={phc?.project?.pn_number}
+        projectValue={phc?.project?.po_value}
       />
     </div>
   );

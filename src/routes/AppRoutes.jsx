@@ -23,6 +23,15 @@ import ApprovalPage from "../pages/approvall/ApprovallPage";
 import EngineerDashboard from "../pages/dashboard/EngineerDashboard";
 import ViewProjects from "../pages/engineer-page/project/ViewProjects";
 import UpdateDocumentPhc from "../pages/engineer-page/phc/UpdateDocumentPhc";
+import ViewPhc from "../pages/phc/ViewPhc";
+import PhcEdit from "../pages/phc/PhcEdit";
+import SucDashboard from "../pages/dashboard/SucDashboard";
+import MaterialRequestPage from "../pages/material-request/MaterialRequestPage";
+import MaterialRequestTable from "../pages/material-request/MaterialRequestTable";
+import WorkOrderPage from "../pages/engineer-page/work-order/WorkOrderPage";
+import WorkOrderTable from "../pages/engineer-page/work-order/WorkOrderTable";
+import ManPowerAllocationTable from "../pages/engineer-page/man-power/ManPowerAllocationTable";
+import PackingListPage from "../pages/packing-list/PackingListPage";
 
 function AppRoutes() {
   return (
@@ -30,7 +39,6 @@ function AppRoutes() {
       <Routes>
         {/* Auth */}
         <Route path="/login" element={<Login />} />
-
         {/* Marketing Dashboard (protected) */}
         <Route
           path="/marketing"
@@ -54,7 +62,6 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/client"
           element={
@@ -77,7 +84,6 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/quotation"
           element={
@@ -100,7 +106,6 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/category-project"
           element={
@@ -123,7 +128,6 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/status-project"
           element={
@@ -146,7 +150,6 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/sales-report"
           element={
@@ -169,7 +172,6 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/marketing-report"
           element={
@@ -192,7 +194,6 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/projects"
           element={
@@ -209,6 +210,7 @@ function AppRoutes() {
                 "engineering_director",
                 "project controller",
                 "project manager",
+                "warehouse",
               ]}
             >
               <MainLayout>
@@ -217,7 +219,6 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/projects/:pn_number"
           element={
@@ -242,7 +243,6 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/phc/:pn_number"
           element={
@@ -265,7 +265,6 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/approvall"
           element={
@@ -291,7 +290,56 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
-
+        <Route
+          path="/phcs/show/:phcId"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "marketing_admin",
+                "manager_marketing",
+                "sales_supervisor",
+                "super_admin",
+                "marketing_director",
+                "supervisor marketing",
+                "sales_supervisor",
+                "marketing_estimator",
+                "engineering_director",
+                "engineer",
+                "project controller",
+                "project manager",
+              ]}
+            >
+              <MainLayout>
+                <ViewPhc />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/phc/:projectId/edit"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "marketing_admin",
+                "manager_marketing",
+                "sales_supervisor",
+                "super_admin",
+                "marketing_director",
+                "supervisor marketing",
+                "sales_supervisor",
+                "marketing_estimator",
+                "engineering_director",
+                "engineer",
+                "project controller",
+                "project manager",
+              ]}
+            >
+              <MainLayout>
+                <PhcEdit />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
         {/* Engineer */}
         <Route
           path="/engineer"
@@ -310,7 +358,6 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/engineer/projects/:pn_number"
           element={
@@ -327,9 +374,8 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
-
         <Route
-          path="/engineer/phc/:pn_number"
+          path="/engineer/phc/:phcId"
           element={
             <ProtectedRoute
               allowedRoles={[
@@ -344,10 +390,99 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/work-order"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "project controller",
+                "project manager",
+                "engineering_director",
+                "engineer",
+              ]}
+            >
+              <MainLayout>
+                <WorkOrderPage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/work-order/:pn_number"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "project controller",
+                "project manager",
+                "engineering_director",
+                "engineer",
+              ]}
+            >
+              <MainLayout>
+                <WorkOrderTable />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
 
+        <Route
+          path="/man-power/:pn_number"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "project controller",
+                "project manager",
+                "engineering_director",
+              ]}
+            >
+              <MainLayout>
+                <ManPowerAllocationTable />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/suc"
+          element={
+            <ProtectedRoute allowedRoles={["warehouse"]}>
+              <MainLayout>
+                <SucDashboard />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/material-request"
+          element={
+            <ProtectedRoute allowedRoles={["warehouse"]}>
+              <MainLayout>
+                <MaterialRequestPage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/material-request/:pn_number"
+          element={
+            <ProtectedRoute allowedRoles={["warehouse"]}>
+              <MainLayout>
+                <MaterialRequestTable />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/packing-list"
+          element={
+            <ProtectedRoute allowedRoles={["warehouse"]}>
+              <MainLayout>
+                <PackingListPage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
         {/* Default */}
         <Route path="/" element={<Navigate to="/login" replace />} />
-
         {/* 404 */}
         <Route path="*" element={<h1>Page Not Found</h1>} />
       </Routes>

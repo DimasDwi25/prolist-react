@@ -79,6 +79,12 @@ export default function ApprovalPage() {
     setStatusToUpdate(status);
     setPin("");
     setModalOpen(true);
+
+    // Simpan type untuk memilih endpoint
+    setSelectedApproval(() => ({
+      ...approval,
+      type: approval.type?.toLowerCase(),
+    }));
   };
 
   const handleConfirm = async () => {
@@ -88,7 +94,17 @@ export default function ApprovalPage() {
     }
 
     try {
-      await api.post(`/approvals/${selectedApproval.id}/status`, {
+      let endpoint = `/approvals/${selectedApproval.id}/status`;
+
+      // Kalau WO, ubah endpoint
+      if (
+        selectedApproval.type === "work order" ||
+        selectedApproval.type === "wo"
+      ) {
+        endpoint = `/approvals/wo/${selectedApproval.id}/status`;
+      }
+
+      await api.post(endpoint, {
         status: statusToUpdate,
         pin,
       });
@@ -99,7 +115,7 @@ export default function ApprovalPage() {
         severity: "success",
       });
       setModalOpen(false);
-      fetchApprovals();
+      fetchApprovals(); // reload data
     } catch (err) {
       setAlert({
         open: true,
@@ -143,7 +159,7 @@ export default function ApprovalPage() {
           key="view"
           icon={<VisibilityIcon color="primary" />}
           label="View PHC"
-          onClick={() => handleViewPhc(params.row.approvable.project.pn_number)}
+          onClick={() => handleViewPhc(params.row.approvable.project.phc.id)}
           showInMenu={false}
         />,
       ],

@@ -3,6 +3,9 @@ import { useParams, Link } from "react-router-dom";
 import { format, parseISO } from "date-fns";
 import api from "../../../api/api";
 import LoadingScreen from "../../../components/loading/loadingScreen";
+import BoqModal from "../../../components/modal/BoqModal";
+import { getUser } from "../../../utils/storage";
+import LogTable from "../../../components/table/LogTable";
 
 const ViewProjects = () => {
   const { pn_number } = useParams();
@@ -10,6 +13,10 @@ const ViewProjects = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("project");
+  const [openBoqModal, setOpenBoqModal] = useState(false);
+
+  const user = getUser();
+  const userRole = user?.role?.name;
 
   useEffect(() => {
     const fetchProject = async () => {
@@ -104,10 +111,10 @@ const ViewProjects = () => {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          {project.phc && (
+          {project.phc && project.phc.status === "ready" && (
             <div className="flex gap-2">
               <Link
-                to={`/engineer/phc/${project.pn_number}`}
+                to={`/engineer/phc/${project.phc.id}`}
                 className="flex items-center gap-1 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm"
               >
                 <svg
@@ -128,7 +135,7 @@ const ViewProjects = () => {
               </Link>
 
               <Link
-                to={`/phc/show/${project.phc.id}`}
+                to={`/phcs/show/${project.phc.id}`}
                 className="flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm"
               >
                 <svg
@@ -153,40 +160,39 @@ const ViewProjects = () => {
                 </svg>
                 View PHC
               </Link>
+
+              {/* Update Project Progress */}
+              <button
+                onClick={() => setOpenBoqModal(true)}
+                className="flex items-center gap-1 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm"
+              >
+                Update Progress
+              </button>
             </div>
           )}
+          {/* Man Power Allocation */}
+          <Link
+            to={`/man-power/${project.pn_number}`}
+            className="flex items-center gap-1 bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M12 4v16m8-8H4"
+              />
+            </svg>
+            Man Power Allocation
+          </Link>
         </div>
       </div>
-
-      {/* PHC Status Alert */}
-      {project.phc && project.phc.status === "ready" && (
-        <div className="w-full bg-green-50 border-l-4 border-green-500 rounded-lg p-4">
-          <div className="flex items-start">
-            <div className="flex-shrink-0">
-              <svg
-                className="h-5 w-5 text-green-500"
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <p className="text-sm font-medium text-green-800">
-                PHC is ready for next steps
-              </p>
-              <p className="mt-1 text-sm text-green-700">
-                All approvals have been completed for this PHC document.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
 
       {project.phc &&
         project.pendingApprovals &&
@@ -695,33 +701,15 @@ const ViewProjects = () => {
       </div>
 
       {/* Recent Activity Section */}
-      <div className="mt-8">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-medium text-gray-900">Recent Activity</h3>
-          <div className="flex space-x-3">
-            {/* Add Log Button - You would implement a modal here */}
-            <button
-              type="button"
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow text-sm w-full md:w-auto"
-            >
-              + Tambah Log
-            </button>
-          </div>
-          <Link
-            to={`/supervisor/projects/logs/${project.pn_number}`}
-            className="text-sm font-medium text-blue-600 hover:text-blue-800"
-          >
-            View all activity
-          </Link>
-        </div>
-        {/* Log table component would go here */}
-        <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-          {/* You would implement a log table component here */}
-          <div className="p-4 text-center text-gray-500">
-            Log table component would be implemented here
-          </div>
-        </div>
-      </div>
+      <LogTable projectId={project.pn_number} />
+      {openBoqModal && (
+        <BoqModal
+          open={openBoqModal}
+          handleClose={() => setOpenBoqModal(false)}
+          projectId={project.pn_number}
+          role={userRole}
+        />
+      )}
     </div>
   );
 };

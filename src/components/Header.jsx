@@ -39,7 +39,8 @@ export default function Header({
           <img
             src={LogoCitasys}
             alt="CITASys Logo"
-            className="max-h-8 object-contain"
+            className="h-8 w-auto object-contain transition-transform duration-200 ease-in-out hover:scale-105"
+            aria-label="CITASys Logo"
           />
         </div>
       </div>

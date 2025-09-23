@@ -23,6 +23,7 @@ import api from "../../api/api"; // Axios instance
 import ProjectFormModal from "../project/ProjectFormModal";
 import { getUser } from "../../utils/storage";
 import LoadingScreen from "../../components/loading/loadingScreen";
+import InteractiveFreezeGrid from "../../components/table/InteractiveFreezeGrid";
 
 export default function ProjectTable() {
   const navigate = useNavigate();
@@ -65,19 +66,14 @@ export default function ProjectTable() {
     userRole
   );
 
-  const sensitiveCols = [
-    "po_value",
-    "jumlah_invoice",
-    "sales_weeks",
-    "is_confirmation_order",
-  ];
+  const suc = ["warehouse"].includes(userRole);
 
   const columns = [
     {
       field: "actions",
       type: "actions",
       headerName: "Actions",
-      flex: 1,
+
       getActions: (params) => [
         <GridActionsCellItem
           key="view"
@@ -95,8 +91,8 @@ export default function ProjectTable() {
     },
     {
       field: "project_number",
-      headerName: "Project Code",
-      flex: 4,
+      headerName: "Project Number",
+
       renderCell: (params) => (
         <Typography fontWeight={600}>{params.value}</Typography>
       ),
@@ -104,7 +100,7 @@ export default function ProjectTable() {
     {
       field: "project_name",
       headerName: "Project Name",
-      flex: 5,
+
       renderCell: (params) => (
         <Typography noWrap fontWeight={500}>
           {params.value}
@@ -114,7 +110,7 @@ export default function ProjectTable() {
     {
       field: "categories_name",
       headerName: "Category",
-      flex: 6,
+
       renderCell: (params) => (
         <Typography color="text.secondary">{params.value || "-"}</Typography>
       ),
@@ -122,7 +118,7 @@ export default function ProjectTable() {
     {
       field: "no_quotation",
       headerName: "No. Quotation",
-      flex: 5,
+
       renderCell: (params) => (
         <Typography fontWeight={500}>{params.value || "-"}</Typography>
       ),
@@ -130,7 +126,7 @@ export default function ProjectTable() {
     {
       field: "client_name",
       headerName: "Client",
-      flex: 5,
+
       renderCell: (params) => (
         <Typography color="text.secondary" noWrap>
           {params.value || "-"}
@@ -140,59 +136,139 @@ export default function ProjectTable() {
     {
       field: "phc_dates",
       headerName: "PHC Date",
-      flex: 4,
+
       renderCell: (params) =>
         params.value ? formatDate(params.value) : <Typography>-</Typography>,
-    },
-    {
-      field: "mandays_engineer",
-      headerName: "Mandays Engineer",
-      flex: 2,
-      renderCell: (params) => params.value || "-",
-    },
-    {
-      field: "mandays_technician",
-      headerName: "Mandays Technician",
-      flex: 2,
-      renderCell: (params) => params.value || "-",
     },
     {
       field: "target_dates",
       headerName: "Target Date",
-      flex: 5,
+
       renderCell: (params) =>
         params.value ? formatDate(params.value) : <Typography>-</Typography>,
     },
-    {
-      field: "material_status",
-      headerName: "Material Status",
-      flex: 2,
-      renderCell: (params) => params.value || "-",
-    },
+
     {
       field: "dokumen_finish_date",
       headerName: "Document Finish Date",
-      flex: 2,
+
       renderCell: (params) =>
         params.value ? formatDate(params.value) : <Typography>-</Typography>,
     },
     {
       field: "engineering_finish_date",
       headerName: "Engineering Finish Date",
-      flex: 2,
+
       renderCell: (params) =>
         params.value ? formatDate(params.value) : <Typography>-</Typography>,
     },
     {
+      field: "po_number",
+      headerName: "PO Number",
+
+      renderCell: (params) => params.value || "-",
+    },
+    {
+      field: "po_value",
+      headerName: "PO Value",
+
+      preProcessEditCellProps: (params) => {
+        let value = params.props.value;
+
+        if (value === "" || value === undefined || isNaN(value)) {
+          value = null; // biar aman
+        } else {
+          value = Number(value);
+        }
+
+        return { ...params.props, value };
+      },
+      valueFormatter: (params) => {
+        if (!params || params.value == null) return "-";
+        return new Intl.NumberFormat("id-ID", {
+          style: "currency",
+          currency: "IDR",
+          maximumFractionDigits: 0,
+        }).format(params.value);
+      },
+      renderCell: (params) => (
+        <Typography fontWeight={600} color="green">
+          {params.value != null
+            ? new Intl.NumberFormat("id-ID", {
+                style: "currency",
+                currency: "IDR",
+                maximumFractionDigits: 0,
+              }).format(params.value)
+            : "-"}
+        </Typography>
+      ),
+    },
+    {
+      field: "po_date",
+      headerName: "PO Date",
+
+      renderCell: (params) =>
+        params.value ? formatDate(params.value) : <Typography>-</Typography>,
+    },
+    {
+      field: "sales_weeks",
+      headerName: "Sales Weeks",
+
+      renderCell: (params) => params.value || "-",
+    },
+    {
+      field: "mandays_engineer",
+      headerName: "Mandays Engineer",
+
+      renderCell: (params) => params.value || "-",
+    },
+    {
+      field: "mandays_technician",
+      headerName: "Mandays Technician",
+
+      renderCell: (params) => params.value || "-",
+    },
+    {
+      field: "material_status",
+      headerName: "Material Status",
+
+      renderCell: (params) => params.value || "-",
+    },
+
+    {
       field: "jumlah_invoice",
       headerName: "Jumlah Invoice",
-      flex: 2,
+
+      renderCell: (params) => params.value || "-",
+    },
+    {
+      field: "project_progress",
+      headerName: "Progress (%)",
+
+      renderCell: (params) => `${params.value || 0}%`,
+    },
+
+    {
+      field: "is_confirmation_order",
+      headerName: "Confirmation Order",
+
+      renderCell: (params) =>
+        Number(params.value) === 1 ? (
+          <Chip label="Yes" color="success" size="small" />
+        ) : (
+          <Chip label="No" color="error" size="small" variant="outlined" />
+        ),
+    },
+    {
+      field: "parent_pn_number",
+      headerName: "Parent PN",
+
       renderCell: (params) => params.value || "-",
     },
     {
       field: "status_project",
       headerName: "Status",
-      flex: 2,
+
       renderCell: (params) => {
         const statusName = params.value?.name || "-";
         return (
@@ -205,59 +281,49 @@ export default function ProjectTable() {
         );
       },
     },
-    {
-      field: "project_progress",
-      headerName: "Progress (%)",
-      flex: 2,
-      renderCell: (params) => `${params.value || 0}%`,
-    },
-    {
-      field: "po_date",
-      headerName: "PO Date",
-      flex: 2,
-      renderCell: (params) =>
-        params.value ? formatDate(params.value) : <Typography>-</Typography>,
-    },
-    {
-      field: "sales_weeks",
-      headerName: "Sales Weeks",
-      flex: 2,
-      renderCell: (params) => params.value || "-",
-    },
-    {
-      field: "po_number",
-      headerName: "PO Number",
-      flex: 2,
-      renderCell: (params) => params.value || "-",
-    },
-    {
-      field: "po_value",
-      headerName: "PO Value",
-      flex: 2,
-      renderCell: (params) => params.value || "-",
-    },
-    {
-      field: "is_confirmation_order",
-      headerName: "Confirmation Order",
-      flex: 2,
-      renderCell: (params) =>
-        Number(params.value) === 1 ? (
-          <Chip label="Yes" color="success" size="small" />
-        ) : (
-          <Chip label="No" color="error" size="small" variant="outlined" />
-        ),
-    },
-    {
-      field: "parent_pn_number",
-      headerName: "Parent PN",
-      flex: 2,
-      renderCell: (params) => params.value || "-",
-    },
   ];
+  const roleGroupColumnMap = {
+    marketing: columns.map((col) => col.field),
+    engineer: [
+      "actions",
+      "project_number",
+      "project_name",
+      "categories_name",
+      "client_name",
+      "phc_dates",
+      "target_dates",
+      "material_status",
+      "po_number",
+      "po_date",
+      "project_progress",
+      "status_project",
+    ],
+    warehouse: [
+      "actions",
+      "project_number",
+      "project_name",
+      "categories_name",
+      "client_name",
+      "phc_dates",
+      "target_dates",
+      "material_status",
+      "po_number",
+      "po_date",
+      "project_progress",
+      "status_project",
+    ],
+    super_admin: columns.map((col) => col.field),
+  };
+  let roleGroup = null;
+  if (marketingRoles) roleGroup = "marketing";
+  else if (engineerRoles) roleGroup = "engineer";
+  else if (suc) roleGroup = "warehouse";
+  else if (userRole === "super_admin") roleGroup = "super_admin";
 
-  const filteredColumns = engineerRoles
-    ? columns.filter((col) => !sensitiveCols.includes(col.field))
-    : columns;
+  const allowedColumns = roleGroup ? roleGroupColumnMap[roleGroup] : [];
+  const filteredColumns = columns.filter((col) =>
+    allowedColumns.includes(col.field)
+  );
 
   function formatDate(value) {
     const date = new Date(value);
@@ -446,7 +512,7 @@ export default function ProjectTable() {
   return (
     <div style={{ height: 600, width: "100%" }}>
       <div className="flex justify-end mb-2">
-        {!engineerRoles && ( // hanya tampil kalau BUKAN engineer
+        {!engineerRoles && !suc && (
           <IconButton
             onClick={() => setOpenCreateModal(true)}
             sx={{
@@ -463,14 +529,10 @@ export default function ProjectTable() {
       </div>
       <div className="table-wrapper">
         <div className="table-inner">
-          <DataGrid
+          <InteractiveFreezeGrid
             rows={projects}
             getRowId={(row) => row.pn_number}
-            columns={filteredColumns.map((col) => ({
-              ...col,
-              minWidth: col.minWidth || 150, // kasih default minWidth
-              flex: col.flex || 1,
-            }))}
+            columns={filteredColumns}
             loading={loading}
             showToolbar
             pagination

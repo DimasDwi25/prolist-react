@@ -23,6 +23,7 @@ const roleMapping = {
   engineer: "engineer",
   "project controller": "engineer",
   "project manager": "engineer",
+  warehouse: "suc",
   // tambahkan role engineer lainnya jika ada
 };
 
@@ -60,11 +61,27 @@ const menuByRole = {
     { name: "Approvall", path: "/approvall", icon: <FaCheckCircle /> },
   ],
   engineer: [
-    { name: "Dashboard", path: "/dashboard", icon: <FaTachometerAlt /> },
+    { name: "Dashboard", path: "/engineer", icon: <FaTachometerAlt /> },
     { name: "Work Order", path: "/work-order", icon: <FaFileInvoice /> },
     { name: "Projects", path: "/projects", icon: <FaTools /> },
     { name: "Tasks", path: "/tasks", icon: <FaTasks /> },
     { name: "Approvall", path: "/approvall", icon: <FaCheckCircle /> },
+  ],
+  suc: [
+    { name: "Dashboard", path: "/suc", icon: <FaTachometerAlt /> },
+    {
+      name: "Material Request",
+      icon: <FaTools />,
+      submenu: [
+        {
+          name: "Material Request",
+          path: "/material-request",
+          icon: <FaTasks />,
+        },
+        { name: "Packing List", path: "/packing-list", icon: <FaTasks /> },
+      ],
+    },
+    { name: "Projects", path: "/projects", icon: <FaTools /> },
   ],
 };
 

@@ -1,6 +1,9 @@
 import Echo from "laravel-echo";
 import Pusher from "pusher-js";
 
+import "handsontable/styles/handsontable.min.css";
+import "handsontable/styles/ht-theme-main.min.css";
+
 window.Pusher = Pusher;
 
 window.Echo = new Echo({

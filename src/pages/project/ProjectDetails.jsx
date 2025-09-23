@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { format, parseISO } from "date-fns";
 import api from "../../api/api";
 import LoadingScreen from "../../components/loading/loadingScreen";
+import LogTable from "../../components/table/LogTable";
 
 const ProjectDetails = () => {
   const { pn_number } = useParams();
@@ -109,33 +110,11 @@ const ProjectDetails = () => {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          {/* Edit Project Button */}
-          <Link
-            to={`/project/edit/${project.id}`}
-            className="flex items-center gap-1 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-              />
-            </svg>
-            Edit Project
-          </Link>
-
           {/* PHC Actions */}
           {project.phc ? (
             <>
               <Link
-                to={`/phc/edit/${project.phc.id}`}
+                to={`/phc/${project.phc.id}/edit`}
                 className="flex items-center gap-1 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm"
               >
                 <svg
@@ -156,7 +135,7 @@ const ProjectDetails = () => {
               </Link>
 
               <Link
-                to={`/phc/show/${project.phc.id}`}
+                to={`/phcs/show/${project.phc.id}`}
                 className="flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm"
               >
                 <svg
@@ -205,28 +184,6 @@ const ProjectDetails = () => {
               Create PHC
             </Link>
           )}
-
-          {/* View Logs */}
-          <Link
-            to={`/supervisor/projects/logs/${project.pn_number}`}
-            className="flex items-center gap-1 bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
-            </svg>
-            View Logs
-          </Link>
         </div>
       </div>
 
@@ -766,7 +723,6 @@ const ProjectDetails = () => {
         )}
       </div>
 
-      {/* Recent Activity Section */}
       <div className="mt-8">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-medium text-gray-900">Recent Activity</h3>
@@ -779,18 +735,12 @@ const ProjectDetails = () => {
               + Tambah Log
             </button>
           </div>
-          <Link
-            to={`/supervisor/projects/logs/${project.pn_number}`}
-            className="text-sm font-medium text-blue-600 hover:text-blue-800"
-          >
-            View all activity
-          </Link>
         </div>
         {/* Log table component would go here */}
         <div className="bg-white shadow overflow-hidden sm:rounded-lg">
           {/* You would implement a log table component here */}
           <div className="p-4 text-center text-gray-500">
-            Log table component would be implemented here
+            <LogTable projectId={project.id} />
           </div>
         </div>
       </div>

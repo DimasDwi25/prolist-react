@@ -24,7 +24,11 @@ const marketingRoles = [
   "marketing_estimator",
 ];
 
-const engineerRoles = ["engineer", "engineering_director", "super_admin"];
+const engineerRoles = [
+  "project controller",
+  "engineering_director",
+  "project manager",
+];
 
 const BoqModal = ({
   open,
@@ -336,6 +340,31 @@ const BoqModal = ({
       type: "number",
       width: 200,
       editable: isEngineer,
+      renderCell: (params) => `${params.value ?? 0}%`,
+      preProcessEditCellProps: (params) => {
+        const value = Number(params.props.value);
+        return { ...params.props, error: value < 0 || value > 100 };
+      },
+      renderEditCell: (params) => (
+        <input
+          type="number"
+          min={0}
+          max={100}
+          step={1}
+          value={params.value ?? 0}
+          onChange={(e) => {
+            let val = Number(e.target.value);
+            if (val < 0) val = 0;
+            if (val > 100) val = 100;
+            params.api.setEditCellValue({
+              id: params.id,
+              field: params.field,
+              value: val,
+            });
+          }}
+          className="w-full px-2 py-1 border rounded text-sm"
+        />
+      ),
     },
     {
       field: "progress_engineer",
@@ -343,7 +372,33 @@ const BoqModal = ({
       type: "number",
       width: 200,
       editable: isEngineer,
+      renderCell: (params) => `${params.value ?? 0}%`,
+      preProcessEditCellProps: (params) => {
+        const value = Number(params.props.value);
+        return { ...params.props, error: value < 0 || value > 100 };
+      },
+      renderEditCell: (params) => (
+        <input
+          type="number"
+          min={0}
+          max={100}
+          step={1}
+          value={params.value ?? 0}
+          onChange={(e) => {
+            let val = Number(e.target.value);
+            if (val < 0) val = 0;
+            if (val > 100) val = 100;
+            params.api.setEditCellValue({
+              id: params.id,
+              field: params.field,
+              value: val,
+            });
+          }}
+          className="w-full px-2 py-1 border rounded text-sm"
+        />
+      ),
     },
+
     {
       field: "total_progress",
       headerName: "Total Progress (%)",
@@ -353,8 +408,15 @@ const BoqModal = ({
   ];
 
   const columns = isEngineer
-    ? [...baseColumns, ...engineerColumns]
-    : baseColumns;
+    ? [
+        // baseColumns tanpa material_value dan engineer_value
+        ...baseColumns.filter(
+          (col) =>
+            col.field !== "material_value" && col.field !== "engineer_value"
+        ),
+        ...engineerColumns,
+      ]
+    : baseColumns; // marketing tetap tampil semua
 
   const handleSaveForm = async (formData) => {
     try {
