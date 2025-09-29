@@ -106,6 +106,12 @@ export default function CreatePhcPage() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  const normalizeDate = (dateStr) => {
+    if (!dateStr) return null;
+    const d = new Date(dateStr);
+    return d.toISOString().split("T")[0]; // ambil hanya tanggal (UTC)
+  };
+
   const onSubmit = async (e) => {
     e.preventDefault();
     if (submitting || phcCreated) return; // prevent double submit
@@ -116,6 +122,9 @@ export default function CreatePhcPage() {
       const res = await api.post("/phc", {
         ...formData,
         project_id: project?.pn_number,
+        handover_date: normalizeDate(formData.handover_date),
+        start_date: normalizeDate(formData.start_date),
+        target_finish_date: normalizeDate(formData.target_finish_date),
       });
 
       if (res.data.status === "success") {

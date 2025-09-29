@@ -75,13 +75,15 @@ export default function MainLayout({ children }) {
               sidebarOpen ? "md:ml-52" : "md:ml-0"
             }`}
           >
-            <Header
-              user={user}
-              toggleSidebar={() => setSidebarOpen(!sidebarOpen)}
-              fullScreenHandle={fullScreenHandle}
-              notifications={notifications}
-              onReadNotification={handleReadNotification}
-            />
+            {!fullScreenHandle.active && (
+              <Header
+                user={user}
+                toggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+                fullScreenHandle={fullScreenHandle}
+                notifications={notifications}
+                onReadNotification={handleReadNotification}
+              />
+            )}
 
             <main className="flex-1 overflow-y-auto p-3 md:p-4">
               {children}

@@ -20,3 +20,54 @@ main {
 .table-inner {
   @apply min-w-[1200px];
 }
+
+/* Agar semua border sel terlihat jelas */
+.handsontable td,
+.handsontable th {
+  border: 1px solid #d1d5db !important; /* abu-abu netral */
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+/* Header lebih tegas */
+.handsontable th {
+  border-bottom: 2px solid #4b5563 !important; /* gelap sedikit */
+}
+
+/* Highlight saat hover column header */
+.handsontable .ht__manualColumnMove,
+.handsontable th:hover {
+  border-color: #2563eb !important; /* warna biru saat hover */
+}
+
+/* Value angka di card */
+
+/* Icon */
+.icon-size {
+  width: clamp(20px, 2vw, 48px);
+  height: clamp(20px, 2vw, 48px);
+}
+
+.kpi-value {
+  @apply text-lg sm:text-xl lg:text-2xl xl:text-3xl 2xl:text-4xl;
+}
+
+.kpi-title {
+  @apply text-xs sm:text-sm lg:text-base xl:text-lg;
+}
+
+.hot-table td,
+.hot-table th {
+  @apply text-xs sm:text-sm lg:text-base xl:text-lg;
+}
+
+.chart-label {
+  font-size: clamp(0.75rem, 0.8vw, 1.25rem); /* 12px → 20px */
+}
+
+.hot-table td {
+  line-height: 1.5rem; /* biar row stabil */
+}
+
+.hot-table .ht_clone_top th {
+  font-size: clamp(0.8rem, 1vw, 1.2rem);
+}

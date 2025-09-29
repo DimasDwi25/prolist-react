@@ -12,7 +12,7 @@ import {
 } from "react-icons/fa";
 
 const roleMapping = {
-  super_admin: "marketing",
+  super_admin: "admin",
   marketing_director: "marketing",
   "supervisor marketing": "marketing",
   manager_marketing: "marketing",
@@ -29,6 +29,80 @@ const roleMapping = {
 
 // Menu per role dengan icon
 const menuByRole = {
+  admin: [
+    {
+      name: "Dashboard",
+      icon: <FaTools />,
+      submenu: [
+        { name: "Admin Dashboard", path: "/admin", icon: <FaTachometerAlt /> },
+        {
+          name: "Marketing Dashboard",
+          path: "/marketing",
+          icon: <FaTachometerAlt />,
+        },
+        {
+          name: "Engineer Dashboard",
+          path: "/engineer",
+          icon: <FaTachometerAlt />,
+        },
+        { name: "SUC Dashboard", path: "/suc", icon: <FaTachometerAlt /> },
+      ],
+    },
+    {
+      name: "Manajamen User",
+      icon: <FaUsers />,
+      submenu: [
+        {
+          name: "Department",
+          path: "/department",
+          icon: <FaUsers />,
+        },
+        { name: "Role", path: "/role", icon: <FaUsers /> },
+        { name: "User", path: "/user", icon: <FaUsers /> },
+      ],
+    },
+    {
+      name: "Master Data",
+      icon: <FaTools />,
+      submenu: [
+        { name: "Client", path: "/client", icon: <FaUsers /> },
+        {
+          name: "Categories Project",
+          path: "/category-project",
+          icon: <FaTasks />,
+        },
+        { name: "Status Project", path: "/status-project", icon: <FaTasks /> },
+      ],
+    },
+    {
+      name: "Reports",
+      icon: <FaChartLine />,
+      submenu: [
+        {
+          name: "Marketing Reports",
+          path: "/marketing-report",
+          icon: <FaChartLine />,
+        },
+        { name: "Sales Reports", path: "/sales-report", icon: <FaChartLine /> },
+      ],
+    },
+    { name: "Quotation", path: "/quotation", icon: <FaFileInvoice /> },
+    { name: "Projects", path: "/projects", icon: <FaTools /> },
+    { name: "Work Order", path: "/work-order", icon: <FaFileInvoice /> },
+    {
+      name: "Material Request",
+      icon: <FaTools />,
+      submenu: [
+        {
+          name: "Material Request",
+          path: "/material-request",
+          icon: <FaTasks />,
+        },
+        { name: "Packing List", path: "/packing-list", icon: <FaTasks /> },
+      ],
+    },
+    { name: "Approvall", path: "/approvall", icon: <FaCheckCircle /> },
+  ],
   marketing: [
     { name: "Dashboard", path: "/marketing", icon: <FaTachometerAlt /> },
     {

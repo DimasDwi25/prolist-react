@@ -28,6 +28,8 @@ import {
 import api from "../../../api/api";
 import { useParams, useNavigate } from "react-router-dom";
 
+import { sortOptions } from "../../../helper/SortOptions";
+
 export default function ManPowerAllocationTable() {
   const navigate = useNavigate();
   const { pn_number } = useParams();
@@ -546,7 +548,7 @@ export default function ManPowerAllocationTable() {
           <Stack spacing={3}>
             <Autocomplete
               size="small"
-              options={users}
+              options={sortOptions(users, "name")}
               getOptionLabel={(option) => option.name || ""}
               value={users.find((u) => u.id === formValues.user_id) || null}
               onChange={(_, newValue) =>
@@ -564,7 +566,7 @@ export default function ManPowerAllocationTable() {
 
             <Autocomplete
               size="small"
-              options={roles}
+              options={sortOptions(roles, "name")}
               getOptionLabel={(option) => option.name || ""}
               value={roles.find((r) => r.id === formValues.role_id) || null}
               onChange={(_, newValue) =>

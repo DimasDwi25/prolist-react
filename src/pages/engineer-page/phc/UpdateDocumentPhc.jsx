@@ -8,9 +8,11 @@ import {
   Autocomplete,
   CircularProgress,
 } from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
 import api from "../../../api/api";
 import { useNavigate, useParams } from "react-router-dom";
 import Swal from "sweetalert2";
+import SowModal from "../../../components/modal/SowModal";
 
 export default function UpdateDocumentPhc() {
   const navigate = useNavigate();
@@ -18,6 +20,7 @@ export default function UpdateDocumentPhc() {
   const [project, setProject] = useState(null);
   const [documents, setDocuments] = useState([]);
   const { phcId } = useParams();
+  const [openSowModal, setOpenSowModal] = useState(false);
 
   const [formData, setFormData] = useState({
     handover_date: "",
@@ -66,6 +69,8 @@ export default function UpdateDocumentPhc() {
 
           setProject(project); // 👉 simpan project di state
           setPhcDetail(phc);
+
+          console.log(project);
 
           setFormData((prev) => ({
             ...prev,
@@ -483,6 +488,7 @@ export default function UpdateDocumentPhc() {
                   <label className="block text-sm font-medium text-gray-700">
                     {doc.name}
                   </label>
+
                   <div className="flex gap-4">
                     <label className="inline-flex items-center">
                       <input
@@ -517,23 +523,40 @@ export default function UpdateDocumentPhc() {
                       <span className="ml-2 text-sm">Not Applicable</span>
                     </label>
                   </div>
+
                   {doc.status === "A" && (
-                    <TextField
-                      type="date"
-                      label="Date Prepared"
-                      fullWidth
-                      InputLabelProps={{ shrink: true }}
-                      value={doc.date_prepared || ""}
-                      onChange={(e) =>
-                        setDocuments((prev) =>
-                          prev.map((d) =>
-                            d.id === doc.id
-                              ? { ...d, date_prepared: e.target.value }
-                              : d
+                    <>
+                      <TextField
+                        type="date"
+                        label="Date Prepared"
+                        fullWidth
+                        InputLabelProps={{ shrink: true }}
+                        value={doc.date_prepared || ""}
+                        onChange={(e) =>
+                          setDocuments((prev) =>
+                            prev.map((d) =>
+                              d.id === doc.id
+                                ? { ...d, date_prepared: e.target.value }
+                                : d
+                            )
                           )
-                        )
-                      }
-                    />
+                        }
+                      />
+
+                      {/* ✅ Tambahkan tombol Create SOW khusus kalau doc.name === "Scope of Work" */}
+                      {doc.name
+                        .toLowerCase()
+                        .includes("scope_of_work_approval") && (
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          startIcon={<AddIcon />}
+                          onClick={() => setOpenSowModal(true)}
+                        >
+                          Create SOW
+                        </Button>
+                      )}
+                    </>
                   )}
                 </div>
               ))}
@@ -550,6 +573,11 @@ export default function UpdateDocumentPhc() {
           </div>
         )}
       </form>
+      <SowModal
+        open={openSowModal}
+        handleClose={() => setOpenSowModal(false)}
+        projectId={project?.pn_number}
+      />
     </div>
   );
 }

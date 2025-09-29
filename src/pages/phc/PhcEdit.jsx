@@ -86,9 +86,9 @@ export default function PhcEdit() {
 
           setFormData((prev) => ({
             ...prev,
-            handover_date: phc.handover_date || "",
-            start_date: phc.start_date || "",
-            target_finish_date: phc.target_finish_date || "",
+            handover_date: normalizeApiDate(phc.handover_date),
+            start_date: normalizeApiDate(phc.start_date),
+            target_finish_date: normalizeApiDate(phc.target_finish_date),
             client_pic_name: phc.client_pic_name || "",
             client_mobile: phc.client_mobile || "",
             client_reps_office_address: phc.client_reps_office_address || "",
@@ -180,18 +180,31 @@ export default function PhcEdit() {
 
   const formatDate = (value) => {
     if (!value) return "";
+
+    // kalau sudah "YYYY-MM-DD" → langsung kembalikan
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      return value;
+    }
+
     const date = new Date(value);
     if (isNaN(date.getTime())) return "";
+
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`; // ✅ format sesuai input[type="date"]
+
+    return `${year}-${month}-${day}`;
   };
 
   const normalizeValue = (val) => {
     if (val === "0") return "NA";
     if (val === "1") return "A"; // kalau backend nanti pakai 1
     return val; // biarin kalau sudah "A" / "NA"
+  };
+
+  const normalizeApiDate = (value) => {
+    if (!value) return "";
+    return value.toString().substring(0, 10); // hasil: YYYY-MM-DD
   };
 
   return (
@@ -316,7 +329,7 @@ export default function PhcEdit() {
                       type="date"
                       label="Handover Date"
                       InputLabelProps={{ shrink: true }}
-                      value={formatDate(formData.handover_date)}
+                      value={formData.handover_date}
                       onChange={(e) =>
                         handleChange("handover_date", e.target.value)
                       }
@@ -326,7 +339,7 @@ export default function PhcEdit() {
                       type="date"
                       label="Start Date"
                       InputLabelProps={{ shrink: true }}
-                      value={formatDate(formData.start_date)}
+                      value={formData.start_date}
                       onChange={(e) =>
                         handleChange("start_date", e.target.value)
                       }
@@ -336,7 +349,7 @@ export default function PhcEdit() {
                       type="date"
                       label="Target Finish Date"
                       InputLabelProps={{ shrink: true }}
-                      value={formatDate(formData.target_finish_date)}
+                      value={formData.target_finish_date}
                       onChange={(e) =>
                         handleChange("target_finish_date", e.target.value)
                       }

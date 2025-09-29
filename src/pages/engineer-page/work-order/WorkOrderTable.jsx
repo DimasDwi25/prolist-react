@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { DataGrid } from "@mui/x-data-grid";
+import { DataGrid, GridActionsCellItem } from "@mui/x-data-grid";
 import {
   Button,
   Typography,
@@ -9,10 +9,11 @@ import {
   IconButton,
   Tooltip,
 } from "@mui/material";
-import { ArrowLeft, Plus, Edit3 } from "lucide-react";
+import { ArrowLeft, Plus, Edit3, Eye } from "lucide-react";
 import { format } from "date-fns";
 import api from "../../../api/api";
 import WorkOrderFormModal from "../../../components/modal/WorkOrderFormModal";
+import ViewWorkOrderModal from "../../../components/modal/ViewWorkOrderModal";
 
 export default function WorkOrderTable() {
   const { pn_number } = useParams();
@@ -22,6 +23,7 @@ export default function WorkOrderTable() {
   const [loading, setLoading] = useState(true);
   const [openWO, setOpenWO] = useState(false);
   const [selectedWorkOrder, setSelectedWorkOrder] = useState(null);
+  const [openView, setOpenView] = useState(false);
 
   // === Fetch Project ===
   const fetchProject = async () => {
@@ -63,6 +65,17 @@ export default function WorkOrderTable() {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // === HANDLE VIEW FUNCTION ===
+  const handleView = async (woId) => {
+    try {
+      const res = await api.get(`/work-order/detail/${woId}`);
+      setSelectedWorkOrder(res.data.data); // 🔹 load detail WO
+      setOpenView(true); // 🔹 buka modal view
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -125,19 +138,28 @@ export default function WorkOrderTable() {
     {
       field: "actions",
       headerName: "Actions",
-      renderCell: (params) => (
-        <Stack direction="row" spacing={0.5}>
-          <Tooltip title="Edit">
-            <IconButton
-              color="primary"
-              onClick={() => handleEdit(params.row.id)}
-              sx={{ padding: 0.5 }}
-            >
-              <Edit3 size={18} />
-            </IconButton>
-          </Tooltip>
-        </Stack>
-      ),
+      renderCell: (params) => [
+        <GridActionsCellItem
+          key="view"
+          icon={
+            <Tooltip title="View">
+              <Eye size={18} color="blue" />
+            </Tooltip>
+          }
+          label="View"
+          onClick={() => handleView(params.row.id)}
+        />,
+        <GridActionsCellItem
+          key="edit"
+          icon={
+            <Tooltip title="Edit">
+              <Edit3 size={18} color="green" />
+            </Tooltip>
+          }
+          label="Edit"
+          onClick={() => handleEdit(params.row.id)}
+        />,
+      ],
     },
     {
       field: "status",
@@ -293,6 +315,15 @@ export default function WorkOrderTable() {
           onClose={handleModalClose}
           project={project}
           workOrder={selectedWorkOrder}
+        />
+      )}
+
+      {/* 🔹 Modal View Detail */}
+      {openView && selectedWorkOrder && (
+        <ViewWorkOrderModal
+          open={openView}
+          onClose={() => setOpenView(false)}
+          workOrderId={selectedWorkOrder.id}
         />
       )}
     </div>

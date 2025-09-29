@@ -19,7 +19,6 @@ import { Plus, ArrowLeft } from "lucide-react";
 import { WarningAmber, CheckCircle, Cancel } from "@mui/icons-material";
 import api from "../../api/api";
 import CreateMRModal from "../../components/modal/CreateMrModal";
-import { format } from "date-fns";
 
 export default function MaterialRequestTable() {
   const { pn_number } = useParams(); // ambil pn_number dari URL
@@ -46,7 +45,6 @@ export default function MaterialRequestTable() {
       const filteredMRs = resMRs.data.data.filter(
         (mr) => mr.pn_id == pn_number
       );
-      console.log(filteredMRs);
       setMrs(filteredMRs.map((mr) => ({ id: mr.id, ...mr })));
     } catch (err) {
       console.error("Fetch error:", err);
@@ -195,7 +193,7 @@ export default function MaterialRequestTable() {
       field: "complete_date",
       headerName: "Complete Date",
       renderCell: (params) =>
-        params.value ? format(new Date(params.value), "dd MMM yyyy") : "-",
+        params.value ? formatDate(new Date(params.value), "dd MMM yyyy") : "-",
     },
 
     {

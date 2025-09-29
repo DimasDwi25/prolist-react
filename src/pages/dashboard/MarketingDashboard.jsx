@@ -115,7 +115,8 @@ export default function MarketingDashboard() {
       },
       options: {
         responsive: true,
-        plugins: { legend: { position: "bottom" } },
+        maintainAspectRatio: false,
+        plugins: { legend: { position: "right" } },
       },
     });
 
@@ -212,7 +213,7 @@ export default function MarketingDashboard() {
     : [];
 
   return (
-    <div className="max-w-7xl mx-auto p-4 lg:p-6 space-y-6">
+    <div className="w-[100%] mx-auto p-4 lg:p-6 space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
         {cardsRow1.map((c, i) => (
           <DashboardCard
@@ -237,7 +238,7 @@ export default function MarketingDashboard() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-2 gap-4">
         <div className="bg-white shadow rounded-xl p-4">
           <div className="flex items-center gap-2 mb-3">
             <FaChartBar className="text-blue-500" />
@@ -248,14 +249,25 @@ export default function MarketingDashboard() {
           <canvas id="barChart" className="h-60"></canvas>
         </div>
 
-        <div className="bg-white shadow rounded-xl p-4">
+        <div
+          className="bg-white shadow rounded-xl p-4 
+     flex flex-col 
+     h-72 sm:h-80 md:h-96 lg:h-[28rem] w-full"
+        >
+          {/* Header */}
           <div className="flex items-center gap-2 mb-3">
-            <FaChartPie className="text-purple-500" />
+            <FaChartPie className="text-purple-500 text-lg" />
             <h2 className="text-sm font-semibold text-gray-700">
               Quotation Status Distribution
             </h2>
           </div>
-          <canvas id="statusPieChart" className="h-60"></canvas>
+
+          {/* Chart container */}
+          <div className="flex-1 flex items-center justify-center">
+            <div className="w-full max-w-xs sm:max-w-sm md:max-w-md aspect-square">
+              <canvas id="statusPieChart"></canvas>
+            </div>
+          </div>
         </div>
       </div>
 

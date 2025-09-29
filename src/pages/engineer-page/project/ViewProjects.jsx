@@ -26,6 +26,7 @@ const ViewProjects = () => {
 
         const projectData = res.data?.data?.project;
 
+        console.log(projectData);
         setProject(projectData);
       } catch (err) {
         console.error(err.response?.data || err);
@@ -74,16 +75,16 @@ const ViewProjects = () => {
             <span
               className={`px-3 py-1 rounded-full text-xs font-medium 
               ${
-                project.statusProject?.name === "Active"
+                project.status_project?.name === "Active"
                   ? "bg-green-100 text-green-800"
-                  : project.statusProject?.name === "On Hold"
+                  : project.status_project?.name === "On Hold"
                   ? "bg-yellow-100 text-yellow-800"
-                  : project.statusProject?.name === "Completed"
+                  : project.status_project?.name === "Completed"
                   ? "bg-blue-100 text-blue-800"
                   : "bg-gray-100 text-gray-800"
               }`}
             >
-              {display(project.statusProject?.name)}
+              {display(project.status_project?.name)}
             </span>
           </div>
           <div className="flex items-center mt-2">
@@ -194,61 +195,6 @@ const ViewProjects = () => {
         </div>
       </div>
 
-      {project.phc &&
-        project.pendingApprovals &&
-        project.pendingApprovals.length > 0 && (
-          <div className="w-full bg-yellow-50 border-l-4 border-yellow-500 rounded-lg p-4">
-            <div className="flex items-start">
-              <div className="flex-shrink-0">
-                <svg
-                  className="h-5 w-5 text-yellow-500"
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </div>
-              <div className="ml-3">
-                <p className="text-sm font-medium text-yellow-800">
-                  Pending PHC Approvals
-                </p>
-                <p className="mt-1 text-sm text-yellow-700">
-                  Awaiting approval from:
-                </p>
-                <ul className="mt-1 space-y-1">
-                  {project.pendingApprovals.map((approval, index) => (
-                    <li
-                      key={index}
-                      className="text-sm text-yellow-700 flex items-center"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-4 w-4 mr-1.5 text-yellow-500"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
-                        />
-                      </svg>
-                      {approval.user?.name || "User not found"}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          </div>
-        )}
-
       {/* Tabs Navigation */}
       <div className="mt-6">
         <div className="border-b border-gray-200">
@@ -262,16 +208,6 @@ const ViewProjects = () => {
               }`}
             >
               Project Information
-            </button>
-            <button
-              onClick={() => setActiveTab("quotation")}
-              className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === "quotation"
-                  ? "border-blue-500 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-              }`}
-            >
-              Quotation Details
             </button>
             <button
               onClick={() => setActiveTab("relationships")}
@@ -291,15 +227,15 @@ const ViewProjects = () => {
                   : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
               }`}
             >
-              Status & Timeline
+              Status
             </button>
           </nav>
         </div>
 
-        {/* Project Information Tab */}
         {activeTab === "project" && (
-          <div className="py-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="py-6 space-y-6">
+            {/* 3 kolom sejajar */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                 <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Project Number
@@ -326,25 +262,10 @@ const ViewProjects = () => {
                   {display(project.category?.name)}
                 </p>
               </div>
+            </div>
 
-              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Mandays (Engineer)
-                </h3>
-                <p className="mt-1 text-sm font-medium text-gray-900">
-                  {display(project.mandays_engineer)}
-                </p>
-              </div>
-
-              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Mandays (Technician)
-                </h3>
-                <p className="mt-1 text-sm font-medium text-gray-900">
-                  {display(project.mandays_technician)}
-                </p>
-              </div>
-
+            {/* 3 kolom sejajar */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                 <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Target Date
@@ -363,14 +284,14 @@ const ViewProjects = () => {
                 </p>
               </div>
 
-              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+              {/* <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                 <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
                   PO Week
                 </h3>
                 <p className="mt-1 text-sm font-medium text-gray-900">
                   {project.sales_weeks || "—"}
                 </p>
-              </div>
+              </div> */}
 
               <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                 <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -392,75 +313,26 @@ const ViewProjects = () => {
                 </p>
               </div>
             </div>
-          </div>
-        )}
 
-        {/* Quotation Details Tab */}
-        {activeTab === "quotation" && (
-          <div className="py-6">
-            {project.quotation ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                  <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Quotation Number
-                  </h3>
-                  <p className="mt-1 text-sm font-medium text-gray-900">
-                    {display(project.quotation.no_quotation)}
-                  </p>
-                </div>
-
-                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                  <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Client
-                  </h3>
-                  <p className="mt-1 text-sm font-medium text-gray-900">
-                    {display(project.quotation.client?.name)}
-                  </p>
-                </div>
-
-                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                  <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Quotation Value
-                  </h3>
-                  <p className="mt-1 text-sm font-medium text-gray-900">
-                    Rp {formatDecimal(project.quotation.quotation_value)}
-                  </p>
-                </div>
-
-                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                  <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Quotation Date
-                  </h3>
-                  <p className="mt-1 text-sm font-medium text-gray-900">
-                    {formatDate(project.quotation.quotation_date)}
-                  </p>
-                </div>
+            {/* 2 kolom sejajar */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Mandays (Engineer)
+                </h3>
+                <p className="mt-1 text-sm font-medium text-gray-900">
+                  {display(project.mandays_engineer)}
+                </p>
               </div>
-            ) : (
-              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg">
-                <div className="flex">
-                  <div className="flex-shrink-0">
-                    <svg
-                      className="h-5 w-5 text-yellow-400"
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  </div>
-                  <div className="ml-3">
-                    <p className="text-sm text-yellow-700">
-                      No quotation information available for this project.
-                    </p>
-                  </div>
-                </div>
+              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Mandays (Technician)
+                </h3>
+                <p className="mt-1 text-sm font-medium text-gray-900">
+                  {display(project.mandays_technician)}
+                </p>
               </div>
-            )}
+            </div>
           </div>
         )}
 
@@ -498,7 +370,8 @@ const ViewProjects = () => {
                             Status
                           </h4>
                           <p className="mt-1 text-sm font-medium text-blue-900">
-                            {project.parentProject.statusProject?.name || "N/A"}
+                            {project.parentProject.status_project?.name ||
+                              "N/A"}
                           </p>
                         </div>
                       </div>
@@ -549,18 +422,18 @@ const ViewProjects = () => {
                                     <p
                                       className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
                                     ${
-                                      child.statusProject?.name === "Active"
+                                      child.status_project?.name === "Active"
                                         ? "bg-green-100 text-green-800"
-                                        : child.statusProject?.name ===
+                                        : child.status_project?.name ===
                                           "On Hold"
                                         ? "bg-yellow-100 text-yellow-800"
-                                        : child.statusProject?.name ===
+                                        : child.status_project?.name ===
                                           "Completed"
                                         ? "bg-blue-100 text-blue-800"
                                         : "bg-gray-100 text-gray-800"
                                     }`}
                                     >
-                                      {child.statusProject?.name || "N/A"}
+                                      {child.status_project?.name || "N/A"}
                                     </p>
                                   </div>
                                 </div>
@@ -659,16 +532,38 @@ const ViewProjects = () => {
         {/* Status & Timeline Tab */}
         {activeTab === "status" && (
           <div className="py-6">
+            {/* 2 kolom sejajar */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                 <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Current Status
                 </h3>
                 <p className="mt-1 text-sm font-medium text-gray-900">
-                  {display(project.statusProject?.name)}
+                  {display(project.status_project?.name)}
                 </p>
               </div>
 
+              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Project Progress
+                </h3>
+                <div className="mt-2">
+                  <div className="w-full bg-gray-200 rounded-full h-3">
+                    <div
+                      className="bg-blue-600 h-3 rounded-full transition-all duration-500"
+                      style={{ width: `${project.project_progress || 0}%` }}
+                    />
+                  </div>
+                  <p className="mt-1 text-sm font-medium text-gray-900 text-right">
+                    {project.project_progress
+                      ? `${project.project_progress}%`
+                      : "0%"}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-5">
               <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                 <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Created At

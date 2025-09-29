@@ -723,27 +723,8 @@ const ProjectDetails = () => {
         )}
       </div>
 
-      <div className="mt-8">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-medium text-gray-900">Recent Activity</h3>
-          <div className="flex space-x-3">
-            {/* Add Log Button - You would implement a modal here */}
-            <button
-              type="button"
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow text-sm w-full md:w-auto"
-            >
-              + Tambah Log
-            </button>
-          </div>
-        </div>
-        {/* Log table component would go here */}
-        <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-          {/* You would implement a log table component here */}
-          <div className="p-4 text-center text-gray-500">
-            <LogTable projectId={project.id} />
-          </div>
-        </div>
-      </div>
+      {/* Recent Activity Section */}
+      <LogTable projectId={project.pn_number} />
     </div>
   );
 };

@@ -15,11 +15,22 @@ import {
   Paper,
   FormControlLabel,
   Checkbox,
+  MenuItem,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import DeleteIcon from "@mui/icons-material/Delete";
+import InfoIcon from "@mui/icons-material/Info";
+import EventIcon from "@mui/icons-material/Event";
+import PeopleIcon from "@mui/icons-material/Event";
+import AddIcon from "@mui/icons-material/Event";
+import AssignmentIcon from "@mui/icons-material/Event";
+import BuildIcon from "@mui/icons-material/Event";
+import CheckCircleIcon from "@mui/icons-material/Event";
+import NumbersIcon from "@mui/icons-material/Event";
+import NoteAltIcon from "@mui/icons-material/Event";
 import Swal from "sweetalert2";
 import api from "../../api/api";
+import SectionCard from "../card/SectionCard";
 
 export default function WorkOrderFormModal({
   open,
@@ -32,13 +43,33 @@ export default function WorkOrderFormModal({
   const [roles, setRoles] = useState([]);
   const [form, setForm] = useState({
     wo_date: "",
-    wo_count: 1,
+    wo_number_in_project: "",
+    wo_kode_no: "",
+    location: "",
+    vehicle_no: "",
+    driver: "",
+    total_mandays_eng: 0,
+    total_mandays_elect: 0,
     add_work: false,
-    start_working_date: "",
-    end_working_date: "",
+    approved_by: "",
+    status: "waiting approval", // default
+    start_work_time: "",
+    stop_work_time: "",
+    continue_date: "",
+    continue_time: "",
+    client_note: "",
+    scheduled_start_working_date: "",
+    scheduled_end_working_date: "",
+    actual_start_working_date: "",
+    actual_end_working_date: "",
+    accomodation: "",
+    material_required: "",
+    wo_count: 1,
     client_approved: false,
-    pics: [{ user_id: "", role_id: "" }],
-    descriptions: [{ title: "", description: "", result: "" }],
+
+    // Relasi
+    pics: [{ user_id: "", role_id: "", _userOption: null, _roleOption: null }],
+    descriptions: [{ description: "", result: "" }],
   });
 
   // === Fetch users & roles ===
@@ -62,67 +93,93 @@ export default function WorkOrderFormModal({
   // === Isi form jika edit ===
   useEffect(() => {
     if (!workOrder) return;
+    if (users.length === 0 || roles.length === 0) return;
 
-    console.log("WorkOrder PICs:", workOrder.pics);
-    console.log("Users fetched:", users);
-    console.log("Roles fetched:", roles);
+    const mappedPics = workOrder.pics?.map((p) => ({
+      user_id: p.user_id,
+      role_id: p.role_id,
+      _userOption:
+        users.find((u) => String(u.id) === String(p.user_id)) || p.user,
+      _roleOption:
+        roles.find((r) => String(r.id) === String(p.role_id)) || p.role,
+    }));
 
-    if (users.length === 0 || roles.length === 0) return; // tunggu fetch selesai
+    const totalEng = mappedPics.filter((p) =>
+      p._roleOption?.name?.toLowerCase().includes("engineer")
+    ).length;
 
-    const mappedPics = workOrder.pics?.map((p) => {
-      const userOption = users.find(
-        (u) => String(u.id) === String(p.user_id)
-      ) ||
-        p.user || { id: p.user_id, name: "Unknown User", email: "" }; // fallback langsung dari relasi workOrder
+    const totalElect = mappedPics.filter((p) =>
+      p._roleOption?.name?.toLowerCase().includes("electrician")
+    ).length;
 
-      const roleOption = roles.find(
-        (r) => String(r.id) === String(p.role_id)
-      ) ||
-        p.role || { id: p.role_id, name: "Unknown Role" }; // fallback langsung dari relasi workOrder
-
-      return {
-        user_id: p.user_id,
-        role_id: p.role_id,
-        _userOption: userOption,
-        _roleOption: roleOption,
-      };
-    }) || [{ user_id: "", role_id: "", _userOption: null, _roleOption: null }];
-
-    setForm((prev) => ({
-      ...prev,
+    setForm({
+      project_id: workOrder.project_id || "",
+      purpose_id: workOrder.purpose_id || "",
       wo_date: formatDate(workOrder.wo_date),
-      start_working_date: formatDate(workOrder.start_working_date),
-      end_working_date: formatDate(workOrder.end_working_date),
-      wo_count: workOrder.wo_count || 1,
+      wo_number_in_project: workOrder.wo_number_in_project || "",
+      wo_kode_no: workOrder.wo_kode_no || "",
+      location: workOrder.location || "",
+      vehicle_no: workOrder.vehicle_no || "",
+      driver: workOrder.driver || "",
+      total_mandays_eng: totalEng || Number(workOrder.total_mandays_eng) || 0,
+      total_mandays_elect:
+        totalElect || Number(workOrder.total_mandays_elect) || 0,
       add_work: Boolean(Number(workOrder.add_work)),
+      approved_by: workOrder.approved_by || "",
+      status: workOrder.status || "draft",
+      start_work_time: workOrder.start_work_time || "",
+      stop_work_time: workOrder.stop_work_time || "",
+      continue_date: formatDate(workOrder.continue_date),
+      continue_time: workOrder.continue_time || "",
+      client_note: workOrder.client_note || "",
+      scheduled_start_working_date: formatDate(
+        workOrder.scheduled_start_working_date
+      ),
+      scheduled_end_working_date: formatDate(
+        workOrder.scheduled_end_working_date
+      ),
+      actual_start_working_date: formatDate(
+        workOrder.actual_start_working_date
+      ),
+      actual_end_working_date: formatDate(workOrder.actual_end_working_date),
+      accomodation: workOrder.accomodation || "",
+      material_required: workOrder.material_required || "",
+      wo_count: workOrder.wo_count || 1,
       client_approved: Boolean(Number(workOrder.client_approved)),
+
       pics: mappedPics,
       descriptions: workOrder.descriptions?.map((d) => ({
-        title: d.title || "",
         description: d.description || "",
         result: d.result || "",
-      })) || [{ title: "", description: "", result: "" }],
-    }));
+      })) || [{ description: "", result: "" }],
+    });
   }, [workOrder, users, roles]);
 
-  // === Hitung mandays otomatis ===
+  // 🔹 Hook effect untuk selalu hitung mandays berdasarkan PIC
   useEffect(() => {
-    const totalEng = form.pics.filter((p) => {
-      const role = roles.find((r) => r.id === p.role_id);
-      return role?.name.toLowerCase().includes("engineer");
-    }).length;
+    if (!form.pics || form.pics.length === 0) {
+      setForm((prev) => ({
+        ...prev,
+        total_mandays_eng: 0,
+        total_mandays_elect: 0,
+      }));
+      return;
+    }
 
-    const totalElect = form.pics.filter((p) => {
-      const role = roles.find((r) => r.id === p.role_id);
-      return role?.name.toLowerCase().includes("electrician");
-    }).length;
+    const totalEng = form.pics.filter((p) =>
+      p._roleOption?.name?.toLowerCase().includes("engineer")
+    ).length;
+
+    const totalElect = form.pics.filter((p) =>
+      p._roleOption?.name?.toLowerCase().includes("electrician")
+    ).length;
 
     setForm((prev) => ({
       ...prev,
       total_mandays_eng: totalEng,
       total_mandays_elect: totalElect,
     }));
-  }, [form.pics, roles]);
+  }, [form.pics]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -215,60 +272,66 @@ export default function WorkOrderFormModal({
     try {
       setLoading(true);
 
-      const payload = { ...form, project_id: project.pn_number };
+      // Buat payload sesuai backend
+      const payload = {
+        project_id: project.pn_number,
+        purpose_id: form.purpose_id,
+        wo_date: form.wo_date,
+        wo_number_in_project: form.wo_number_in_project,
+        wo_kode_no: form.wo_kode_no,
+        location: form.location,
+        vehicle_no: form.vehicle_no,
+        driver: form.driver,
+        total_mandays_eng: form.total_mandays_eng,
+        total_mandays_elect: form.total_mandays_elect,
+        add_work: form.add_work,
+        approved_by: form.approved_by,
+        status: form.status,
+        start_work_time: form.start_work_time,
+        stop_work_time: form.stop_work_time,
+        continue_date: form.continue_date,
+        continue_time: form.continue_time,
+        client_note: form.client_note,
+        scheduled_start_working_date: form.scheduled_start_working_date,
+        scheduled_end_working_date: form.scheduled_end_working_date,
+        actual_start_working_date: form.actual_start_working_date,
+        actual_end_working_date: form.actual_end_working_date,
+        accomodation: form.accomodation,
+        material_required: form.material_required,
+        wo_count: form.wo_count,
+        client_approved: form.client_approved,
+
+        // hanya kirim id, jangan ikut _userOption/_roleOption
+        pics: form.pics.map((p) => ({
+          user_id: p.user_id,
+          role_id: p.role_id,
+        })),
+        descriptions: form.descriptions.map((d) => ({
+          description: d.description,
+          result: d.result,
+        })),
+      };
+
       let res;
-      let updatedWO;
-
       if (workOrder) {
-        // Update existing
         res = await api.put(`/work-order/${workOrder.id}`, payload);
-        const updatedData = res.data?.data;
-
-        if (!updatedData?.id) {
-          console.error(
-            "Update response tidak mengandung id. Pastikan backend mengirim id!"
-          );
-          Swal.fire(
-            "Error",
-            "Backend tidak mengirim id untuk Work Order. Update gagal.",
-            "error"
-          );
-          return;
-        }
-
-        updatedWO = updatedData;
         Swal.fire("Success", "Work Order updated successfully", "success");
+        onClose(res.data?.data);
       } else {
-        // Create new
-        res = await api.post("/work-order", payload);
-        const createdData = res.data.data;
-
-        // Pastikan setiap created WO punya id
-        updatedWO = Array.isArray(createdData) ? createdData : [createdData];
-
-        if (updatedWO.some((wo) => !wo.id)) {
-          console.error(
-            "Salah satu Work Order baru tidak punya id. Pastikan backend mengirim id!"
-          );
-          Swal.fire(
-            "Error",
-            "Beberapa Work Order baru tidak punya id. Create gagal.",
-            "error"
-          );
-          return;
-        }
+        res = await api.post(`/work-order`, payload);
+        const created = Array.isArray(res.data.data)
+          ? res.data.data
+          : [res.data.data];
 
         Swal.fire(
           "Success",
-          form.wo_count > 1
-            ? `${updatedWO.length} Work Orders created successfully`
+          created.length > 1
+            ? `${created.length} Work Orders created successfully`
             : "Work Order created successfully",
           "success"
         );
+        onClose(created);
       }
-
-      // Kirim ke parent (modal)
-      onClose(updatedWO.length === 1 ? updatedWO[0] : updatedWO);
     } catch (error) {
       console.error(error);
       Swal.fire(
@@ -281,8 +344,11 @@ export default function WorkOrderFormModal({
     }
   };
 
+  console.log(project);
+
   return (
     <Dialog open={open} onClose={() => onClose(null)} maxWidth="lg" fullWidth>
+      {/* === Title === */}
       <DialogTitle sx={{ fontWeight: 700, fontSize: "1.5rem" }}>
         {workOrder ? "Edit Work Order" : "Create New Work Order"}
         <IconButton
@@ -294,16 +360,11 @@ export default function WorkOrderFormModal({
       </DialogTitle>
 
       <DialogContent dividers sx={{ bgcolor: "#f9f9f9", py: 3 }}>
-        {/* === General Information Card: Project Info === */}
-        <Paper
-          variant="outlined"
-          sx={{ p: 3, mb: 3, borderRadius: 2, bgcolor: "#fff" }}
-        >
-          <Typography variant="h6" sx={{ mb: 2, fontWeight: 700 }}>
-            General Information
-          </Typography>
-          <Grid container spacing={2}>
-            <Grid xs={12} md={4}>
+        {/* === SECTION: General Information === */}
+        <SectionCard title="General Information" icon={<InfoIcon />}>
+          <Grid container spacing={3}>
+            {/* Project Information */}
+            <Grid item xs={12} md={4}>
               <TextField
                 label="Project Number"
                 value={project?.project_number || ""}
@@ -311,15 +372,29 @@ export default function WorkOrderFormModal({
                 fullWidth
               />
             </Grid>
-            <Grid xs={12} md={4}>
+            <Grid item xs={12} md={4}>
               <TextField
-                label="Client Name"
-                value={project?.client?.name || ""}
+                label="Project Name"
+                value={project?.project_name || ""}
                 InputProps={{ readOnly: true }}
                 fullWidth
               />
             </Grid>
-            <Grid xs={12} md={4}>
+            <Grid item xs={12} md={4}>
+              <TextField
+                label="Client Name"
+                value={
+                  project?.client?.name ||
+                  project?.quotation?.client?.name ||
+                  ""
+                }
+                InputProps={{ readOnly: true }}
+                fullWidth
+              />
+            </Grid>
+
+            {/* Work Order Information */}
+            <Grid item xs={12} md={6}>
               <TextField
                 label="WO Date"
                 type="date"
@@ -327,54 +402,231 @@ export default function WorkOrderFormModal({
                 value={form.wo_date}
                 onChange={handleChange}
                 InputLabelProps={{ shrink: true }}
+                helperText="Select work order date"
                 fullWidth
               />
             </Grid>
+            <Grid item xs={12} md={6}>
+              <Autocomplete
+                options={[
+                  { label: "Installation", value: "Installation" },
+                  { label: "Maintenance", value: "Maintenance" },
+                  { label: "Service", value: "Service" },
+                  { label: "Testing", value: "Testing" },
+                ]}
+                value={
+                  form.purpose
+                    ? { label: form.purpose, value: form.purpose }
+                    : null
+                }
+                onChange={(_, newValue) => {
+                  handleChange({
+                    target: { name: "purpose", value: newValue?.value || "" },
+                  });
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Purpose"
+                    helperText="Choose purpose of work order"
+                    fullWidth
+                  />
+                )}
+              />
+            </Grid>
           </Grid>
-        </Paper>
+        </SectionCard>
 
-        {/* === Overnight Work Section: Start & End Date === */}
-        <Paper
-          variant="outlined"
-          sx={{ p: 3, mb: 3, borderRadius: 2, bgcolor: "#fff" }}
-        >
-          <Typography variant="h6" sx={{ mb: 2, fontWeight: 700 }}>
-            Overnight Work
-          </Typography>
+        {/* === SECTION: Extra Details === */}
+        <SectionCard title="Additional Details" icon={<BuildIcon />}>
           <Grid container spacing={2}>
-            <Grid xs={12} md={6}>
+            <Grid item xs={12} md={6}>
               <TextField
-                label="Start Working Date"
-                type="date"
-                name="start_working_date"
-                value={form.start_working_date}
+                label="Vehicle Number"
+                name="vehicle_no"
+                value={form.vehicle_no}
                 onChange={handleChange}
-                InputLabelProps={{ shrink: true }}
                 fullWidth
+                helperText="Enter the assigned vehicle plate number"
               />
             </Grid>
-            <Grid xs={12} md={6}>
+            <Grid item xs={12} md={6}>
               <TextField
-                label="End Working Date"
-                type="date"
-                name="end_working_date"
-                value={form.end_working_date}
+                label="Driver"
+                name="driver"
+                value={form.driver}
                 onChange={handleChange}
-                InputLabelProps={{ shrink: true }}
                 fullWidth
+                helperText="Person in charge of driving the vehicle"
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                label="Location"
+                name="location"
+                value={form.location}
+                onChange={handleChange}
+                fullWidth
+                helperText="Specify the target location of the work"
               />
             </Grid>
           </Grid>
-        </Paper>
+        </SectionCard>
 
-        {/* === PIC Card === */}
-        <Paper
-          variant="outlined"
-          sx={{ p: 3, mb: 3, borderRadius: 2, bgcolor: "#fff" }}
-        >
-          <Typography variant="h6" sx={{ mb: 2, fontWeight: 700 }}>
-            Person In Charge (PIC)
-          </Typography>
+        {/* === SECTION: Schedule === */}
+        <SectionCard title="Schedule & Work Time" icon={<EventIcon />}>
+          <Grid container spacing={3}>
+            {/* === Planned Schedule === */}
+            <Grid item xs={12}>
+              <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                Planned Schedule
+              </Typography>
+              <Grid container spacing={2}>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    label="Planned Start Date"
+                    type="date"
+                    name="scheduled_start_working_date"
+                    value={form.scheduled_start_working_date}
+                    onChange={handleChange}
+                    InputLabelProps={{ shrink: true }}
+                    fullWidth
+                    helperText="The date when the work is planned to start"
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    label="Planned End Date"
+                    type="date"
+                    name="scheduled_end_working_date"
+                    value={form.scheduled_end_working_date}
+                    onChange={handleChange}
+                    InputLabelProps={{ shrink: true }}
+                    fullWidth
+                    helperText="The date when the work is planned to be completed"
+                  />
+                </Grid>
+              </Grid>
+            </Grid>
+
+            {/* === Actual Work Period === */}
+            <Grid item xs={12}>
+              <Typography
+                variant="subtitle1"
+                fontWeight="bold"
+                gutterBottom
+                mt={2}
+              >
+                Actual Work Period
+              </Typography>
+              <Grid container spacing={2}>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    label="Actual Start Date"
+                    type="date"
+                    name="actual_start_working_date"
+                    value={form.actual_start_working_date}
+                    onChange={handleChange}
+                    InputLabelProps={{ shrink: true }}
+                    fullWidth
+                    helperText="The actual date when the work started"
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    label="Actual End Date"
+                    type="date"
+                    name="actual_end_working_date"
+                    value={form.actual_end_working_date}
+                    onChange={handleChange}
+                    InputLabelProps={{ shrink: true }}
+                    fullWidth
+                    helperText="The actual date when the work was completed"
+                  />
+                </Grid>
+              </Grid>
+            </Grid>
+
+            {/* === Daily Work Hours === */}
+            <Grid item xs={12}>
+              <Typography
+                variant="subtitle1"
+                fontWeight="bold"
+                gutterBottom
+                mt={2}
+              >
+                Daily Work Hours
+              </Typography>
+              <Grid container spacing={2}>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    label="Start Time"
+                    type="time"
+                    name="start_work_time"
+                    value={form.start_work_time}
+                    onChange={handleChange}
+                    InputLabelProps={{ shrink: true }}
+                    fullWidth
+                    helperText="The daily work start time"
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    label="End Time"
+                    type="time"
+                    name="stop_work_time"
+                    value={form.stop_work_time}
+                    onChange={handleChange}
+                    InputLabelProps={{ shrink: true }}
+                    fullWidth
+                    helperText="The daily work end time"
+                  />
+                </Grid>
+              </Grid>
+            </Grid>
+
+            {/* === Continuation Work === */}
+            <Grid item xs={12}>
+              <Typography
+                variant="subtitle1"
+                fontWeight="bold"
+                gutterBottom
+                mt={2}
+              >
+                Continuation (if applicable)
+              </Typography>
+              <Grid container spacing={2}>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    label="Continuation Date"
+                    type="date"
+                    name="continue_date"
+                    value={form.continue_date}
+                    onChange={handleChange}
+                    InputLabelProps={{ shrink: true }}
+                    fullWidth
+                    helperText="The date when the work is continued"
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    label="Continuation Time"
+                    type="time"
+                    name="continue_time"
+                    value={form.continue_time}
+                    onChange={handleChange}
+                    InputLabelProps={{ shrink: true }}
+                    fullWidth
+                    helperText="The time when the work resumes"
+                  />
+                </Grid>
+              </Grid>
+            </Grid>
+          </Grid>
+        </SectionCard>
+
+        {/* === SECTION: PICs === */}
+        <SectionCard title="Person In Charge (PIC)" icon={<PeopleIcon />}>
           <Box sx={{ maxHeight: 200, overflowY: "auto" }}>
             {form.pics.map((pic, index) => (
               <Box
@@ -382,7 +634,7 @@ export default function WorkOrderFormModal({
                 sx={{
                   display: "flex",
                   gap: 2,
-                  aligs: "center",
+                  alignItems: "center",
                   p: 2,
                   mb: 2,
                   border: "1px solid #e0e0e0",
@@ -398,9 +650,9 @@ export default function WorkOrderFormModal({
                     updatePic(index, "user_id", val ? val.id : "", val)
                   }
                   renderInput={(params) => (
-                    <TextField {...params} label="Select User" />
+                    <TextField {...params} label="Select User" fullWidth />
                   )}
-                  fullWidth
+                  sx={{ flex: 1 }}
                 />
 
                 <Autocomplete
@@ -411,9 +663,9 @@ export default function WorkOrderFormModal({
                     updatePic(index, "role_id", val ? val.id : "", val)
                   }
                   renderInput={(params) => (
-                    <TextField {...params} label="Select Role" />
+                    <TextField {...params} label="Select Role" fullWidth />
                   )}
-                  fullWidth
+                  sx={{ flex: 1 }}
                 />
 
                 <Tooltip title="Remove PIC">
@@ -424,33 +676,32 @@ export default function WorkOrderFormModal({
               </Box>
             ))}
           </Box>
-          <Button onClick={addPic} size="small" variant="contained">
-            + Add PIC
-          </Button>
-        </Paper>
 
-        {/* === Work Descriptions Card === */}
-        <Paper
-          variant="outlined"
-          sx={{ p: 3, mb: 3, borderRadius: 2, bgcolor: "#fff" }}
-        >
-          <Typography variant="h6" sx={{ mb: 2, fontWeight: 700 }}>
-            Work Descriptions
-          </Typography>
+          <Button
+            onClick={addPic}
+            size="small"
+            variant="outlined"
+            startIcon={<AddIcon />}
+          >
+            Add PIC
+          </Button>
+        </SectionCard>
+
+        {/* === SECTION: Descriptions === */}
+        <SectionCard title="Work Descriptions" icon={<AssignmentIcon />}>
           <Box sx={{ maxHeight: 250, overflowY: "auto" }}>
             {form.descriptions.map((desc, index) => (
               <Box
                 key={index}
                 sx={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 2fr auto",
-                  gap: 2,
-                  aligs: "center",
                   p: 2,
                   mb: 2,
                   border: "1px solid #e0e0e0",
                   borderRadius: 2,
                   bgcolor: "#fefefe",
+                  display: "flex",
+                  gap: 2,
+                  flexDirection: { xs: "column", md: "row" },
                 }}
               >
                 <TextField
@@ -463,6 +714,7 @@ export default function WorkOrderFormModal({
                   }
                   fullWidth
                 />
+
                 <TextField
                   label="Result"
                   value={desc.result}
@@ -472,11 +724,16 @@ export default function WorkOrderFormModal({
                     updateDescription(index, "result", e.target.value)
                   }
                   fullWidth
+                  disabled={
+                    workOrder && workOrder.status !== "waiting_client_approval"
+                  }
                 />
+
                 <Tooltip title="Remove Description">
                   <IconButton
                     color="error"
                     onClick={() => removeDescription(index)}
+                    sx={{ alignSelf: "center" }}
                   >
                     <DeleteIcon />
                   </IconButton>
@@ -484,27 +741,42 @@ export default function WorkOrderFormModal({
               </Box>
             ))}
           </Box>
-          <Button onClick={addDescription} size="small" variant="contained">
-            + Add Description
+
+          <Button
+            onClick={addDescription}
+            size="small"
+            variant="outlined"
+            startIcon={<AddIcon />}
+          >
+            Add Description
           </Button>
-        </Paper>
+        </SectionCard>
 
-        {/* === Work Order Details === */}
-        <Paper
-          variant="outlined"
-          sx={{ p: 3, mb: 3, borderRadius: 2, bgcolor: "#fff" }}
-        >
-          <Typography variant="h6" sx={{ mb: 2, fontWeight: 700 }}>
-            Work Order Details
-          </Typography>
+        {/* === SECTION: Client Notes === */}
+        <SectionCard title="Client Notes" icon={<NoteAltIcon />}>
+          <Grid spacing={2}>
+            <Grid item xs={12}>
+              <TextField
+                label="Notes from Client"
+                name="client_note"
+                value={form.client_note}
+                onChange={handleChange}
+                multiline
+                rows={4}
+                fullWidth
+                placeholder="Write down any special instructions or additional information from client"
+              />
+            </Grid>
+          </Grid>
+        </SectionCard>
 
-          {/* Mandays 2 columns */}
+        {/* === SECTION: Mandays & Approval === */}
+        <SectionCard title="Mandays & Approval" icon={<CheckCircleIcon />}>
           <Grid container spacing={2} mb={2}>
             <Grid xs={12} md={6}>
               <TextField
                 label="Mandays Engineer"
                 type="number"
-                name="total_mandays_eng"
                 value={form.total_mandays_eng || 0}
                 InputProps={{ readOnly: true }}
                 fullWidth
@@ -514,15 +786,12 @@ export default function WorkOrderFormModal({
               <TextField
                 label="Mandays Electrician"
                 type="number"
-                name="total_mandays_elect"
                 value={form.total_mandays_elect || 0}
                 InputProps={{ readOnly: true }}
                 fullWidth
               />
             </Grid>
           </Grid>
-
-          {/* Checkboxes 2 columns */}
           <Grid container spacing={2}>
             <Grid xs={12} md={6}>
               <FormControlLabel
@@ -540,58 +809,33 @@ export default function WorkOrderFormModal({
                 label="Additional Work"
               />
             </Grid>
-            <Grid xs={12} md={6}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={form.client_approved}
-                    onChange={(e) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        client_approved: e.target.checked,
-                      }))
-                    }
-                  />
-                }
-                label="Client Approved"
-              />
-            </Grid>
           </Grid>
-        </Paper>
+        </SectionCard>
 
-        {/* === WO Count & Preview === */}
-        <Paper
-          variant="outlined"
-          sx={{ p: 2, borderRadius: 2, bgcolor: "#f5f5f5" }}
-        >
-          <Grid container spacing={2} aligs="flex-start">
-            <Grid xs={12} md={3}>
+        {/* === SECTION: WO Count Preview === */}
+        <SectionCard title="WO Count & Preview" icon={<NumbersIcon />}>
+          <Grid container spacing={2}>
+            <Grid xs={12} md={4}>
               <TextField
                 label="WO Count"
                 type="number"
-                name="wo_count"
                 value={form.wo_count}
                 onChange={(e) => {
                   let val = parseInt(e.target.value);
                   const maxWO = 20;
-                  const minWO = 1;
-
-                  if (isNaN(val)) val = ""; // biarkan kosong saat mengetik
+                  if (isNaN(val)) val = "";
                   else if (val > maxWO) val = maxWO;
-                  else if (val < minWO) val = minWO;
-
+                  else if (val < 1) val = 1;
                   setForm((prev) => ({ ...prev, wo_count: val }));
                 }}
                 inputProps={{ min: 1, max: 20 }}
                 fullWidth
               />
               <Typography variant="caption" color="text.secondary">
-                WO Count determines how many Work Orders will be created (max
-                20).
+                Determines how many Work Orders will be created (max 20).
               </Typography>
             </Grid>
-
-            <Grid xs={12} md={9}>
+            <Grid xs={12} md={8}>
               <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
                 Work Order Dates Preview
               </Typography>
@@ -603,14 +847,15 @@ export default function WorkOrderFormModal({
                 </ul>
               ) : (
                 <Typography variant="body2" color="text.secondary">
-                  Enter the WO Date and WO Count to see the list of dates.
+                  Enter WO Date & WO Count to see list of dates.
                 </Typography>
               )}
             </Grid>
           </Grid>
-        </Paper>
+        </SectionCard>
       </DialogContent>
 
+      {/* === Footer Actions === */}
       <DialogActions sx={{ px: 3, py: 2 }}>
         <Button onClick={() => onClose(null)} disabled={loading}>
           Cancel

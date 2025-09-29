@@ -93,16 +93,33 @@ export default function ApprovalPage() {
       return;
     }
 
-    try {
-      let endpoint = `/approvals/${selectedApproval.id}/status`;
+    if (!selectedApproval) {
+      setAlert({
+        open: true,
+        message: "Approval belum dipilih",
+        severity: "warning",
+      });
+      return;
+    }
 
-      // Kalau WO, ubah endpoint
-      if (
-        selectedApproval.type === "work order" ||
-        selectedApproval.type === "wo"
-      ) {
-        endpoint = `/approvals/wo/${selectedApproval.id}/status`;
-      }
+    try {
+      // Mapping approvable_type ke endpoint
+      const typeToEndpoint = {
+        PHC: `/approvals/${selectedApproval.id}/status`,
+        WorkOrder: `/approvals/wo/${selectedApproval.id}/status`,
+        Log: `/approvals/log/${selectedApproval.id}/status`,
+      };
+
+      // Ambil nama class tanpa namespace, misal App\Models\WorkOrder → WorkOrder
+      const approvableClass = selectedApproval.approvable_type
+        ? selectedApproval.approvable_type.split("\\").pop()
+        : "PHC";
+
+      const endpoint =
+        typeToEndpoint[approvableClass] ||
+        `/approvals/${selectedApproval.id}/status`;
+
+      console.log("Calling endpoint:", endpoint);
 
       await api.post(endpoint, {
         status: statusToUpdate,
@@ -115,8 +132,11 @@ export default function ApprovalPage() {
         severity: "success",
       });
       setModalOpen(false);
-      fetchApprovals(); // reload data
+
+      // Reload approvals
+      fetchApprovals();
     } catch (err) {
+      console.error(err);
       setAlert({
         open: true,
         message: err.response?.data?.message || "Terjadi kesalahan",

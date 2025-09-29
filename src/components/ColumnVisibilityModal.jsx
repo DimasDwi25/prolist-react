@@ -10,7 +10,7 @@ function ColumnVisibilityModal({
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="mb-4">
+    <div className="mb-2">
       {/* Tombol buka modal */}
       <button
         onClick={() => setIsOpen(true)}
@@ -23,9 +23,10 @@ function ColumnVisibilityModal({
       <Transition appear show={isOpen} as={Fragment}>
         <Dialog
           as="div"
-          className="relative z-50"
+          className="relative z-[9999]"
           onClose={() => setIsOpen(false)}
         >
+          {/* Background blur */}
           <Transition.Child
             as={Fragment}
             enter="ease-out duration-300"
@@ -38,6 +39,7 @@ function ColumnVisibilityModal({
             <div className="fixed inset-0 bg-black/30" />
           </Transition.Child>
 
+          {/* Panel */}
           <div className="fixed inset-0 flex items-center justify-center p-4">
             <Transition.Child
               as={Fragment}
@@ -53,27 +55,29 @@ function ColumnVisibilityModal({
                   Column Settings
                 </Dialog.Title>
 
-                {/* Daftar kolom dengan checkbox */}
+                {/* Daftar kolom */}
                 <div className="max-h-60 overflow-y-auto border rounded-lg p-3 space-y-2">
                   {columns.map((col) => (
                     <label
-                      key={col.field}
+                      key={col.field || col.data}
                       className="flex items-center space-x-3 p-2 rounded hover:bg-gray-50 cursor-pointer"
                     >
                       <input
                         type="checkbox"
-                        checked={columnVisibility[col.field]}
-                        onChange={() => handleToggleColumn(col.field)}
+                        checked={!!columnVisibility[col.field || col.data]}
+                        onChange={() =>
+                          handleToggleColumn(col.field || col.data)
+                        }
                         className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                       />
                       <span className="text-sm font-medium text-gray-700">
-                        {col.headerName}
+                        {col.headerName || col.title || col.field || col.data}
                       </span>
                     </label>
                   ))}
                 </div>
 
-                {/* Tombol tutup */}
+                {/* Tombol Done */}
                 <div className="mt-5 flex justify-center">
                   <button
                     onClick={() => setIsOpen(false)}
