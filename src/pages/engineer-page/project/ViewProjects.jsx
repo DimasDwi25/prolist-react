@@ -6,6 +6,17 @@ import LoadingScreen from "../../../components/loading/loadingScreen";
 import BoqModal from "../../../components/modal/BoqModal";
 import { getUser } from "../../../utils/storage";
 import LogTable from "../../../components/table/LogTable";
+import {
+  Modal,
+  Box,
+  Typography,
+  Button,
+  MenuItem,
+  Select,
+  FormControl,
+  InputLabel,
+} from "@mui/material";
+import UpdateStatusModal from "../../../components/modal/UpdateStatusModal";
 
 const ViewProjects = () => {
   const { pn_number } = useParams();
@@ -17,6 +28,8 @@ const ViewProjects = () => {
 
   const user = getUser();
   const userRole = user?.role?.name;
+
+  const [openStatusModal, setOpenStatusModal] = useState(false);
 
   useEffect(() => {
     const fetchProject = async () => {
@@ -63,6 +76,27 @@ const ViewProjects = () => {
     return <div className="text-red-500 text-center p-8">Error: {error}</div>;
   if (!project) return <div className="text-center p-8">Project not found</div>;
 
+  // Mapping warna untuk setiap status
+  const statusColors = {
+    "On Progress": { bg: "bg-blue-100", text: "text-blue-800" },
+    "Documents Completed": { bg: "bg-green-100", text: "text-green-800" },
+    "Engineering Work Completed": {
+      bg: "bg-indigo-100",
+      text: "text-indigo-800",
+    },
+    "Hold By Customer": { bg: "bg-yellow-100", text: "text-yellow-800" },
+    "Project Finished": { bg: "bg-gray-300", text: "text-gray-800" },
+    "Material Delay": { bg: "bg-red-100", text: "text-red-800" },
+    "Invoice On Progress": { bg: "bg-purple-100", text: "text-purple-800" },
+  };
+
+  // Fungsi helper untuk ambil warna
+  const getStatusStyle = (statusName) => {
+    return (
+      statusColors[statusName] || { bg: "bg-gray-100", text: "text-gray-800" }
+    );
+  };
+
   return (
     <div className="max-w-7xl mx-auto bg-white p-6 rounded-2xl shadow-lg border border-gray-100 space-y-8">
       {/* Header Section */}
@@ -72,20 +106,15 @@ const ViewProjects = () => {
             <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
               Project Details
             </h1>
-            <span
-              className={`px-3 py-1 rounded-full text-xs font-medium 
-              ${
-                project.status_project?.name === "Active"
-                  ? "bg-green-100 text-green-800"
-                  : project.status_project?.name === "On Hold"
-                  ? "bg-yellow-100 text-yellow-800"
-                  : project.status_project?.name === "Completed"
-                  ? "bg-blue-100 text-blue-800"
-                  : "bg-gray-100 text-gray-800"
-              }`}
-            >
-              {display(project.status_project?.name)}
-            </span>
+            {project.status_project && (
+              <span
+                className={`px-3 py-1 rounded-full text-sm font-semibold 
+        ${getStatusStyle(project.status_project.name).bg} 
+        ${getStatusStyle(project.status_project.name).text}`}
+              >
+                {project.status_project.name}
+              </span>
+            )}
           </div>
           <div className="flex items-center mt-2">
             <Link
@@ -172,6 +201,15 @@ const ViewProjects = () => {
             </div>
           )}
           {/* Man Power Allocation */}
+          <Button
+            onClick={() => setOpenStatusModal(true)}
+            variant="contained"
+            color="primary"
+            size="small"
+          >
+            Update Status
+          </Button>
+
           <Link
             to={`/man-power/${project.pn_number}`}
             className="flex items-center gap-1 bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm"
@@ -605,6 +643,20 @@ const ViewProjects = () => {
           role={userRole}
         />
       )}
+
+      {/* Modal baru */}
+      <UpdateStatusModal
+        open={openStatusModal}
+        handleClose={() => setOpenStatusModal(false)}
+        project={project}
+        onStatusUpdated={(newStatus) => {
+          // Update project.status_project di state
+          setProject((prev) => ({
+            ...prev,
+            status_project: newStatus,
+          }));
+        }}
+      />
     </div>
   );
 };
