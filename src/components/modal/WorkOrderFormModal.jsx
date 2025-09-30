@@ -41,6 +41,7 @@ export default function WorkOrderFormModal({
   const [loading, setLoading] = useState(false);
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
+  const [purposes, setPurposes] = useState([]);
   const [form, setForm] = useState({
     wo_date: "",
     wo_number_in_project: "",
@@ -78,8 +79,10 @@ export default function WorkOrderFormModal({
       try {
         const resUsers = await api.get("/users/engineer-only");
         const resRoles = await api.get("/users/roleTypeTwoOnly");
+        const resPurposes = await api.get("/purpose-work-orders");
         setUsers(resUsers.data.data || []);
         setRoles(resRoles.data.data || []);
+        setPurposes(resPurposes.data.data || []);
 
         console.log("Fetched users:", resUsers.data.data);
         console.log("Fetched roles:", resRoles.data.data);
@@ -93,6 +96,7 @@ export default function WorkOrderFormModal({
   // === Isi form jika edit ===
   useEffect(() => {
     if (!workOrder) return;
+    if (purposes.length === 0) return;
     if (users.length === 0 || roles.length === 0) return;
 
     const mappedPics = workOrder.pics?.map((p) => ({
@@ -112,7 +116,8 @@ export default function WorkOrderFormModal({
       p._roleOption?.name?.toLowerCase().includes("electrician")
     ).length;
 
-    setForm({
+    setForm((prev) => ({
+      ...prev,
       project_id: workOrder.project_id || "",
       purpose_id: workOrder.purpose_id || "",
       wo_date: formatDate(workOrder.wo_date),
@@ -152,8 +157,8 @@ export default function WorkOrderFormModal({
         description: d.description || "",
         result: d.result || "",
       })) || [{ description: "", result: "" }],
-    });
-  }, [workOrder, users, roles]);
+    }));
+  }, [workOrder, users, roles, purposes]);
 
   // 🔹 Hook effect untuk selalu hitung mandays berdasarkan PIC
   useEffect(() => {
@@ -344,7 +349,10 @@ export default function WorkOrderFormModal({
     }
   };
 
-  console.log(project);
+  const getPurposeOption = (id) => {
+    const p = purposes.find((p) => p.id === id);
+    return p ? { label: p.name, value: p.id } : null;
+  };
 
   return (
     <Dialog open={open} onClose={() => onClose(null)} maxWidth="lg" fullWidth>
@@ -408,21 +416,13 @@ export default function WorkOrderFormModal({
             </Grid>
             <Grid item xs={12} md={6}>
               <Autocomplete
-                options={[
-                  { label: "Installation", value: "Installation" },
-                  { label: "Maintenance", value: "Maintenance" },
-                  { label: "Service", value: "Service" },
-                  { label: "Testing", value: "Testing" },
-                ]}
-                value={
-                  form.purpose
-                    ? { label: form.purpose, value: form.purpose }
-                    : null
-                }
+                options={purposes.map((p) => ({ label: p.name, value: p.id }))}
+                value={getPurposeOption(form.purpose_id)}
                 onChange={(_, newValue) => {
-                  handleChange({
-                    target: { name: "purpose", value: newValue?.value || "" },
-                  });
+                  setForm((prev) => ({
+                    ...prev,
+                    purpose_id: newValue?.value || "",
+                  }));
                 }}
                 renderInput={(params) => (
                   <TextField

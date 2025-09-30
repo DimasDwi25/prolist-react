@@ -23,36 +23,35 @@ import Swal from "sweetalert2";
 import api from "../../api/api";
 import LoadingOverlay from "../../components/loading/LoadingOverlay";
 
-export default function CategorieProjectTable() {
+export default function PurposeWorkOrderTable() {
   const hotTableRef = useRef(null);
-  const [categories, setCategories] = useState([]);
+  const [purposes, setPurposes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
 
-  // Modal form state
+  // Modal form
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [formData, setFormData] = useState({
     id: null,
     name: "",
-    description: "",
   });
 
   useEffect(() => {
-    fetchCategories();
+    fetchPurposes();
   }, []);
 
-  const fetchCategories = async () => {
+  const fetchPurposes = async () => {
     setLoading(true);
     try {
-      const res = await api.get("/categories-project");
-      setCategories(res.data || []);
+      const res = await api.get("/purpose-work-orders");
+      setPurposes(res.data?.data || []);
     } catch (err) {
       console.error(err);
-      Swal.fire("Error", "Failed to load categories", "error");
-      setCategories([]);
+      Swal.fire("Error", "Failed to load purposes", "error");
+      setPurposes([]);
     } finally {
       setLoading(false);
     }
@@ -67,8 +66,10 @@ export default function CategorieProjectTable() {
     setPage(0);
   };
 
+  // Actions Renderer
   const actionsRenderer = (instance, td, row) => {
     const rowData = instance.getSourceDataAtRow(row);
+    if (!rowData) return td;
 
     let root = td._reactRoot;
     if (!root) {
@@ -91,7 +92,7 @@ export default function CategorieProjectTable() {
           <IconButton
             color="error"
             size="small"
-            onClick={() => deleteCategory(rowData.id)}
+            onClick={() => deletePurpose(rowData.id)}
           >
             <DeleteIcon fontSize="small" />
           </IconButton>
@@ -109,12 +110,11 @@ export default function CategorieProjectTable() {
         title: "Actions",
         renderer: actionsRenderer,
         readOnly: true,
-        width: 100,
+        width: 30,
       },
-      { data: "name", title: "Name" },
-      { data: "description", title: "Description" },
+      { data: "name", title: "Purpose Name" },
     ],
-    [categories]
+    [purposes]
   );
 
   // Inline edit
@@ -124,7 +124,7 @@ export default function CategorieProjectTable() {
     changes.forEach(([row, prop, oldValue, newValue]) => {
       if (oldValue !== newValue) {
         const rowData = hotTableRef.current.hotInstance.getSourceDataAtRow(row);
-        if (prop === "actions") return;
+        if (!rowData || prop === "actions") return;
 
         Swal.fire({
           title: "Confirm Update?",
@@ -135,23 +135,19 @@ export default function CategorieProjectTable() {
         }).then(async (result) => {
           if (result.isConfirmed) {
             try {
-              await api.put(`/categories-project/${rowData.id}`, {
+              await api.put(`/purpose-work-orders/${rowData.id}`, {
                 ...rowData,
                 [prop]: newValue,
               });
-              fetchCategories();
-              Swal.fire(
-                "Updated!",
-                "Category updated successfully.",
-                "success"
-              );
+              fetchPurposes();
+              Swal.fire("Updated!", "Purpose updated successfully.", "success");
             } catch (error) {
               console.error(error);
-              Swal.fire("Error", "Failed to update category", "error");
-              fetchCategories();
+              Swal.fire("Error", "Failed to update purpose", "error");
+              fetchPurposes();
             }
           } else {
-            fetchCategories();
+            fetchPurposes();
           }
         });
       }
@@ -159,19 +155,14 @@ export default function CategorieProjectTable() {
   };
 
   // Open form
-  const openForm = (cat = null) => {
-    if (cat) {
+  const openForm = (purpose = null) => {
+    if (purpose) {
       setFormData({
-        id: cat.id,
-        name: cat.name || "",
-        description: cat.description || "",
+        id: purpose.id,
+        name: purpose.name || "",
       });
     } else {
-      setFormData({
-        id: null,
-        name: "",
-        description: "",
-      });
+      setFormData({ id: null, name: "" });
     }
     setIsFormOpen(true);
   };
@@ -180,22 +171,22 @@ export default function CategorieProjectTable() {
   const saveForm = async () => {
     try {
       if (formData.id) {
-        await api.put(`/categories-project/${formData.id}`, formData);
-        Swal.fire("Success", "Category updated successfully", "success");
+        await api.put(`/purpose-work-orders/${formData.id}`, formData);
+        Swal.fire("Success", "Purpose updated successfully", "success");
       } else {
-        await api.post("/categories-project", formData);
-        Swal.fire("Success", "Category created successfully", "success");
+        await api.post(`/purpose-work-orders`, formData);
+        Swal.fire("Success", "Purpose created successfully", "success");
       }
       setIsFormOpen(false);
-      fetchCategories();
+      fetchPurposes();
     } catch (error) {
       console.error(error);
-      Swal.fire("Error", "Failed to save category", "error");
+      Swal.fire("Error", "Failed to save purpose", "error");
     }
   };
 
-  // Delete
-  const deleteCategory = (id) => {
+  // Delete purpose
+  const deletePurpose = (id) => {
     Swal.fire({
       title: "Are you sure?",
       text: "This action cannot be undone!",
@@ -205,25 +196,23 @@ export default function CategorieProjectTable() {
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
-          await api.delete(`/categories-project/${id}`);
-          Swal.fire("Deleted!", "Category deleted successfully.", "success");
-          fetchCategories();
+          await api.delete(`/purpose-work-orders/${id}`);
+          Swal.fire("Deleted!", "Purpose deleted successfully.", "success");
+          fetchPurposes();
         } catch (error) {
           console.error(error);
-          Swal.fire("Error", "Failed to delete category", "error");
+          Swal.fire("Error", "Failed to delete purpose", "error");
         }
       }
     });
   };
 
-  // Filter
-  const filteredCategories = categories.filter(
-    (c) =>
-      c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.description?.toLowerCase().includes(searchTerm.toLowerCase())
+  // Filter + pagination
+  const filteredPurposes = purposes.filter((p) =>
+    p.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const paginatedData = filteredCategories.slice(
+  const paginatedData = filteredPurposes.slice(
     page * pageSize,
     page * pageSize + pageSize
   );
@@ -242,12 +231,13 @@ export default function CategorieProjectTable() {
       >
         <TextField
           size="small"
-          placeholder="Search categories..."
+          placeholder="Search purposes..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           sx={{ width: 240 }}
         />
         <IconButton
+          variant="contained"
           onClick={() => openForm()}
           sx={{
             backgroundColor: "#2563eb",
@@ -291,7 +281,7 @@ export default function CategorieProjectTable() {
       <Box display="flex" justifyContent="flex-end" mt={2}>
         <TablePagination
           component="div"
-          count={filteredCategories.length}
+          count={filteredPurposes.length}
           page={page}
           onPageChange={handleChangePage}
           rowsPerPage={pageSize}
@@ -322,24 +312,16 @@ export default function CategorieProjectTable() {
             mb: 1.5,
           }}
         >
-          {formData.id ? "Edit Category" : "Create Category"}
+          {formData.id ? "Edit Purpose" : "Create Purpose"}
         </DialogTitle>
         <DialogContent dividers sx={{ px: 3, py: 2 }}>
           <Stack spacing={2}>
             <TextField
               fullWidth
-              label="Name"
+              label="Purpose Name"
               value={formData.name}
               onChange={(e) =>
                 setFormData({ ...formData, name: e.target.value })
-              }
-            />
-            <TextField
-              fullWidth
-              label="Description"
-              value={formData.description}
-              onChange={(e) =>
-                setFormData({ ...formData, description: e.target.value })
               }
             />
           </Stack>

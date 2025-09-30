@@ -23,7 +23,7 @@ import Swal from "sweetalert2";
 import api from "../../api/api";
 import LoadingOverlay from "../../components/loading/LoadingOverlay";
 
-export default function CategorieProjectTable() {
+export default function CategorieLogTable() {
   const hotTableRef = useRef(null);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -37,7 +37,6 @@ export default function CategorieProjectTable() {
   const [formData, setFormData] = useState({
     id: null,
     name: "",
-    description: "",
   });
 
   useEffect(() => {
@@ -47,7 +46,7 @@ export default function CategorieProjectTable() {
   const fetchCategories = async () => {
     setLoading(true);
     try {
-      const res = await api.get("/categories-project");
+      const res = await api.get("/categories-log");
       setCategories(res.data || []);
     } catch (err) {
       console.error(err);
@@ -70,7 +69,7 @@ export default function CategorieProjectTable() {
   const actionsRenderer = (instance, td, row) => {
     const rowData = instance.getSourceDataAtRow(row);
 
-    let root = td._reactRoot;
+    let root = td._reactRoot; // simpan root di property custom
     if (!root) {
       root = ReactDOM.createRoot(td);
       td._reactRoot = root;
@@ -109,10 +108,9 @@ export default function CategorieProjectTable() {
         title: "Actions",
         renderer: actionsRenderer,
         readOnly: true,
-        width: 100,
+        width: 30,
       },
       { data: "name", title: "Name" },
-      { data: "description", title: "Description" },
     ],
     [categories]
   );
@@ -135,7 +133,7 @@ export default function CategorieProjectTable() {
         }).then(async (result) => {
           if (result.isConfirmed) {
             try {
-              await api.put(`/categories-project/${rowData.id}`, {
+              await api.put(`/categories-log/${rowData.id}`, {
                 ...rowData,
                 [prop]: newValue,
               });
@@ -164,13 +162,11 @@ export default function CategorieProjectTable() {
       setFormData({
         id: cat.id,
         name: cat.name || "",
-        description: cat.description || "",
       });
     } else {
       setFormData({
         id: null,
         name: "",
-        description: "",
       });
     }
     setIsFormOpen(true);
@@ -180,10 +176,10 @@ export default function CategorieProjectTable() {
   const saveForm = async () => {
     try {
       if (formData.id) {
-        await api.put(`/categories-project/${formData.id}`, formData);
+        await api.put(`/categories-log/${formData.id}`, formData);
         Swal.fire("Success", "Category updated successfully", "success");
       } else {
-        await api.post("/categories-project", formData);
+        await api.post("/categories-log", formData);
         Swal.fire("Success", "Category created successfully", "success");
       }
       setIsFormOpen(false);
@@ -194,7 +190,7 @@ export default function CategorieProjectTable() {
     }
   };
 
-  // Delete
+  // Delete category
   const deleteCategory = (id) => {
     Swal.fire({
       title: "Are you sure?",
@@ -205,7 +201,7 @@ export default function CategorieProjectTable() {
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
-          await api.delete(`/categories-project/${id}`);
+          await api.delete(`/categories-log/${id}`);
           Swal.fire("Deleted!", "Category deleted successfully.", "success");
           fetchCategories();
         } catch (error) {
@@ -217,10 +213,8 @@ export default function CategorieProjectTable() {
   };
 
   // Filter
-  const filteredCategories = categories.filter(
-    (c) =>
-      c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.description?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredCategories = categories.filter((c) =>
+    c.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const paginatedData = filteredCategories.slice(
@@ -332,14 +326,6 @@ export default function CategorieProjectTable() {
               value={formData.name}
               onChange={(e) =>
                 setFormData({ ...formData, name: e.target.value })
-              }
-            />
-            <TextField
-              fullWidth
-              label="Description"
-              value={formData.description}
-              onChange={(e) =>
-                setFormData({ ...formData, description: e.target.value })
               }
             />
           </Stack>

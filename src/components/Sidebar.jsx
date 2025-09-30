@@ -20,7 +20,7 @@ const roleMapping = {
   marketing_admin: "marketing",
   marketing_estimator: "marketing",
   engineering_director: "engineer",
-  engineer: "engineer",
+  engineer: "manPower",
   "project controller": "engineer",
   "project manager": "engineer",
   warehouse: "suc",
@@ -135,10 +135,57 @@ const menuByRole = {
     { name: "Approvall", path: "/approvall", icon: <FaCheckCircle /> },
   ],
   engineer: [
-    { name: "Dashboard", path: "/engineer", icon: <FaTachometerAlt /> },
+    {
+      name: "Dashboard",
+      path: "/engineer",
+      icon: <FaTachometerAlt />,
+    },
+    {
+      name: "Master Data",
+      icon: <FaTools />,
+      submenu: [
+        {
+          name: "Document",
+          path: "/document",
+          icon: <FaTasks />,
+        },
+        {
+          name: "Purpose Work Order",
+          path: "/purpose-work-order",
+          icon: <FaTasks />,
+        },
+        {
+          name: "Category Log",
+          path: "/categorie-log",
+          icon: <FaTasks />,
+        },
+        {
+          name: "Categories Project",
+          path: "/category-project",
+          icon: <FaTasks />,
+        },
+        { name: "Status Project", path: "/status-project", icon: <FaTasks /> },
+      ],
+    },
+    {
+      name: "Material Request",
+      icon: <FaTools />,
+      submenu: [
+        {
+          name: "Material Request",
+          path: "/material-request",
+          icon: <FaTasks />,
+        },
+        { name: "Packing List", path: "/packing-list", icon: <FaTasks /> },
+      ],
+    },
+    {
+      name: "List Project Outstanding",
+      path: "/outstanding-project",
+      icon: <FaTasks />,
+    },
     { name: "Work Order", path: "/work-order", icon: <FaFileInvoice /> },
     { name: "Projects", path: "/projects", icon: <FaTools /> },
-    { name: "Tasks", path: "/tasks", icon: <FaTasks /> },
     { name: "Approvall", path: "/approvall", icon: <FaCheckCircle /> },
   ],
   suc: [
@@ -156,6 +203,17 @@ const menuByRole = {
       ],
     },
     { name: "Projects", path: "/projects", icon: <FaTools /> },
+  ],
+  manPower: [
+    {
+      name: "Dashboard",
+      path: "/man-power",
+      icon: <FaTachometerAlt />,
+    },
+    { name: "Work Order", path: "/work-order", icon: <FaFileInvoice /> },
+    { name: "Projects", path: "/projects", icon: <FaTools /> },
+    { name: "Tasks", path: "/tasks", icon: <FaTasks /> },
+    { name: "Approvall", path: "/approvall", icon: <FaCheckCircle /> },
   ],
 };
 

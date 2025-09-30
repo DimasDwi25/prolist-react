@@ -36,6 +36,11 @@ import AdminDashboard from "../pages/dashboard/AdminDashboard";
 import UserTable from "../pages/users/UserTable";
 import RoleTable from "../pages/role/RoleTable";
 import DepartmentTable from "../pages/department/DepartmentTable";
+import ManPowerDashboard from "../pages/dashboard/ManPowerDashboard";
+import DocumentTable from "../pages/document/DocumentTable";
+import CategorieLogTable from "../pages/categorie-log/CategorieLogTable";
+import PurposeWorkOrderTable from "../pages/purpose-work-order/PurposeWorkOrderTable";
+import OutstandingProjectsTable from "../pages/outstanding-project/OutstandingProjectTable";
 
 function AppRoutes() {
   return (
@@ -48,7 +53,7 @@ function AppRoutes() {
           path="/marketing"
           element={
             <ProtectedRoute
-              allowedRoles={[
+              roles={[
                 "marketing_admin",
                 "manager_marketing",
                 "sales_supervisor",
@@ -70,7 +75,7 @@ function AppRoutes() {
           path="/client"
           element={
             <ProtectedRoute
-              allowedRoles={[
+              roles={[
                 "marketing_admin",
                 "manager_marketing",
                 "sales_supervisor",
@@ -92,7 +97,7 @@ function AppRoutes() {
           path="/quotation"
           element={
             <ProtectedRoute
-              allowedRoles={[
+              roles={[
                 "marketing_admin",
                 "manager_marketing",
                 "sales_supervisor",
@@ -114,7 +119,7 @@ function AppRoutes() {
           path="/category-project"
           element={
             <ProtectedRoute
-              allowedRoles={[
+              roles={[
                 "marketing_admin",
                 "manager_marketing",
                 "sales_supervisor",
@@ -124,6 +129,8 @@ function AppRoutes() {
                 "sales_supervisor",
                 "marketing_estimator",
                 "engineering_director",
+                "project controller",
+                "project manager",
               ]}
             >
               <MainLayout>
@@ -136,7 +143,7 @@ function AppRoutes() {
           path="/status-project"
           element={
             <ProtectedRoute
-              allowedRoles={[
+              roles={[
                 "marketing_admin",
                 "manager_marketing",
                 "sales_supervisor",
@@ -146,6 +153,8 @@ function AppRoutes() {
                 "sales_supervisor",
                 "marketing_estimator",
                 "engineering_director",
+                "project controller",
+                "project manager",
               ]}
             >
               <MainLayout>
@@ -158,7 +167,7 @@ function AppRoutes() {
           path="/sales-report"
           element={
             <ProtectedRoute
-              allowedRoles={[
+              roles={[
                 "marketing_admin",
                 "manager_marketing",
                 "sales_supervisor",
@@ -180,7 +189,7 @@ function AppRoutes() {
           path="/marketing-report"
           element={
             <ProtectedRoute
-              allowedRoles={[
+              roles={[
                 "marketing_admin",
                 "manager_marketing",
                 "sales_supervisor",
@@ -202,7 +211,7 @@ function AppRoutes() {
           path="/projects"
           element={
             <ProtectedRoute
-              allowedRoles={[
+              roles={[
                 "marketing_admin",
                 "manager_marketing",
                 "sales_supervisor",
@@ -227,7 +236,7 @@ function AppRoutes() {
           path="/projects/:pn_number"
           element={
             <ProtectedRoute
-              allowedRoles={[
+              roles={[
                 "marketing_admin",
                 "manager_marketing",
                 "sales_supervisor",
@@ -251,7 +260,7 @@ function AppRoutes() {
           path="/phc/:pn_number"
           element={
             <ProtectedRoute
-              allowedRoles={[
+              roles={[
                 "marketing_admin",
                 "manager_marketing",
                 "sales_supervisor",
@@ -273,7 +282,7 @@ function AppRoutes() {
           path="/approvall"
           element={
             <ProtectedRoute
-              allowedRoles={[
+              roles={[
                 "marketing_admin",
                 "manager_marketing",
                 "sales_supervisor",
@@ -298,7 +307,7 @@ function AppRoutes() {
           path="/phcs/show/:phcId"
           element={
             <ProtectedRoute
-              allowedRoles={[
+              roles={[
                 "marketing_admin",
                 "manager_marketing",
                 "sales_supervisor",
@@ -323,7 +332,7 @@ function AppRoutes() {
           path="/phc/:projectId/edit"
           element={
             <ProtectedRoute
-              allowedRoles={[
+              roles={[
                 "marketing_admin",
                 "manager_marketing",
                 "sales_supervisor",
@@ -349,8 +358,8 @@ function AppRoutes() {
           path="/engineer"
           element={
             <ProtectedRoute
-              allowedRoles={[
-                "engineer",
+              roles={[
+                "super_admin",
                 "project controller",
                 "project manager",
                 "engineering_director",
@@ -366,7 +375,8 @@ function AppRoutes() {
           path="/engineer/projects/:pn_number"
           element={
             <ProtectedRoute
-              allowedRoles={[
+              roles={[
+                "super_admin",
                 "project controller",
                 "project manager",
                 "engineering_director",
@@ -382,7 +392,8 @@ function AppRoutes() {
           path="/engineer/phc/:phcId"
           element={
             <ProtectedRoute
-              allowedRoles={[
+              roles={[
+                "super_admin",
                 "project controller",
                 "project manager",
                 "engineering_director",
@@ -398,7 +409,8 @@ function AppRoutes() {
           path="/work-order"
           element={
             <ProtectedRoute
-              allowedRoles={[
+              roles={[
+                "super_admin",
                 "project controller",
                 "project manager",
                 "engineering_director",
@@ -415,7 +427,8 @@ function AppRoutes() {
           path="/work-order/:pn_number"
           element={
             <ProtectedRoute
-              allowedRoles={[
+              roles={[
+                "super_admin",
                 "project controller",
                 "project manager",
                 "engineering_director",
@@ -433,7 +446,8 @@ function AppRoutes() {
           path="/man-power/:pn_number"
           element={
             <ProtectedRoute
-              allowedRoles={[
+              roles={[
+                "super_admin",
                 "project controller",
                 "project manager",
                 "engineering_director",
@@ -448,7 +462,7 @@ function AppRoutes() {
         <Route
           path="/suc"
           element={
-            <ProtectedRoute allowedRoles={["warehouse"]}>
+            <ProtectedRoute roles={["warehouse", "super_admin"]}>
               <MainLayout>
                 <SucDashboard />
               </MainLayout>
@@ -458,7 +472,15 @@ function AppRoutes() {
         <Route
           path="/material-request"
           element={
-            <ProtectedRoute allowedRoles={["warehouse"]}>
+            <ProtectedRoute
+              roles={[
+                "warehouse",
+                "super_admin",
+                "project controller",
+                "project manager",
+                "engineering_director",
+              ]}
+            >
               <MainLayout>
                 <MaterialRequestPage />
               </MainLayout>
@@ -468,7 +490,15 @@ function AppRoutes() {
         <Route
           path="/material-request/:pn_number"
           element={
-            <ProtectedRoute allowedRoles={["warehouse"]}>
+            <ProtectedRoute
+              roles={[
+                "warehouse",
+                "super_admin",
+                "project controller",
+                "project manager",
+                "engineering_director",
+              ]}
+            >
               <MainLayout>
                 <MaterialRequestTable />
               </MainLayout>
@@ -478,7 +508,15 @@ function AppRoutes() {
         <Route
           path="/packing-list"
           element={
-            <ProtectedRoute allowedRoles={["warehouse"]}>
+            <ProtectedRoute
+              roles={[
+                "warehouse",
+                "super_admin",
+                "project controller",
+                "project manager",
+                "engineering_director",
+              ]}
+            >
               <MainLayout>
                 <PackingListPage />
               </MainLayout>
@@ -490,7 +528,7 @@ function AppRoutes() {
           path="/admin"
           element={
             <ProtectedRoute
-              allowedRoles={[
+              roles={[
                 "super_admin",
                 "engineering_director",
                 "marketing_director",
@@ -506,7 +544,7 @@ function AppRoutes() {
         <Route
           path="/user"
           element={
-            <ProtectedRoute allowedRoles={["super_admin"]}>
+            <ProtectedRoute roles={["super_admin"]}>
               <MainLayout>
                 <UserTable />
               </MainLayout>
@@ -517,7 +555,7 @@ function AppRoutes() {
         <Route
           path="/role"
           element={
-            <ProtectedRoute allowedRoles={["super_admin"]}>
+            <ProtectedRoute roles={["super_admin"]}>
               <MainLayout>
                 <RoleTable />
               </MainLayout>
@@ -528,9 +566,94 @@ function AppRoutes() {
         <Route
           path="/department"
           element={
-            <ProtectedRoute allowedRoles={["super_admin"]}>
+            <ProtectedRoute roles={["super_admin"]}>
               <MainLayout>
                 <DepartmentTable />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/man-power"
+          element={
+            <ProtectedRoute
+              roles={[
+                "project controller",
+                "project manager",
+                "engineering_director",
+              ]}
+            >
+              <MainLayout>
+                <ManPowerDashboard />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/document"
+          element={
+            <ProtectedRoute
+              roles={[
+                "project controller",
+                "project manager",
+                "engineering_director",
+              ]}
+            >
+              <MainLayout>
+                <DocumentTable />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/categorie-log"
+          element={
+            <ProtectedRoute
+              roles={[
+                "project controller",
+                "project manager",
+                "engineering_director",
+              ]}
+            >
+              <MainLayout>
+                <CategorieLogTable />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/purpose-work-order"
+          element={
+            <ProtectedRoute
+              roles={[
+                "project controller",
+                "project manager",
+                "engineering_director",
+              ]}
+            >
+              <MainLayout>
+                <PurposeWorkOrderTable />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/outstanding-project"
+          element={
+            <ProtectedRoute
+              roles={[
+                "project controller",
+                "project manager",
+                "engineering_director",
+              ]}
+            >
+              <MainLayout>
+                <OutstandingProjectsTable />
               </MainLayout>
             </ProtectedRoute>
           }

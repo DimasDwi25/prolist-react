@@ -69,196 +69,312 @@ export default function ViewWorkOrderModal({ open, onClose, workOrderId }) {
       </DialogTitle>
 
       <DialogContent dividers>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {/* Work Order No */}
-          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-            <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Work Order No
-            </h3>
-            <p className="mt-1 text-sm font-medium text-gray-900">
-              {display(workOrder?.wo_kode_no)}
-            </p>
+        {/* ================= General Info ================= */}
+        <section className="mb-6">
+          <h2 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
+            General Info
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              { label: "Work Order No", value: workOrder?.wo_kode_no },
+              {
+                label: "Project Number",
+                value: workOrder?.project?.project_number,
+              },
+              {
+                label: "Client",
+                value:
+                  workOrder?.project?.client?.name ||
+                  workOrder?.project?.quotation?.client?.name,
+              },
+              {
+                label: "Project Name",
+                value: workOrder?.project?.project_name,
+              },
+            ].map((item) => (
+              <div
+                key={item.label}
+                className="bg-gray-50 p-4 rounded-lg border border-gray-200"
+              >
+                <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {item.label}
+                </h3>
+                <p className="mt-1 text-sm font-medium text-gray-900">
+                  {display(item.value)}
+                </p>
+              </div>
+            ))}
           </div>
+        </section>
 
-          {/* Project No */}
-          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-            <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Project Number
-            </h3>
-            <p className="mt-1 text-sm font-medium text-gray-900">
-              {display(workOrder?.project?.project_number)}
-            </p>
+        {/* ================= Purpose & Status ================= */}
+        <section className="mb-6">
+          <h2 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
+            Purpose & Status
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+              <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Purpose
+              </h3>
+              <p className="mt-1 text-sm font-medium text-gray-900">
+                {workOrder?.purpose?.name || "—"}
+              </p>
+            </div>
+
+            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+              <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Status
+              </h3>
+              <p className="mt-1 text-sm font-medium text-gray-900">
+                {workOrder?.status || "—"}
+              </p>
+            </div>
           </div>
+        </section>
 
-          {/* Client */}
-          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-            <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Client
-            </h3>
-            <p className="mt-1 text-sm font-medium text-gray-900">
-              {display(
-                workOrder?.project?.client?.name ||
-                  workOrder?.project?.quotation?.client?.name
-              )}
-            </p>
+        {/* ================= Mandays & Approval ================= */}
+        <section className="mb-6">
+          <h2 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
+            Mandays & Approval
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+              <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Mandays
+              </h3>
+              <p className="mt-1 text-sm font-medium text-gray-900">
+                Engineer: {workOrder?.total_mandays_eng || 0}, Electrician:{" "}
+                {workOrder?.total_mandays_elect || 0}
+              </p>
+            </div>
+
+            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+              <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Additional Work
+              </h3>
+              <p className="mt-1 text-sm font-medium text-gray-900">
+                {workOrder?.add_work ? "Yes" : "No"}
+              </p>
+            </div>
+
+            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+              <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Requested By
+              </h3>
+              <p className="mt-1 text-sm font-medium text-gray-900">
+                {display(workOrder?.creator?.name)}
+              </p>
+            </div>
+
+            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+              <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Approved By
+              </h3>
+              <p className="mt-1 text-sm font-medium text-gray-900">
+                {display(workOrder?.approved_by?.name)}
+              </p>
+            </div>
           </div>
+        </section>
 
-          {/* Project Name */}
-          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-            <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Project Name
-            </h3>
-            <p className="mt-1 text-sm font-medium text-gray-900">
-              {display(workOrder?.project?.project_name)}
-            </p>
+        {/* ================= Schedule & Time ================= */}
+        <section className="mb-6">
+          <h2 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
+            Schedule & Time
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {[
+              { label: "WO Date", value: formatDate(workOrder?.wo_date) },
+              {
+                label: "Planned Start",
+                value: formatDate(workOrder?.scheduled_start_working_date),
+              },
+              {
+                label: "Planned End",
+                value: formatDate(workOrder?.scheduled_end_working_date),
+              },
+              {
+                label: "Daily Work Time",
+                value: `${workOrder?.start_work_time || "—"} – ${
+                  workOrder?.stop_work_time || "—"
+                }`,
+              },
+              {
+                label: "Continuation",
+                value: `${formatDate(workOrder?.continue_date)} ${
+                  workOrder?.continue_time || ""
+                }`,
+              },
+              {
+                label: "Actual Start",
+                value: formatDate(workOrder?.actual_start_working_date),
+              },
+              {
+                label: "Actual End",
+                value: formatDate(workOrder?.actual_end_working_date),
+              },
+            ].map((item) => (
+              <div
+                key={item.label}
+                className="bg-gray-50 p-4 rounded-lg border border-gray-200 flex flex-col justify-between"
+              >
+                <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+                  {item.label}
+                </h3>
+                <p className="text-sm font-medium text-gray-900">
+                  {display(item.value)}
+                </p>
+              </div>
+            ))}
           </div>
+        </section>
 
-          {/* Purpose */}
-          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-            <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Start Working
-            </h3>
-            <p className="mt-1 text-sm font-medium text-gray-900">
-              {formatDate(workOrder?.start_working_date)}
-            </p>
-          </div>
-
-          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-            <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-              End Working
-            </h3>
-            <p className="mt-1 text-sm font-medium text-gray-900">
-              {formatDate(workOrder?.end_working_date)}
-            </p>
-          </div>
-
-          {/* PICs */}
-          <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm lg:col-span-4">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center">
-              PICs
-            </h3>
+        {/* ================= PICs ================= */}
+        <section className="mb-6">
+          <h2 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
+            PICs
+          </h2>
+          <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm overflow-x-auto">
             {workOrder?.pics?.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-sm border-collapse">
-                  <thead>
-                    <tr className="bg-gray-100 text-gray-700">
-                      <th className="px-4 py-2 text-left font-medium">Name</th>
-                      <th className="px-4 py-2 text-left font-medium">Role</th>
+              <table className="min-w-full text-sm border-collapse">
+                <thead>
+                  <tr className="bg-gray-100 text-gray-700">
+                    <th className="px-4 py-2 text-left font-medium">Name</th>
+                    <th className="px-4 py-2 text-left font-medium">Role</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {workOrder.pics.map((pic, idx) => (
+                    <tr
+                      key={pic.id}
+                      className={`${
+                        idx % 2 === 0 ? "bg-gray-50" : "bg-white"
+                      } hover:bg-indigo-50 transition-colors`}
+                    >
+                      <td className="px-4 py-2">{pic.user.name}</td>
+                      <td className="px-4 py-2">{pic.role.name}</td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {workOrder.pics.map((pic, idx) => (
-                      <tr
-                        key={pic.id}
-                        className={`${
-                          idx % 2 === 0 ? "bg-gray-50" : "bg-white"
-                        } hover:bg-indigo-50 transition-colors`}
-                      >
-                        <td className="px-4 py-2">{pic.user.name}</td>
-                        <td className="px-4 py-2">{pic.role.name}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+              </table>
             ) : (
-              <p className="mt-1 text-sm text-gray-500">—</p>
+              <p className="text-sm text-gray-500">—</p>
             )}
           </div>
+        </section>
 
-          {/* Descriptions */}
-          <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm lg:col-span-4">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center">
-              Descriptions
-            </h3>
+        {/* ================= Descriptions ================= */}
+        <section className="mb-6">
+          <h2 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
+            Descriptions
+          </h2>
+          <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm overflow-x-auto">
             {workOrder?.descriptions?.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-sm border-collapse">
-                  <thead>
-                    <tr className="bg-gray-100 text-gray-700">
-                      <th className="px-4 py-2 text-left font-medium">
-                        Description
-                      </th>
-                      <th className="px-4 py-2 text-left font-medium">
-                        Result
-                      </th>
+              <table className="min-w-full text-sm border-collapse">
+                <thead>
+                  <tr className="bg-gray-100 text-gray-700">
+                    <th className="px-4 py-2 text-left font-medium">
+                      Description
+                    </th>
+                    <th className="px-4 py-2 text-left font-medium">Result</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {workOrder.descriptions.map((desc, idx) => (
+                    <tr
+                      key={desc.id}
+                      className={`${
+                        idx % 2 === 0 ? "bg-gray-50" : "bg-white"
+                      } hover:bg-indigo-50 transition-colors`}
+                    >
+                      <td className="px-4 py-2">{display(desc.description)}</td>
+                      <td className="px-4 py-2">{display(desc.result)}</td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {workOrder.descriptions.map((desc, idx) => (
-                      <tr
-                        key={desc.id}
-                        className={`${
-                          idx % 2 === 0 ? "bg-gray-50" : "bg-white"
-                        } hover:bg-indigo-50 transition-colors`}
-                      >
-                        <td className="px-4 py-2">
-                          {display(desc.description)}
-                        </td>
-                        <td className="px-4 py-2">{display(desc.result)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+              </table>
             ) : (
-              <p className="mt-1 text-sm text-gray-500">—</p>
+              <p className="text-sm text-gray-500">—</p>
             )}
           </div>
-        </div>
-        {/* Approval */}
-        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm w-full lg:col-span-2 mt-8">
-          <h3 className="text-sm font-semibold text-gray-700 mb-6">Approval</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 text-center w-full">
-            {/* Requested by */}
-            <div className="flex flex-col items-center w-full">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-16">
-                Requested by
-              </p>
-              <div className="w-full border-t border-gray-300 pt-2">
-                <p className="text-sm font-medium text-gray-900">
-                  {display(workOrder?.creator?.name)}
-                </p>
-              </div>
-            </div>
+        </section>
 
-            {/* Approved by */}
-            <div className="flex flex-col items-center w-full">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-16">
-                Approved by
-              </p>
-              <div className="w-full border-t border-gray-300 pt-2">
-                <p className="text-sm font-medium text-gray-900">
-                  {display(workOrder?.approved_by?.name)}
-                </p>
-              </div>
-            </div>
+        {/* ================= Client Notes ================= */}
+        <section className="mb-6">
+          <h2 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
+            Client Notes
+          </h2>
+          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+            <p className="text-sm font-medium text-gray-900">
+              {workOrder?.client_note || "—"}
+            </p>
+          </div>
+        </section>
 
-            {/* Accepted by */}
-            <div className="flex flex-col items-center w-full">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-16">
-                Accepted by
-              </p>
-              <div className="w-full border-t border-gray-300 pt-2">
-                <p className="text-sm font-medium text-gray-900">
-                  {display(workOrder?.accepted_by?.name)}
+        {/* ================= Material & Additional Work ================= */}
+        <section className="mb-6">
+          <h2 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
+            Material & Additional Work
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {[
+              {
+                label: "Material Required",
+                value: workOrder?.material_required,
+              },
+              {
+                label: "Additional Work",
+                value: workOrder?.add_work ? "Yes" : "No",
+              },
+            ].map((item) => (
+              <div
+                key={item.label}
+                className="bg-gray-50 p-4 rounded-lg border border-gray-200"
+              >
+                <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {item.label}
+                </h3>
+                <p className="mt-1 text-sm font-medium text-gray-900">
+                  {display(item.value)}
                 </p>
               </div>
-            </div>
-
-            {/* Client Approve */}
-            <div className="flex flex-col items-center w-full">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-16">
-                Client Approve
-              </p>
-              <div className="w-full border-t border-gray-300 pt-2">
-                <p className="text-sm font-medium text-gray-900">
-                  {display(workOrder?.client_approve?.name)}
-                </p>
-              </div>
+            ))}
+          </div>
+        </section>
+        {/* ================= Approval ================= */}
+        <section className="mb-6">
+          <h2 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
+            Approval
+          </h2>
+          <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 text-center w-full">
+              {[
+                { label: "Requested By", value: workOrder?.creator?.name },
+                { label: "Approved By", value: workOrder?.approved_by?.name },
+                { label: "Accepted By", value: workOrder?.accepted_by?.name },
+                {
+                  label: "Client Approve",
+                  value: workOrder?.client_approve?.name,
+                },
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  className="flex flex-col items-center w-full"
+                >
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-16">
+                    {item.label}
+                  </p>
+                  <div className="w-full border-t border-gray-300 pt-2">
+                    <p className="text-sm font-medium text-gray-900">
+                      {display(item.value)}
+                    </p>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
-        </div>
+        </section>
       </DialogContent>
 
       <DialogActions>

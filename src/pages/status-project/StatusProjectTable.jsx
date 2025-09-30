@@ -1,251 +1,348 @@
-import React, { useEffect, useState } from "react";
-import { DataGrid, GridActionsCellItem } from "@mui/x-data-grid";
-import { Plus } from "lucide-react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
+import ReactDOM from "react-dom/client";
+import { HotTable } from "@handsontable/react";
+import "handsontable/dist/handsontable.full.min.css";
 import {
+  Box,
+  Stack,
+  TextField,
+  IconButton,
+  CircularProgress,
+  TablePagination,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   Button,
-  Typography,
-  Stack,
-  Chip,
-  Box,
-  Snackbar,
-  Alert,
+  Tooltip,
 } from "@mui/material";
-
+import { Plus } from "lucide-react";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import Swal from "sweetalert2";
 import api from "../../api/api";
-import CreateStatusProjectModal from "../status-project/CreateStatusProjectTable";
+import LoadingOverlay from "../../components/loading/LoadingOverlay";
 
 export default function StatusProjectTable() {
+  const hotTableRef = useRef(null);
   const [statuses, setStatuses] = useState([]);
-  const [paginationModel, setPaginationModel] = useState({
-    page: 0,
-    pageSize: 10,
-  });
-
-  const [openCellConfirm, setOpenCellConfirm] = useState(false);
-  const [changedCell, setChangedCell] = useState(null);
-
   const [loading, setLoading] = useState(true);
-  const [openCreateModal, setOpenCreateModal] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "success",
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
+
+  // Modal form state
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    id: null,
+    name: "",
   });
 
-  const columns = [
-    {
-      field: "actions",
-      type: "actions",
-      headerName: "Actions",
-      flex: 1,
-      getActions: (params) => [
-        <GridActionsCellItem
-          key="delete"
-          icon={<Typography color="error">🗑️</Typography>}
-          label="Delete"
-          onClick={() => handleDeleteStatus(params.row.id)}
-        />,
-      ],
-    },
-    { field: "name", headerName: "Name", flex: 2, editable: true },
-  ];
-
-  const [columnVisibility, setColumnVisibility] = useState(
-    columns.reduce((acc, col) => ({ ...acc, [col.field]: true }), {})
-  );
-
-  // Fetch data
   useEffect(() => {
-    const fetchStatuses = async () => {
-      try {
-        const res = await api.get("/status-projects");
-        setStatuses(res.data.map((s) => ({ ...s, id: s.id })));
-      } catch (err) {
-        console.error("Error fetching statuses:", err.response?.data || err);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchStatuses();
   }, []);
 
-  const handleProcessRowUpdate = (newRow, oldRow) => {
-    const changedField = Object.keys(newRow).find(
-      (key) => newRow[key] !== oldRow[key]
-    );
-    if (changedField) {
-      setChangedCell({
-        id: oldRow.id,
-        field: changedField,
-        oldValue: oldRow[changedField],
-        newValue: newRow[changedField],
-      });
-      setOpenCellConfirm(true);
-    }
-    return oldRow;
-  };
-
-  const confirmCellUpdate = async () => {
+  const fetchStatuses = async () => {
+    setLoading(true);
     try {
-      const { id, field, newValue } = changedCell;
-      const res = await api.put(`/status-projects/${id}`, {
-        [field]: newValue,
-      });
-      setStatuses((prev) =>
-        prev.map((row) => (row.id === id ? res.data.data : row))
-      );
-      setSnackbar({
-        open: true,
-        message: "Cell updated successfully!",
-        severity: "success",
-      });
+      const res = await api.get("/status-projects");
+      setStatuses(res.data || []);
     } catch (err) {
-      console.error(err.response?.data || err);
-      setSnackbar({
-        open: true,
-        message: "Failed to update cell.",
-        severity: "error",
-      });
+      console.error(err);
+      Swal.fire("Error", "Failed to load status projects", "error");
+      setStatuses([]);
     } finally {
-      setOpenCellConfirm(false);
-      setChangedCell(null);
+      setLoading(false);
     }
   };
 
-  const handleDeleteStatus = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this status?")) return;
-    try {
-      await api.delete(`/status-projects/${id}`);
-      setStatuses((prev) => prev.filter((row) => row.id !== id));
-      setSnackbar({
-        open: true,
-        message: "Status deleted successfully!",
-        severity: "success",
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangePageSize = (event) => {
+    setPageSize(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  // Render actions (edit & delete)
+  const actionsRenderer = (instance, td, row) => {
+    const rowData = instance.getSourceDataAtRow(row);
+
+    let root = td._reactRoot;
+    if (!root) {
+      root = ReactDOM.createRoot(td);
+      td._reactRoot = root;
+    }
+
+    root.render(
+      <div style={{ display: "flex", justifyContent: "center", gap: "6px" }}>
+        <Tooltip title="Edit">
+          <IconButton
+            color="primary"
+            size="small"
+            onClick={() => openForm(rowData)}
+          >
+            <EditIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Delete">
+          <IconButton
+            color="error"
+            size="small"
+            onClick={() => deleteStatus(rowData.id)}
+          >
+            <DeleteIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      </div>
+    );
+
+    return td;
+  };
+
+  const allColumns = useMemo(
+    () => [
+      {
+        data: "actions",
+        title: "Actions",
+        renderer: actionsRenderer,
+        readOnly: true,
+        width: 30,
+      },
+      { data: "name", title: "Name" },
+    ],
+    [statuses]
+  );
+
+  // Inline edit handler
+  const afterChange = (changes, source) => {
+    if (source === "loadData" || !changes) return;
+
+    changes.forEach(([row, prop, oldValue, newValue]) => {
+      if (oldValue !== newValue) {
+        const rowData = hotTableRef.current.hotInstance.getSourceDataAtRow(row);
+        if (prop === "actions") return;
+
+        Swal.fire({
+          title: "Confirm Update?",
+          text: `Change ${prop} from "${oldValue}" to "${newValue}"?`,
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonText: "Yes, update",
+        }).then(async (result) => {
+          if (result.isConfirmed) {
+            try {
+              await api.put(`/status-projects/${rowData.id}`, {
+                ...rowData,
+                [prop]: newValue,
+              });
+              fetchStatuses();
+              Swal.fire("Updated!", "Status updated successfully.", "success");
+            } catch (error) {
+              console.error(error);
+              Swal.fire("Error", "Failed to update status", "error");
+              fetchStatuses();
+            }
+          } else {
+            fetchStatuses();
+          }
+        });
+      }
+    });
+  };
+
+  // Open modal form
+  const openForm = (status = null) => {
+    if (status) {
+      setFormData({
+        id: status.id,
+        name: status.name || "",
       });
-    } catch (err) {
-      console.error(err.response?.data || err);
-      setSnackbar({
-        open: true,
-        message: "Failed to delete status.",
-        severity: "error",
+    } else {
+      setFormData({
+        id: null,
+        name: "",
       });
     }
+    setIsFormOpen(true);
   };
+
+  // Save form
+  const saveForm = async () => {
+    try {
+      if (formData.id) {
+        await api.put(`/status-projects/${formData.id}`, formData);
+        Swal.fire("Success", "Status updated successfully", "success");
+      } else {
+        await api.post("/status-projects", formData);
+        Swal.fire("Success", "Status created successfully", "success");
+      }
+      setIsFormOpen(false);
+      fetchStatuses();
+    } catch (error) {
+      console.error(error);
+      Swal.fire("Error", "Failed to save status", "error");
+    }
+  };
+
+  // Delete status
+  const deleteStatus = (id) => {
+    Swal.fire({
+      title: "Are you sure?",
+      text: "This action cannot be undone!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Yes, delete",
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          await api.delete(`/status-projects/${id}`);
+          Swal.fire("Deleted!", "Status deleted successfully.", "success");
+          fetchStatuses();
+        } catch (error) {
+          console.error(error);
+          Swal.fire("Error", "Failed to delete status", "error");
+        }
+      }
+    });
+  };
+
+  // Filter + Pagination
+  const filteredStatuses = statuses.filter((s) =>
+    s.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const paginatedData = filteredStatuses.slice(
+    page * pageSize,
+    page * pageSize + pageSize
+  );
 
   return (
-    <div style={{ height: 500, width: "100%" }}>
-      <div className="flex justify-end mb-2">
-        <button
-          onClick={() => setOpenCreateModal(true)}
-          className="bg-blue-600 hover:bg-blue-700 text-white h-[32px] px-2 rounded text-[11px] shadow inline-flex items-center gap-0.5 mr-2"
-        >
-          <Plus className="h-3 w-3" />
-          Add
-        </button>
-      </div>
-      <div className="table-wrapper">
-        <div className="table-inner">
-          <DataGrid
-            rows={statuses}
-            columns={columns}
-            pagination
-            loading={loading}
-            pageSizeOptions={[10, 20, 50]}
-            paginationModel={paginationModel}
-            onPaginationModelChange={setPaginationModel}
-            rowsPerPageOptions={[10, 20, 50]}
-            disableSelectionOnClick
-            processRowUpdate={handleProcessRowUpdate}
-            columnVisibilityModel={columnVisibility}
-            onColumnVisibilityModelChange={(newModel) =>
-              setColumnVisibility(newModel)
-            }
-          />
-        </div>
-      </div>
+    <Box sx={{ position: "relative" }}>
+      <LoadingOverlay loading={loading} />
 
-      {/* Snackbar */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={3000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+      {/* Search & Add */}
+      <Stack
+        direction="row"
+        spacing={1}
+        justifyContent="flex-end"
+        alignItems="center"
+        mb={2}
       >
-        <Alert
-          onClose={() => setSnackbar({ ...snackbar, open: false })}
-          severity={snackbar.severity}
-          sx={{ width: "100%" }}
+        <TextField
+          size="small"
+          placeholder="Search statuses..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          sx={{ width: 240 }}
+        />
+        <IconButton
+          onClick={() => openForm()}
+          sx={{
+            backgroundColor: "#2563eb",
+            color: "#fff",
+            width: 36,
+            height: 36,
+            borderRadius: "8px",
+            "&:hover": {
+              backgroundColor: "#1d4ed8",
+              transform: "scale(1.05)",
+            },
+          }}
         >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+          <Plus fontSize="small" />
+        </IconButton>
+      </Stack>
 
-      {/* Confirm Cell Update */}
+      {/* Table */}
+      {loading ? (
+        <CircularProgress />
+      ) : (
+        <HotTable
+          ref={hotTableRef}
+          data={paginatedData}
+          colHeaders={allColumns.map((c) => c.title)}
+          columns={allColumns}
+          rowHeaders={false}
+          licenseKey="non-commercial-and-evaluation"
+          afterChange={afterChange}
+          stretchH="all"
+          width="100%"
+          height={550}
+          manualColumnResize
+          manualColumnFreeze
+          manualColumnMove
+          className="ht-theme-horizon"
+        />
+      )}
+
+      {/* Pagination */}
+      <Box display="flex" justifyContent="flex-end" mt={2}>
+        <TablePagination
+          component="div"
+          count={filteredStatuses.length}
+          page={page}
+          onPageChange={handleChangePage}
+          rowsPerPage={pageSize}
+          onRowsPerPageChange={handleChangePageSize}
+          rowsPerPageOptions={[10, 25, 50]}
+        />
+      </Box>
+
+      {/* Modal Form */}
       <Dialog
-        open={openCellConfirm}
-        onClose={() => setOpenCellConfirm(false)}
-        maxWidth="xs"
+        open={isFormOpen}
+        onClose={() => setIsFormOpen(false)}
         fullWidth
-        PaperProps={{ sx: { borderRadius: 3, p: 1 } }}
+        maxWidth="sm"
+        PaperProps={{
+          sx: {
+            borderRadius: "16px",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
+          },
+        }}
       >
-        <DialogTitle sx={{ fontWeight: "bold", fontSize: "1.1rem" }}>
-          Confirm Change
+        <DialogTitle
+          sx={{
+            fontWeight: 600,
+            fontSize: "1.25rem",
+            borderBottom: "1px solid #e5e7eb",
+            pb: 1.5,
+            mb: 1.5,
+          }}
+        >
+          {formData.id ? "Edit Status" : "Create Status"}
         </DialogTitle>
-        <DialogContent dividers sx={{ py: 3 }}>
-          {changedCell && (
-            <Stack spacing={2} alignItems="center">
-              <Typography variant="body2" color="text.secondary">
-                You are about to update:
-              </Typography>
-              <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
-                {changedCell.field.replace(/_/g, " ")}
-              </Typography>
-              <Box sx={{ display: "flex", gap: 2 }}>
-                <Chip
-                  label={changedCell.oldValue || "—"}
-                  color="error"
-                  variant="outlined"
-                />
-                <Chip
-                  label={changedCell.newValue || "—"}
-                  color="success"
-                  variant="outlined"
-                />
-              </Box>
-            </Stack>
-          )}
+        <DialogContent dividers sx={{ px: 3, py: 2 }}>
+          <Stack spacing={2}>
+            <TextField
+              fullWidth
+              label="Status Name"
+              value={formData.name}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
+            />
+          </Stack>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button
-            variant="outlined"
-            onClick={() => setOpenCellConfirm(false)}
-            sx={{ borderRadius: 2 }}
-          >
-            Cancel
-          </Button>
+        <DialogActions sx={{ px: 3, py: 2, borderTop: "1px solid #e5e7eb" }}>
+          <Button onClick={() => setIsFormOpen(false)}>Cancel</Button>
           <Button
             variant="contained"
-            onClick={confirmCellUpdate}
-            sx={{ borderRadius: 2 }}
+            onClick={saveForm}
+            sx={{
+              borderRadius: "8px",
+              textTransform: "none",
+              backgroundColor: "#2563eb",
+              "&:hover": { backgroundColor: "#1d4ed8" },
+            }}
           >
-            Confirm
+            Save
           </Button>
         </DialogActions>
       </Dialog>
-
-      {/* Create Modal */}
-      <CreateStatusProjectModal
-        open={openCreateModal}
-        onClose={() => setOpenCreateModal(false)}
-        onStatusCreated={(newStatus) =>
-          setStatuses((prev) => [newStatus, ...prev])
-        }
-      />
-    </div>
+    </Box>
   );
 }

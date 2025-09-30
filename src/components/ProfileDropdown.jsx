@@ -41,7 +41,10 @@ export default function ProfileDropdown({ user }) {
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-44 bg-white rounded-md shadow-lg z-50 overflow-hidden border border-gray-200 text-sm">
+        <div
+          className="absolute right-0 mt-2 w-44 bg-white rounded-md shadow-lg z-50 overflow-hidden border border-gray-200 text-sm"
+          style={{ zIndex: 9999 }}
+        >
           <div className="px-3 py-2 text-gray-700 border-b">
             <div className="font-medium">{user.name}</div>
             <div className="text-xs text-gray-500">{user.email}</div>

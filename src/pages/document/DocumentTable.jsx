@@ -14,6 +14,7 @@ import {
   DialogContent,
   DialogActions,
   Button,
+  InputAdornment,
   Tooltip,
 } from "@mui/material";
 import { Plus } from "lucide-react";
@@ -23,9 +24,9 @@ import Swal from "sweetalert2";
 import api from "../../api/api";
 import LoadingOverlay from "../../components/loading/LoadingOverlay";
 
-export default function CategorieProjectTable() {
+export default function DocumentTable() {
   const hotTableRef = useRef(null);
-  const [categories, setCategories] = useState([]);
+  const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -37,22 +38,21 @@ export default function CategorieProjectTable() {
   const [formData, setFormData] = useState({
     id: null,
     name: "",
-    description: "",
   });
 
   useEffect(() => {
-    fetchCategories();
+    fetchDocuments();
   }, []);
 
-  const fetchCategories = async () => {
+  const fetchDocuments = async () => {
     setLoading(true);
     try {
-      const res = await api.get("/categories-project");
-      setCategories(res.data || []);
+      const res = await api.get("/document-phc");
+      setDocuments(res.data || []);
     } catch (err) {
       console.error(err);
-      Swal.fire("Error", "Failed to load categories", "error");
-      setCategories([]);
+      Swal.fire("Error", "Failed to load documents", "error");
+      setDocuments([]);
     } finally {
       setLoading(false);
     }
@@ -70,7 +70,7 @@ export default function CategorieProjectTable() {
   const actionsRenderer = (instance, td, row) => {
     const rowData = instance.getSourceDataAtRow(row);
 
-    let root = td._reactRoot;
+    let root = td._reactRoot; // simpan root di property custom
     if (!root) {
       root = ReactDOM.createRoot(td);
       td._reactRoot = root;
@@ -91,7 +91,7 @@ export default function CategorieProjectTable() {
           <IconButton
             color="error"
             size="small"
-            onClick={() => deleteCategory(rowData.id)}
+            onClick={() => deleteDocument(rowData.id)}
           >
             <DeleteIcon fontSize="small" />
           </IconButton>
@@ -109,12 +109,11 @@ export default function CategorieProjectTable() {
         title: "Actions",
         renderer: actionsRenderer,
         readOnly: true,
-        width: 100,
+        width: 30,
       },
       { data: "name", title: "Name" },
-      { data: "description", title: "Description" },
     ],
-    [categories]
+    [documents]
   );
 
   // Inline edit
@@ -135,23 +134,23 @@ export default function CategorieProjectTable() {
         }).then(async (result) => {
           if (result.isConfirmed) {
             try {
-              await api.put(`/categories-project/${rowData.id}`, {
+              await api.put(`/document-phc/${rowData.id}`, {
                 ...rowData,
                 [prop]: newValue,
               });
-              fetchCategories();
+              fetchDocuments();
               Swal.fire(
                 "Updated!",
-                "Category updated successfully.",
+                "Document updated successfully.",
                 "success"
               );
             } catch (error) {
               console.error(error);
-              Swal.fire("Error", "Failed to update category", "error");
-              fetchCategories();
+              Swal.fire("Error", "Failed to update document", "error");
+              fetchDocuments();
             }
           } else {
-            fetchCategories();
+            fetchDocuments();
           }
         });
       }
@@ -159,18 +158,16 @@ export default function CategorieProjectTable() {
   };
 
   // Open form
-  const openForm = (cat = null) => {
-    if (cat) {
+  const openForm = (doc = null) => {
+    if (doc) {
       setFormData({
-        id: cat.id,
-        name: cat.name || "",
-        description: cat.description || "",
+        id: doc.id,
+        name: doc.name || "",
       });
     } else {
       setFormData({
         id: null,
         name: "",
-        description: "",
       });
     }
     setIsFormOpen(true);
@@ -180,22 +177,22 @@ export default function CategorieProjectTable() {
   const saveForm = async () => {
     try {
       if (formData.id) {
-        await api.put(`/categories-project/${formData.id}`, formData);
-        Swal.fire("Success", "Category updated successfully", "success");
+        await api.put(`/document-phc/${formData.id}`, formData);
+        Swal.fire("Success", "Document updated successfully", "success");
       } else {
-        await api.post("/categories-project", formData);
-        Swal.fire("Success", "Category created successfully", "success");
+        await api.post("/document-phc", formData);
+        Swal.fire("Success", "Document created successfully", "success");
       }
       setIsFormOpen(false);
-      fetchCategories();
+      fetchDocuments();
     } catch (error) {
       console.error(error);
-      Swal.fire("Error", "Failed to save category", "error");
+      Swal.fire("Error", "Failed to save document", "error");
     }
   };
 
-  // Delete
-  const deleteCategory = (id) => {
+  // Delete document
+  const deleteDocument = (id) => {
     Swal.fire({
       title: "Are you sure?",
       text: "This action cannot be undone!",
@@ -205,25 +202,23 @@ export default function CategorieProjectTable() {
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
-          await api.delete(`/categories-project/${id}`);
-          Swal.fire("Deleted!", "Category deleted successfully.", "success");
-          fetchCategories();
+          await api.delete(`/document-phc/${id}`);
+          Swal.fire("Deleted!", "Document deleted successfully.", "success");
+          fetchDocuments();
         } catch (error) {
           console.error(error);
-          Swal.fire("Error", "Failed to delete category", "error");
+          Swal.fire("Error", "Failed to delete document", "error");
         }
       }
     });
   };
 
   // Filter
-  const filteredCategories = categories.filter(
-    (c) =>
-      c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.description?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredDocs = documents.filter((d) =>
+    d.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const paginatedData = filteredCategories.slice(
+  const paginatedData = filteredDocs.slice(
     page * pageSize,
     page * pageSize + pageSize
   );
@@ -242,12 +237,13 @@ export default function CategorieProjectTable() {
       >
         <TextField
           size="small"
-          placeholder="Search categories..."
+          placeholder="Search documents..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           sx={{ width: 240 }}
         />
         <IconButton
+          variant="contained"
           onClick={() => openForm()}
           sx={{
             backgroundColor: "#2563eb",
@@ -291,7 +287,7 @@ export default function CategorieProjectTable() {
       <Box display="flex" justifyContent="flex-end" mt={2}>
         <TablePagination
           component="div"
-          count={filteredCategories.length}
+          count={filteredDocs.length}
           page={page}
           onPageChange={handleChangePage}
           rowsPerPage={pageSize}
@@ -322,7 +318,7 @@ export default function CategorieProjectTable() {
             mb: 1.5,
           }}
         >
-          {formData.id ? "Edit Category" : "Create Category"}
+          {formData.id ? "Edit Document" : "Create Document"}
         </DialogTitle>
         <DialogContent dividers sx={{ px: 3, py: 2 }}>
           <Stack spacing={2}>
@@ -332,14 +328,6 @@ export default function CategorieProjectTable() {
               value={formData.name}
               onChange={(e) =>
                 setFormData({ ...formData, name: e.target.value })
-              }
-            />
-            <TextField
-              fullWidth
-              label="Description"
-              value={formData.description}
-              onChange={(e) =>
-                setFormData({ ...formData, description: e.target.value })
               }
             />
           </Stack>
