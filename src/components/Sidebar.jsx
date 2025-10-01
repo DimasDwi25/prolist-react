@@ -24,6 +24,11 @@ const roleMapping = {
   "project controller": "engineer",
   "project manager": "engineer",
   warehouse: "suc",
+  engineering_admin: "engineer",
+  engineer_supervisor: "manPower",
+  drafter: "manPower",
+  electrician_supervisor: "manPower",
+  electrician: "manPower",
   // tambahkan role engineer lainnya jika ada
 };
 
@@ -211,7 +216,7 @@ const menuByRole = {
       icon: <FaTachometerAlt />,
     },
     { name: "Work Order", path: "/work-order", icon: <FaFileInvoice /> },
-    { name: "Projects", path: "/projects", icon: <FaTools /> },
+    { name: "Projects", path: "/man-power/project", icon: <FaTools /> },
     { name: "Tasks", path: "/tasks", icon: <FaTasks /> },
     { name: "Approvall", path: "/approvall", icon: <FaCheckCircle /> },
   ],

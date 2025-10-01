@@ -171,12 +171,22 @@ export default function WorkOrderFormModal({
       return;
     }
 
-    const totalEng = form.pics.filter((p) =>
-      p._roleOption?.name?.toLowerCase().includes("engineer")
+    // 🔹 Ambil semua role.id yg type_role = 2
+    const roleIdsType2 = roles.map((r) => r.id);
+
+    // 🔹 Ambil role.id untuk electrician
+    const electricianRoles = roles
+      .filter((r) => r.name.toLowerCase().includes("electrician"))
+      .map((r) => r.id);
+
+    const totalEng = form.pics.filter(
+      (p) =>
+        roleIdsType2.includes(p._roleOption?.id) &&
+        !electricianRoles.includes(p._roleOption?.id) // exclude electrician
     ).length;
 
     const totalElect = form.pics.filter((p) =>
-      p._roleOption?.name?.toLowerCase().includes("electrician")
+      electricianRoles.includes(p._roleOption?.id)
     ).length;
 
     setForm((prev) => ({

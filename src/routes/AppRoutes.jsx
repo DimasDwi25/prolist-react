@@ -41,6 +41,10 @@ import DocumentTable from "../pages/document/DocumentTable";
 import CategorieLogTable from "../pages/categorie-log/CategorieLogTable";
 import PurposeWorkOrderTable from "../pages/purpose-work-order/PurposeWorkOrderTable";
 import OutstandingProjectsTable from "../pages/outstanding-project/OutstandingProjectTable";
+import ProfilePage from "../pages/profile/ProfilePage";
+import UpdatePasswordPage from "../pages/profile/UpdatePasswordPage";
+import UpdatePinPage from "../pages/profile/UpdatePinPage";
+import ManPowerProjectTable from "../pages/man-power-page/project/ManPowerProjectTable";
 
 function AppRoutes() {
   return (
@@ -363,6 +367,7 @@ function AppRoutes() {
                 "project controller",
                 "project manager",
                 "engineering_director",
+                "engineering_admin",
               ]}
             >
               <MainLayout>
@@ -380,6 +385,7 @@ function AppRoutes() {
                 "project controller",
                 "project manager",
                 "engineering_director",
+                "engineering_admin",
               ]}
             >
               <MainLayout>
@@ -397,6 +403,7 @@ function AppRoutes() {
                 "project controller",
                 "project manager",
                 "engineering_director",
+                "engineering_admin",
               ]}
             >
               <MainLayout>
@@ -415,6 +422,7 @@ function AppRoutes() {
                 "project manager",
                 "engineering_director",
                 "engineer",
+                "engineering_admin",
               ]}
             >
               <MainLayout>
@@ -433,6 +441,7 @@ function AppRoutes() {
                 "project manager",
                 "engineering_director",
                 "engineer",
+                "engineering_admin",
               ]}
             >
               <MainLayout>
@@ -451,6 +460,7 @@ function AppRoutes() {
                 "project controller",
                 "project manager",
                 "engineering_director",
+                "engineering_admin",
               ]}
             >
               <MainLayout>
@@ -479,6 +489,7 @@ function AppRoutes() {
                 "project controller",
                 "project manager",
                 "engineering_director",
+                "engineering_admin",
               ]}
             >
               <MainLayout>
@@ -497,6 +508,7 @@ function AppRoutes() {
                 "project controller",
                 "project manager",
                 "engineering_director",
+                "engineering_admin",
               ]}
             >
               <MainLayout>
@@ -515,6 +527,7 @@ function AppRoutes() {
                 "project controller",
                 "project manager",
                 "engineering_director",
+                "engineering_admin",
               ]}
             >
               <MainLayout>
@@ -582,6 +595,8 @@ function AppRoutes() {
                 "project controller",
                 "project manager",
                 "engineering_director",
+                "engineering_admin",
+                "engineer",
               ]}
             >
               <MainLayout>
@@ -599,6 +614,7 @@ function AppRoutes() {
                 "project controller",
                 "project manager",
                 "engineering_director",
+                "engineering_admin",
               ]}
             >
               <MainLayout>
@@ -616,6 +632,7 @@ function AppRoutes() {
                 "project controller",
                 "project manager",
                 "engineering_director",
+                "engineering_admin",
               ]}
             >
               <MainLayout>
@@ -633,6 +650,7 @@ function AppRoutes() {
                 "project controller",
                 "project manager",
                 "engineering_director",
+                "engineering_admin",
               ]}
             >
               <MainLayout>
@@ -650,6 +668,7 @@ function AppRoutes() {
                 "project controller",
                 "project manager",
                 "engineering_director",
+                "engineering_admin",
               ]}
             >
               <MainLayout>
@@ -658,6 +677,59 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
+
+        <Route
+          path="/man-power/project"
+          element={
+            <ProtectedRoute
+              roles={[
+                "engineer_supervisor",
+                "engineer",
+                "drafter",
+                "electrician_supervisor",
+                "electrician",
+              ]}
+            >
+              <MainLayout>
+                <ManPowerProjectTable />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <MainLayout>
+                <ProfilePage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/update-password"
+          element={
+            <ProtectedRoute>
+              <MainLayout>
+                <UpdatePasswordPage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/update-pin"
+          element={
+            <ProtectedRoute>
+              <MainLayout>
+                <UpdatePinPage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
         {/* Default */}
         <Route path="/" element={<Navigate to="/login" replace />} />
         {/* 404 */}
