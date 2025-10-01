@@ -13,6 +13,7 @@ import {
 import api from "../../api/api";
 import LoadingScreen from "../../components/loading/loadingScreen";
 import { FaUsersCog, FaCalendarAlt } from "react-icons/fa";
+import { formatDate } from "../../utils/FormatDate";
 
 const DashboardCard = ({ title, value, color, icon }) => {
   return (
@@ -205,8 +206,6 @@ export default function EngineerDashboard() {
     },
   ];
 
-  console.log(stats);
-
   return (
     <div className="w-full p-4 lg:p-6 space-y-12 bg-gray-50">
       {/* KPI Cards */}
@@ -263,10 +262,15 @@ export default function EngineerDashboard() {
               { data: "project_name", type: "text", editor: false },
               { data: "pic", type: "text", editor: false },
               {
-                data: "target_date",
+                data: "target_dates",
                 type: "date",
                 dateFormat: "YYYY-MM-DD",
                 editor: false,
+                renderer: (instance, td, row, col, prop, value) => {
+                  const displayValue = value ? formatDate(value) : "";
+                  td.innerHTML = displayValue;
+                  return td;
+                },
               },
               { data: "delay_days", type: "numeric", editor: false },
               { data: "status", type: "text", editor: false },
@@ -291,7 +295,16 @@ export default function EngineerDashboard() {
             columns={[
               { data: "pn_number", type: "text" },
               { data: "project_name", type: "text" },
-              { data: "target_dates", type: "date", dateFormat: "YYYY-MM-DD" },
+              {
+                data: "target_dates",
+                type: "date",
+                dateFormat: "YYYY-MM-DD",
+                renderer: (instance, td, row, col, prop, value) => {
+                  const displayValue = value ? formatDate(value) : "";
+                  td.innerHTML = displayValue;
+                  return td;
+                },
+              },
               { data: "status", type: "text" },
             ]}
             stretchH="all"
