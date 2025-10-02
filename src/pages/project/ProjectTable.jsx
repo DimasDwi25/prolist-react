@@ -59,9 +59,11 @@ export default function ProjectTable() {
     "marketing_estimator",
     "engineering_director",
   ].includes(userRole);
-  const engineerRoles = ["project controller", "project manager"].includes(
-    userRole
-  );
+  const engineerRoles = [
+    "project controller",
+    "project manager",
+    "engineering_admin",
+  ].includes(userRole);
   const suc = ["warehouse"].includes(userRole);
 
   const formatDate = (val) => {

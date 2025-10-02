@@ -228,6 +228,7 @@ function AppRoutes() {
                 "project controller",
                 "project manager",
                 "warehouse",
+                "engineering_admin",
               ]}
             >
               <MainLayout>
@@ -252,6 +253,7 @@ function AppRoutes() {
                 "engineering_director",
                 "project controller",
                 "project manager",
+                "engineering_admin",
               ]}
             >
               <MainLayout>
@@ -274,6 +276,7 @@ function AppRoutes() {
                 "sales_supervisor",
                 "marketing_estimator",
                 "engineering_director",
+                "engineering_admin",
               ]}
             >
               <MainLayout>
@@ -299,6 +302,7 @@ function AppRoutes() {
                 "engineer",
                 "project controller",
                 "project manager",
+                "engineering_admin",
               ]}
             >
               <MainLayout>
@@ -324,6 +328,7 @@ function AppRoutes() {
                 "engineer",
                 "project controller",
                 "project manager",
+                "engineering_admin",
               ]}
             >
               <MainLayout>
