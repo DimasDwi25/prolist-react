@@ -14,6 +14,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import Swal from "sweetalert2";
 import SowModal from "../../../components/modal/SowModal";
 import { formatDateForInput } from "../../../utils/formatDateForInput";
+import BoqModal from "../../../components/modal/BoqModal";
 
 export default function UpdateDocumentPhc() {
   const navigate = useNavigate();
@@ -22,6 +23,7 @@ export default function UpdateDocumentPhc() {
   const [documents, setDocuments] = useState([]);
   const { phcId } = useParams();
   const [openSowModal, setOpenSowModal] = useState(false);
+  const [openBoq, setOpenBoq] = useState(false);
 
   const [formData, setFormData] = useState({
     handover_date: "",
@@ -70,6 +72,7 @@ export default function UpdateDocumentPhc() {
 
           setProject(project); // 👉 simpan project di state
           setPhcDetail(phc);
+          setOpenBoq(false);
 
           console.log(phcRes.data);
 
@@ -91,9 +94,9 @@ export default function UpdateDocumentPhc() {
             notes: phc.notes || "",
             costing_by_marketing: normalizeValue(phc.costing_by_marketing),
             boq: normalizeValue(phc.boq),
-            retention: normalizeValue(phc.retention),
-            warranty: normalizeValue(phc.warranty),
-            penalty: normalizeValue(phc.penalty),
+            retention: phc.retention,
+            warranty: phc.warranty,
+            penalty: phc.penalty,
           }));
 
           setDocuments(
@@ -439,8 +442,7 @@ export default function UpdateDocumentPhc() {
                 { key: "warranty", label: "Warranty" },
                 { key: "penalty", label: "Penalty" },
               ].map(({ key, label }) => {
-                const value = formData[key]; // A / NA
-                const isApplicable = value === "A";
+                const value = formData[key]; // A / NA atau free text
 
                 return (
                   <div
@@ -452,24 +454,44 @@ export default function UpdateDocumentPhc() {
                     </label>
 
                     {/* Badge status */}
-                    <span
-                      className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                        isApplicable
-                          ? "bg-green-100 text-green-800"
-                          : "bg-red-100 text-red-800"
-                      }`}
-                    >
-                      {isApplicable ? "Applicable" : "Not Applicable"}
-                    </span>
+                    {key === "costing_by_marketing" || key === "boq" ? (
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                          value === "A"
+                            ? "bg-green-100 text-green-800"
+                            : "bg-red-100 text-red-800"
+                        }`}
+                      >
+                        {value === "A" ? "Applicable" : "Not Applicable"}
+                      </span>
+                    ) : (
+                      <>
+                        {value === "NA" ? (
+                          <span className="px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800">
+                            Not Applicable
+                          </span>
+                        ) : (
+                          <TextField
+                            placeholder={`${label} Detail`}
+                            value={value}
+                            fullWidth
+                            disabled
+                          />
+                        )}
+                      </>
+                    )}
 
-                    {/* Detail kalau ada */}
-                    {key !== "boq" && formData[`${key}_detail`] && (
-                      <TextField
-                        placeholder={`${label} Detail`}
-                        value={formData[`${key}_detail`] || ""}
-                        fullWidth
-                        disabled
-                      />
+                    {/* Detail khusus BOQ */}
+                    {key === "boq" && value === "A" && (
+                      <div className="pt-2">
+                        <button
+                          type="button"
+                          onClick={() => setOpenBoq(true)}
+                          className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm"
+                        >
+                          ➕ Create / Edit BOQ
+                        </button>
+                      </div>
                     )}
                   </div>
                 );
@@ -592,6 +614,12 @@ export default function UpdateDocumentPhc() {
         open={openSowModal}
         handleClose={() => setOpenSowModal(false)}
         projectId={project?.pn_number}
+      />
+      <BoqModal
+        open={openBoq}
+        handleClose={() => setOpenBoq(false)}
+        projectId={project?.pn_number}
+        projectValue={project?.po_value}
       />
     </div>
   );

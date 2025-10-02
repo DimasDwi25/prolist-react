@@ -523,16 +523,17 @@ export default function PhcEdit() {
                   {
                     key: "costing_by_marketing",
                     label: "Costing by Marketing",
+                    type: "radio",
                   },
                   {
                     key: "boq",
                     label: "Bill of Quantity (BOQ)",
-                    hasDetail: true,
+                    type: "radio",
                   },
-                  { key: "retention", label: "Retention", hasDetail: true },
-                  { key: "warranty", label: "Warranty", hasDetail: true },
-                  { key: "penalty", label: "Penalty", hasDetail: true },
-                ].map(({ key, label, hasDetail }) => (
+                  { key: "retention", label: "Retention", type: "text" },
+                  { key: "warranty", label: "Warranty", type: "text" },
+                  { key: "penalty", label: "Penalty", type: "text" },
+                ].map(({ key, label, type }) => (
                   <div
                     key={key}
                     className="p-4 border rounded-md bg-gray-50 space-y-2"
@@ -541,58 +542,96 @@ export default function PhcEdit() {
                       {label}
                     </label>
 
-                    {/* Radio A / NA */}
-                    <div className="flex items-center gap-4">
-                      <label className="inline-flex items-center">
-                        <input
-                          type="radio"
-                          name={key}
-                          value="A"
-                          checked={formData[key] === "A"}
-                          onChange={() => handleChange(key, "A")}
-                          className="text-blue-600 border-gray-300 focus:ring-blue-500"
-                        />
-                        <span className="ml-2 text-sm">Applicable</span>
-                      </label>
-                      <label className="inline-flex items-center">
-                        <input
-                          type="radio"
-                          name={key}
-                          value="NA"
-                          checked={formData[key] === "NA"}
-                          onChange={() => handleChange(key, "NA")}
-                          className="text-blue-600 border-gray-300 focus:ring-blue-500"
-                        />
-                        <span className="ml-2 text-sm">Not Applicable</span>
-                      </label>
-                    </div>
+                    {/* 🔹 Radio type: Costing & BOQ */}
+                    {type === "radio" ? (
+                      <>
+                        <div className="flex items-center gap-4">
+                          <label className="inline-flex items-center">
+                            <input
+                              type="radio"
+                              name={key}
+                              value="A"
+                              checked={formData[key] === "A"}
+                              onChange={() => handleChange(key, "A")}
+                              className="text-blue-600 border-gray-300 focus:ring-blue-500"
+                            />
+                            <span className="ml-2 text-sm">Applicable</span>
+                          </label>
 
-                    {/* Kalau applicable → detail field */}
-                    {hasDetail && formData[key] === "A" && key !== "boq" && (
-                      <TextField
-                        placeholder={`${label} Detail`}
-                        value={formData[`${key}_detail`] || ""}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            [`${key}_detail`]: e.target.value,
-                          })
-                        }
-                        fullWidth
-                      />
-                    )}
+                          <label className="inline-flex items-center">
+                            <input
+                              type="radio"
+                              name={key}
+                              value="NA"
+                              checked={formData[key] === "NA"}
+                              onChange={() => handleChange(key, "NA")}
+                              className="text-blue-600 border-gray-300 focus:ring-blue-500"
+                            />
+                            <span className="ml-2 text-sm">Not Applicable</span>
+                          </label>
+                        </div>
 
-                    {/* Kalau BOQ applicable → tombol modal */}
-                    {key === "boq" && formData[key] === "A" && (
-                      <div className="pt-2">
-                        <button
-                          type="button"
-                          onClick={() => setOpenBoq(true)}
-                          className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm"
-                        >
-                          ➕ Create / Edit BOQ
-                        </button>
-                      </div>
+                        {/* 🔹 BOQ detail pakai modal */}
+                        {key === "boq" && formData[key] === "A" && (
+                          <div className="pt-2">
+                            <button
+                              type="button"
+                              onClick={() => setOpenBoq(true)}
+                              className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm"
+                            >
+                              ➕ Create / Edit BOQ
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        {/* 🔹 Retention / Warranty / Penalty pakai radio juga */}
+                        <div className="flex items-center gap-4">
+                          <label className="inline-flex items-center">
+                            <input
+                              type="radio"
+                              name={key}
+                              value="A"
+                              checked={formData[key] !== "NA"}
+                              onChange={() => handleChange(key, "")} // kosongkan biar bisa isi text
+                              className="text-blue-600 border-gray-300 focus:ring-blue-500"
+                            />
+                            <span className="ml-2 text-sm">Applicable</span>
+                          </label>
+
+                          <label className="inline-flex items-center">
+                            <input
+                              type="radio"
+                              name={key}
+                              value="NA"
+                              checked={formData[key] === "NA"}
+                              onChange={() => handleChange(key, "NA")}
+                              className="text-blue-600 border-gray-300 focus:ring-blue-500"
+                            />
+                            <span className="ml-2 text-sm">Not Applicable</span>
+                          </label>
+                        </div>
+
+                        {/* Kalau Applicable, tampil input text */}
+                        {formData[key] !== "NA" && (
+                          <TextField
+                            placeholder={`${label} Detail`}
+                            value={
+                              formData[key] === "A" ? "" : formData[key] || ""
+                            }
+                            onChange={(e) =>
+                              handleChange(
+                                key,
+                                e.target.value.trim() === ""
+                                  ? "NA"
+                                  : e.target.value
+                              )
+                            }
+                            fullWidth
+                          />
+                        )}
+                      </>
                     )}
                   </div>
                 ))}
