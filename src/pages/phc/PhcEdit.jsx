@@ -44,11 +44,10 @@ export default function PhcEdit() {
     costing_by_marketing: "NA",
     boq: "NA",
     retention: "NA",
-    retention_detail: "",
+
     warranty: "NA",
-    warranty_detail: "",
+
     penalty: "NA",
-    penalty_detail: "",
   });
 
   // 🔹 Fetch users
@@ -102,9 +101,9 @@ export default function PhcEdit() {
             notes: phc.notes || "",
             costing_by_marketing: normalizeValue(phc.costing_by_marketing),
             boq: normalizeValue(phc.boq),
-            retention: normalizeValue(phc.retention),
-            warranty: normalizeValue(phc.warranty),
-            penalty: normalizeValue(phc.penalty),
+            retention: phc.retention,
+            warranty: phc.warranty,
+            penalty: phc.penalty,
           }));
         }
       } catch (err) {
@@ -574,7 +573,10 @@ export default function PhcEdit() {
                         placeholder={`${label} Detail`}
                         value={formData[`${key}_detail`] || ""}
                         onChange={(e) =>
-                          handleChange(`${key}_detail`, e.target.value)
+                          setFormData({
+                            ...formData,
+                            [`${key}_detail`]: e.target.value,
+                          })
                         }
                         fullWidth
                       />

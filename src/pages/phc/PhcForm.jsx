@@ -106,11 +106,11 @@ export default function CreatePhcPage() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const normalizeDate = (dateStr) => {
-    if (!dateStr) return null;
-    const d = new Date(dateStr);
-    return d.toISOString().split("T")[0]; // ambil hanya tanggal (UTC)
-  };
+  // const normalizeDate = (dateStr) => {
+  //   if (!dateStr) return null;
+  //   const d = new Date(dateStr);
+  //   return d.toISOString().split("T")[0]; // ambil hanya tanggal (UTC)
+  // };
 
   const onSubmit = async (e) => {
     e.preventDefault();
@@ -122,9 +122,9 @@ export default function CreatePhcPage() {
       const res = await api.post("/phc", {
         ...formData,
         project_id: project?.pn_number,
-        handover_date: normalizeDate(formData.handover_date),
-        start_date: normalizeDate(formData.start_date),
-        target_finish_date: normalizeDate(formData.target_finish_date),
+        handover_date: formData.handover_date, // kirim langsung
+        start_date: formData.start_date,
+        target_finish_date: formData.target_finish_date,
       });
 
       if (res.data.status === "success") {
@@ -482,7 +482,7 @@ export default function CreatePhcPage() {
                     label: "Bill of Quantity (BOQ)",
                     hasDetail: true,
                   },
-                  { key: "retention", label: "Retention" },
+                  { key: "retention", label: "Retention", hasDetail: true },
                   { key: "warranty", label: "Warranty", hasDetail: true },
                   { key: "penalty", label: "Penalty", hasDetail: true },
                 ].map(({ key, label, hasDetail }) => (

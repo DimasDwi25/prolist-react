@@ -26,6 +26,10 @@ export const getToken = () => {
   return token || null;
 };
 
+export const setToken = (token) => {
+  localStorage.setItem("token", token);
+};
+
 /**
  * Ambil user
  */

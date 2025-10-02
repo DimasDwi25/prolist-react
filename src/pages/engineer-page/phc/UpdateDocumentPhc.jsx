@@ -13,6 +13,7 @@ import api from "../../../api/api";
 import { useNavigate, useParams } from "react-router-dom";
 import Swal from "sweetalert2";
 import SowModal from "../../../components/modal/SowModal";
+import { formatDateForInput } from "../../../utils/formatDateForInput";
 
 export default function UpdateDocumentPhc() {
   const navigate = useNavigate();
@@ -70,7 +71,7 @@ export default function UpdateDocumentPhc() {
           setProject(project); // 👉 simpan project di state
           setPhcDetail(phc);
 
-          console.log(project);
+          console.log(phcRes.data);
 
           setFormData((prev) => ({
             ...prev,
@@ -99,9 +100,12 @@ export default function UpdateDocumentPhc() {
             documents.map((doc) => {
               const prep = doc.preparations?.[0];
               let datePrepared = "";
+
               if (prep?.date_prepared) {
-                datePrepared = prep.date_prepared.split(" ")[0];
+                // Gunakan formatDateForInput supaya selalu jadi "YYYY-MM-DD"
+                datePrepared = formatDateForInput(prep.date_prepared);
               }
+
               return {
                 id: doc.id,
                 name: doc.name,
@@ -148,21 +152,27 @@ export default function UpdateDocumentPhc() {
       setSubmitting(false);
     }
   };
-
-  const formatDate = (value) => {
-    if (!value) return "";
-    const date = new Date(value);
-    if (isNaN(date.getTime())) return "";
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`; // ✅ format sesuai input[type="date"]
-  };
-
   const normalizeValue = (val) => {
     if (val === "0") return "NA";
     if (val === "1") return "A"; // kalau backend nanti pakai 1
     return val; // biarin kalau sudah "A" / "NA"
+  };
+  const formatDate = (value) => {
+    if (!value) return "";
+
+    // kalau sudah "YYYY-MM-DD" → langsung kembalikan
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      return value;
+    }
+
+    const date = new Date(value);
+    if (isNaN(date.getTime())) return "";
+
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
   };
 
   if (loadingUsers || loadingPhc) {
@@ -277,23 +287,25 @@ export default function UpdateDocumentPhc() {
                     type="date"
                     label="Handover Date"
                     InputLabelProps={{ shrink: true }}
-                    value={formatDate(formData.handover_date)}
+                    value={formatDateForInput(formData.handover_date)}
                     fullWidth
                     disabled
                   />
+
                   <TextField
                     type="date"
                     label="Start Date"
                     InputLabelProps={{ shrink: true }}
-                    value={formatDate(formData.start_date)}
+                    value={formatDateForInput(formData.start_date)}
                     fullWidth
                     disabled
                   />
+
                   <TextField
                     type="date"
                     label="Target Finish Date"
                     InputLabelProps={{ shrink: true }}
-                    value={formatDate(formData.target_finish_date)}
+                    value={formatDateForInput(formData.target_finish_date)}
                     fullWidth
                     disabled
                   />
@@ -373,7 +385,10 @@ export default function UpdateDocumentPhc() {
                 value={
                   engineeringUsers.find(
                     (u) => u.id === formData.pic_engineering_id
-                  ) || null
+                  ) ||
+                  (phcDetail?.pic_engineering
+                    ? phcDetail.pic_engineering
+                    : null)
                 }
                 onChange={(e, newValue) =>
                   setFormData((prev) => ({
@@ -531,7 +546,7 @@ export default function UpdateDocumentPhc() {
                         label="Date Prepared"
                         fullWidth
                         InputLabelProps={{ shrink: true }}
-                        value={doc.date_prepared || ""}
+                        value={formatDateForInput(doc.date_prepared)}
                         onChange={(e) =>
                           setDocuments((prev) =>
                             prev.map((d) =>
