@@ -21,6 +21,7 @@ import {
   ListItemText,
   Chip,
   Grid,
+  Snackbar,
 } from "@mui/material";
 import SettingsIcon from "@mui/icons-material/Settings";
 import api from "../../api/api";
@@ -61,6 +62,13 @@ export default function ProjectFormModal({
 
   const [errors, setErrors] = useState({});
   const [serverErrors, setServerErrors] = useState([]);
+  const [openConfirmation, setOpenConfirmation] = useState(false);
+  const [previewData, setPreviewData] = useState(null);
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
 
   const prevPoDate = useRef("");
 
@@ -233,6 +241,40 @@ export default function ProjectFormModal({
     setErrors({});
     setServerErrors([]);
 
+    // Prepare preview data
+    const preview = {
+      project_name: form.project_name,
+      client_name:
+        selectedClient?.name ||
+        selectedQuotation?.client?.name ||
+        "Not selected",
+      quotation_number: selectedQuotation?.no_quotation || "Not selected",
+      project_number: form.project_number,
+      target_dates: form.target_dates,
+      po_number: form.po_number,
+      po_date: form.po_date,
+      po_value: form.po_value
+        ? `Rp ${Number(form.po_value).toLocaleString("id-ID")}`
+        : "",
+      sales_weeks: form.sales_weeks,
+      is_confirmation_order: form.is_confirmation_order,
+      is_variant_order: form.is_variant_order,
+      parent_pn_number: form.parent_pn_number,
+      mandays_engineer: form.mandays_engineer,
+      mandays_technician: form.mandays_technician,
+      categories_project_name:
+        categories.find(
+          (c) => String(c.id) === String(form.categories_project_id)
+        )?.name || "Not selected",
+    };
+
+    setPreviewData(preview);
+    setOpenConfirmation(true);
+  };
+
+  const handleConfirmSubmit = async () => {
+    setOpenConfirmation(false);
+
     console.log("=== SUBMIT DEBUG ===");
     console.log("Form values before submit:", {
       is_confirmation_order: form.is_confirmation_order,
@@ -286,7 +328,7 @@ export default function ProjectFormModal({
         console.log("API Response:", res.data);
       }
 
-      onSave?.(res.data);
+      onSave?.();
       onClose();
     } catch (err) {
       if (err.response?.data?.errors) {
@@ -304,26 +346,6 @@ export default function ProjectFormModal({
     () => memoClients.find((c) => c.id === form.client_id) || null,
     [memoClients, form.client_id]
   );
-
-  // Debug: tampilkan nilai form saat render
-  console.log("=== PROJECT FORM MODAL DEBUG ===");
-  console.log("Modal props:", {
-    open,
-    project: project?.pn_number,
-    projectName: project?.project_name,
-  });
-  console.log("Form values at render:", {
-    is_confirmation_order: form.is_confirmation_order,
-    is_variant_order: form.is_variant_order,
-    project: project?.pn_number,
-  });
-
-  // Warning jika project undefined saat edit
-  if (open && !project) {
-    console.warn(
-      "⚠️ Modal dibuka tanpa project data - akan menampilkan form CREATE"
-    );
-  }
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
@@ -867,6 +889,449 @@ export default function ProjectFormModal({
           </Button>
         </DialogActions>
       </form>
+
+      {/* Confirmation Modal */}
+      <Dialog
+        open={openConfirmation}
+        onClose={() => setOpenConfirmation(false)}
+        fullWidth
+        maxWidth="md"
+      >
+        <DialogTitle
+          sx={{
+            fontSize: "1.5rem",
+            fontWeight: 700,
+            color: "text.primary",
+            borderBottom: 1,
+            borderColor: "divider",
+            pb: 2,
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+          }}
+        >
+          <BusinessIcon sx={{ fontSize: 24, color: "primary.main" }} />
+          Confirm {project ? "Update" : "Create"} Project
+        </DialogTitle>
+        <DialogContent dividers sx={{ py: 3, px: 4 }}>
+          <Typography
+            variant="body1"
+            sx={{ mb: 3, fontWeight: 600, color: "text.secondary" }}
+          >
+            Please review the project details below before proceeding:
+          </Typography>
+          {previewData && (
+            <Box sx={{ maxHeight: "60vh", overflowY: "auto" }}>
+              {/* Project Information Card */}
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 3,
+                  mb: 3,
+                  borderRadius: 3,
+                  border: "1px solid",
+                  borderColor: "divider",
+                  bgcolor: "background.paper",
+                }}
+              >
+                <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
+                  <BusinessIcon
+                    sx={{ mr: 1, color: "primary.main", fontSize: 20 }}
+                  />
+                  <Typography
+                    variant="h6"
+                    sx={{ fontWeight: 600, color: "primary.main" }}
+                  >
+                    Project Information
+                  </Typography>
+                </Box>
+                <Grid container spacing={3}>
+                  <Grid item xs={12} md={6}>
+                    <Box sx={{ mb: 2 }}>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          fontWeight: 600,
+                          color: "text.secondary",
+                          mb: 0.5,
+                        }}
+                      >
+                        Project Name
+                      </Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                        {previewData.project_name || "Not specified"}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <Box sx={{ mb: 2 }}>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          fontWeight: 600,
+                          color: "text.secondary",
+                          mb: 0.5,
+                        }}
+                      >
+                        Client
+                      </Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                        {previewData.client_name}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <Box sx={{ mb: 2 }}>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          fontWeight: 600,
+                          color: "text.secondary",
+                          mb: 0.5,
+                        }}
+                      >
+                        Quotation
+                      </Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                        {previewData.quotation_number}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <Box sx={{ mb: 2 }}>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          fontWeight: 600,
+                          color: "text.secondary",
+                          mb: 0.5,
+                        }}
+                      >
+                        Project Number
+                      </Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                        {previewData.project_number || "Auto-generated"}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <Box sx={{ mb: 2 }}>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          fontWeight: 600,
+                          color: "text.secondary",
+                          mb: 0.5,
+                        }}
+                      >
+                        Target Completion Date
+                      </Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                        {previewData.target_dates
+                          ? new Date(
+                              previewData.target_dates
+                            ).toLocaleDateString("id-ID")
+                          : "Not specified"}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <Box sx={{ mb: 2 }}>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          fontWeight: 600,
+                          color: "text.secondary",
+                          mb: 0.5,
+                        }}
+                      >
+                        Project Category
+                      </Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                        {previewData.categories_project_name}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                </Grid>
+              </Paper>
+
+              {/* Purchase Order Card */}
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 3,
+                  mb: 3,
+                  borderRadius: 3,
+                  border: "1px solid",
+                  borderColor: "divider",
+                  bgcolor: "background.paper",
+                }}
+              >
+                <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
+                  <ReceiptIcon
+                    sx={{ mr: 1, color: "secondary.main", fontSize: 20 }}
+                  />
+                  <Typography
+                    variant="h6"
+                    sx={{ fontWeight: 600, color: "secondary.main" }}
+                  >
+                    Purchase Order Details
+                  </Typography>
+                </Box>
+                <Grid container spacing={3}>
+                  <Grid item xs={12} md={6}>
+                    <Box sx={{ mb: 2 }}>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          fontWeight: 600,
+                          color: "text.secondary",
+                          mb: 0.5,
+                        }}
+                      >
+                        PO Number
+                      </Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                        {previewData.po_number || "Not specified"}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <Box sx={{ mb: 2 }}>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          fontWeight: 600,
+                          color: "text.secondary",
+                          mb: 0.5,
+                        }}
+                      >
+                        PO Date
+                      </Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                        {previewData.po_date
+                          ? new Date(previewData.po_date).toLocaleDateString(
+                              "id-ID"
+                            )
+                          : "Not specified"}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <Box sx={{ mb: 2 }}>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          fontWeight: 600,
+                          color: "text.secondary",
+                          mb: 0.5,
+                        }}
+                      >
+                        PO Value
+                      </Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                        {previewData.po_value || "Not specified"}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <Box sx={{ mb: 2 }}>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          fontWeight: 600,
+                          color: "text.secondary",
+                          mb: 0.5,
+                        }}
+                      >
+                        Sales Week
+                      </Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                        {previewData.sales_weeks || "Not specified"}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                </Grid>
+              </Paper>
+
+              {/* Options & Mandays Card */}
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 3,
+                  borderRadius: 3,
+                  border: "1px solid",
+                  borderColor: "divider",
+                  bgcolor: "background.paper",
+                }}
+              >
+                <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
+                  <SettingsIcon
+                    sx={{ mr: 1, color: "warning.main", fontSize: 20 }}
+                  />
+                  <Typography
+                    variant="h6"
+                    sx={{ fontWeight: 600, color: "warning.main" }}
+                  >
+                    Options & Mandays
+                  </Typography>
+                </Box>
+                <Grid container spacing={3}>
+                  <Grid item xs={12} md={6}>
+                    <Box sx={{ mb: 2 }}>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          fontWeight: 600,
+                          color: "text.secondary",
+                          mb: 0.5,
+                        }}
+                      >
+                        Confirmation Order
+                      </Typography>
+                      <Chip
+                        label={previewData.is_confirmation_order ? "Yes" : "No"}
+                        color={
+                          previewData.is_confirmation_order
+                            ? "success"
+                            : "default"
+                        }
+                        size="small"
+                        variant="outlined"
+                      />
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <Box sx={{ mb: 2 }}>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          fontWeight: 600,
+                          color: "text.secondary",
+                          mb: 0.5,
+                        }}
+                      >
+                        Variant Order
+                      </Typography>
+                      <Chip
+                        label={previewData.is_variant_order ? "Yes" : "No"}
+                        color={
+                          previewData.is_variant_order ? "warning" : "default"
+                        }
+                        size="small"
+                        variant="outlined"
+                      />
+                    </Box>
+                  </Grid>
+                  {previewData.is_variant_order && (
+                    <Grid item xs={12} md={6}>
+                      <Box sx={{ mb: 2 }}>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            fontWeight: 600,
+                            color: "text.secondary",
+                            mb: 0.5,
+                          }}
+                        >
+                          Parent Project Number
+                        </Typography>
+                        <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                          {previewData.parent_pn_number || "Not specified"}
+                        </Typography>
+                      </Box>
+                    </Grid>
+                  )}
+                  <Grid item xs={12} md={6}>
+                    <Box sx={{ mb: 2 }}>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          fontWeight: 600,
+                          color: "text.secondary",
+                          mb: 0.5,
+                        }}
+                      >
+                        Mandays Engineer
+                      </Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                        {previewData.mandays_engineer || "Not specified"}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <Box sx={{ mb: 2 }}>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          fontWeight: 600,
+                          color: "text.secondary",
+                          mb: 0.5,
+                        }}
+                      >
+                        Mandays Technician
+                      </Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                        {previewData.mandays_technician || "Not specified"}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                </Grid>
+              </Paper>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions
+          sx={{ p: 3, borderTop: 1, borderColor: "divider", gap: 2 }}
+        >
+          <Button
+            onClick={() => setOpenConfirmation(false)}
+            color="inherit"
+            variant="outlined"
+            size="medium"
+            sx={{
+              px: 3,
+              fontWeight: 600,
+              textTransform: "none",
+              borderRadius: 2,
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleConfirmSubmit}
+            variant="contained"
+            size="medium"
+            sx={{
+              bgcolor: "#2563eb",
+              px: 4,
+              fontWeight: 600,
+              textTransform: "none",
+              borderRadius: 2,
+              transition: "all 0.2s",
+              "&:hover": { bgcolor: "#1d4ed8", transform: "translateY(-1px)" },
+            }}
+          >
+            Confirm {project ? "Update" : "Create"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Snackbar for success notification */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+      >
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+          sx={{ width: "100%" }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Dialog>
   );
 }

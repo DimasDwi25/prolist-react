@@ -196,7 +196,6 @@ export default function ProjectTable() {
           return td;
         },
       },
-      { data: "pn_number", title: "PN NUmber" },
       { data: "project_number", title: "Project Number" },
       { data: "project_name", title: "Project Name" },
       { data: "categories_name", title: "Category" },
@@ -564,7 +563,16 @@ export default function ProjectTable() {
           projects={projects}
           categories={categories}
           token={""}
-          onSave={loadData}
+          onSave={() => {
+            setSnackbar({
+              open: true,
+              message: selectedProject
+                ? "Project updated successfully!"
+                : "Project created successfully!",
+              severity: "success",
+            });
+            loadData();
+          }}
           project={selectedProject}
         />
       )}

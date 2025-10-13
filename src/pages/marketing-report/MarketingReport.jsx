@@ -1,280 +1,307 @@
-import React, { useEffect, useState } from "react";
-import { DataGrid, GridActionsCellItem } from "@mui/x-data-grid";
-import { Typography, Chip } from "@mui/material";
-
-import api from "../../api/api"; // Axios instance dengan JWT
+import React, { useEffect, useState, useRef, useMemo } from "react";
+import { HotTable } from "@handsontable/react";
+import Handsontable from "handsontable";
+import {
+  Typography,
+  Stack,
+  Box,
+  Snackbar,
+  Alert,
+  TextField,
+  TablePagination,
+  Chip,
+} from "@mui/material";
+import api from "../../api/api";
+import LoadingOverlay from "../../components/loading/LoadingOverlay";
+import ColumnVisibilityModal from "../../components/ColumnVisibilityModal";
+import { filterBySearch } from "../../utils/filter";
 
 export default function MarketingReport() {
+  const hotTableRef = useRef(null);
   const [quotations, setQuotations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
 
-  // --- Columns ---
-  const columns = [
-    {
-      field: "no_quotation",
-      headerName: "No. Quotation",
-      flex: 1,
-      renderCell: (params) => (
-        <Typography fontWeight={600}>{params.value}</Typography>
-      ),
-    },
-    {
-      field: "title_quotation",
-      headerName: "Title",
-      flex: 2,
-      renderCell: (params) => (
-        <Typography noWrap fontWeight={500}>
-          {params.value}
-        </Typography>
-      ),
-    },
-    {
-      field: "client_name",
-      headerName: "Client",
-      flex: 1,
-      renderCell: (params) => (
-        <Typography color="text.secondary" noWrap>
-          {params.value || "-"}
-        </Typography>
-      ),
-    },
-    {
-      field: "client_pic",
-      headerName: "PIC",
-      flex: 1,
-      renderCell: (params) => (
-        <Typography color="text.secondary" noWrap>
-          {params.value || "-"}
-        </Typography>
-      ),
-    },
-    {
-      field: "quotation_date",
-      headerName: "Date",
-      flex: 1,
-      valueFormatter: (params) => {
-        if (!params || !params.value) return "-";
-        const date = new Date(params.value);
-        if (isNaN(date)) return "-";
-        const day = String(date.getDate()).padStart(2, "0");
-        const month = String(date.getMonth() + 1).padStart(2, "0");
-        const year = date.getFullYear();
-        return `${day}-${month}-${year}`;
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
+
+  // === FORMATTER ===
+  const formatDate = (val) => {
+    if (!val) return "-";
+    try {
+      const date = new Date(val);
+      if (isNaN(date)) return "-";
+      const d = String(date.getDate()).padStart(2, "0");
+      const m = String(date.getMonth() + 1).padStart(2, "0");
+      return `${d}-${m}-${date.getFullYear()}`;
+    } catch {
+      return "-";
+    }
+  };
+
+  const formatValue = (val) => {
+    if (val == null || val === "" || isNaN(val)) return "-";
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      maximumFractionDigits: 0,
+    }).format(val);
+  };
+
+  const dateRenderer = (instance, td, row, col, prop, value) => {
+    td.innerText = formatDate(value);
+    td.style.color = "#555";
+    return td;
+  };
+
+  const valueRenderer = (instance, td, row, col, prop, value) => {
+    td.innerText = formatValue(value);
+    td.style.fontWeight = "600";
+    td.style.color = "green";
+    return td;
+  };
+
+  const statusRenderer = (instance, td, row, col, prop, value) => {
+    const statusMap = {
+      A: { label: "[A] ✓ Completed", color: "success", variant: "filled" },
+      D: { label: "[D] ⏳ No PO Yet", color: "warning", variant: "outlined" },
+      E: { label: "[E] ❌ Cancelled", color: "error", variant: "outlined" },
+      F: { label: "[F] ⚠️ Lost Bid", color: "warning", variant: "outlined" },
+      O: { label: "[O] 🕒 On Going", color: "info", variant: "outlined" },
+    };
+
+    const status = statusMap[value] || {
+      label: value,
+      color: "default",
+      variant: "outlined",
+    };
+
+    // Render Chip as HTML
+    td.innerHTML = `<span style="
+      background-color: ${
+        status.variant === "filled"
+          ? status.color === "success"
+            ? "#4caf50"
+            : status.color === "error"
+            ? "#f44336"
+            : "#2196f3"
+          : "transparent"
+      };
+      color: ${
+        status.variant === "filled"
+          ? "white"
+          : status.color === "success"
+          ? "#4caf50"
+          : status.color === "error"
+          ? "#f44336"
+          : "#2196f3"
+      };
+      border: ${
+        status.variant === "outlined"
+          ? `1px solid ${
+              status.color === "success"
+                ? "#4caf50"
+                : status.color === "error"
+                ? "#f44336"
+                : "#2196f3"
+            }`
+          : "none"
+      };
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-weight: 600;
+      font-size: 12px;
+      display: inline-block;
+      min-width: 120px;
+      text-align: center;
+    ">${status.label}</span>`;
+    return td;
+  };
+
+  // === COLUMNS ===
+  const allColumns = useMemo(
+    () => [
+      { data: "no_quotation", title: "No. Quotation" },
+      { data: "title_quotation", title: "Title" },
+      { data: "client_name", title: "Client" },
+      { data: "client_pic", title: "PIC" },
+      { data: "quotation_date", title: "Date", renderer: dateRenderer },
+      { data: "quotation_value", title: "Value", renderer: valueRenderer },
+      { data: "quotation_weeks", title: "Week" },
+      {
+        data: "revision_quotation_date",
+        title: "Revision Date",
+        renderer: dateRenderer,
       },
-      renderCell: (params) => {
-        if (!params.value)
-          return <Typography color="text.secondary">-</Typography>;
-        const date = new Date(params.value);
-        const day = String(date.getDate()).padStart(2, "0");
-        const month = String(date.getMonth() + 1).padStart(2, "0");
-        const year = date.getFullYear();
-        return (
-          <Typography color="text.secondary" noWrap>
-            {`${day}-${month}-${year}`}
-          </Typography>
-        );
-      },
-    },
-
-    {
-      field: "quotation_value",
-      headerName: "Value",
-      flex: 1,
-      editable: true,
-      preProcessEditCellProps: (params) => {
-        let value = params.props.value;
-
-        if (value === "" || value === undefined || isNaN(value)) {
-          value = null; // biar aman
-        } else {
-          value = Number(value);
-        }
-
-        return { ...params.props, value };
-      },
-      valueFormatter: (params) => {
-        if (!params || params.value == null) return "-";
-        return new Intl.NumberFormat("id-ID", {
-          style: "currency",
-          currency: "IDR",
-          maximumFractionDigits: 0,
-        }).format(params.value);
-      },
-      renderCell: (params) => (
-        <Typography fontWeight={600} color="green">
-          {params.value != null
-            ? new Intl.NumberFormat("id-ID", {
-                style: "currency",
-                currency: "IDR",
-                maximumFractionDigits: 0,
-              }).format(params.value)
-            : "-"}
-        </Typography>
-      ),
-    },
-
-    {
-      field: "quotation_weeks",
-      headerName: "Week",
-      flex: 1,
-      renderCell: (params) => (
-        <Typography color="text.secondary" noWrap>
-          {params.value || "-"}
-        </Typography>
-      ),
-    },
-
-    {
-      field: "revision_quotation_date",
-      headerName: "Revision Date",
-      flex: 1,
-      type: "date",
-      valueFormatter: (params) => {
-        if (!params || !params.value) return "-";
-        const date = new Date(params.value);
-        if (isNaN(date)) return "-";
-        const day = String(date.getDate()).padStart(2, "0");
-        const month = String(date.getMonth() + 1).padStart(2, "0");
-        const year = date.getFullYear();
-        return `${day}-${month}-${year}`;
-      },
-      renderCell: (params) => {
-        if (!params.value)
-          return <Typography color="text.secondary">-</Typography>;
-        const date = new Date(params.value);
-        const day = String(date.getDate()).padStart(2, "0");
-        const month = String(date.getMonth() + 1).padStart(2, "0");
-        const year = date.getFullYear();
-        return (
-          <Typography color="text.secondary" noWrap>
-            {`${day}-${month}-${year}`}
-          </Typography>
-        );
-      },
-    },
-
-    {
-      field: "revisi",
-      headerName: "Revision",
-      flex: 1,
-      type: "number",
-      renderCell: (params) => (
-        <Typography color="text.secondary" noWrap>
-          {params.value || "-"}
-        </Typography>
-      ),
-    },
-
-    {
-      field: "status",
-      headerName: "Status",
-      flex: 1,
-      valueOptions: ["A", "D", "E", "F", "O"], // kode status
-      renderCell: (params) => {
-        // Mapping kode ke label dan warna
-        const statusMap = {
-          A: { label: "[A] ✓ Completed", color: "success", variant: "filled" },
-          D: {
-            label: "[D] ⏳ No PO Yet",
-            color: "warning",
-            variant: "outlined",
-          },
-          E: { label: "[E] ❌ Cancelled", color: "error", variant: "outlined" },
-          F: {
-            label: "[F] ⚠️ Lost Bid",
-            color: "warning",
-            variant: "outlined",
-          },
-          O: { label: "[O] 🕒 On Going", color: "info", variant: "outlined" },
-        };
-
-        const status = statusMap[params.value] || {
-          label: params.value,
-          color: "default",
-          variant: "outlined",
-        };
-
-        return (
-          <Chip
-            label={status.label}
-            color={status.color}
-            size="small"
-            variant={status.variant}
-            sx={{ fontWeight: 600, minWidth: 120, textAlign: "center" }}
-          />
-        );
-      },
-    },
-
-    {
-      field: "notes",
-      headerName: "Notes",
-      flex: 2,
-      renderCell: (params) => (
-        <Typography color="text.secondary" noWrap>
-          {params.value || "-"}
-        </Typography>
-      ),
-    },
-  ];
-
-  const [columnVisibility, setColumnVisibility] = useState(
-    columns.reduce((acc, col) => ({ ...acc, [col.field]: true }), {})
+      { data: "revisi", title: "Revision" },
+      { data: "status", title: "Status", renderer: statusRenderer },
+      { data: "notes", title: "Notes" },
+    ],
+    []
   );
 
+  // === VISIBILITY STATE ===
+  const initialVisibility = {};
+  allColumns.forEach((col) => {
+    initialVisibility[col.data] = true;
+  });
+  const [columnVisibility, setColumnVisibility] = useState(initialVisibility);
+
+  const handleToggleColumn = (field) => {
+    setColumnVisibility((prev) => ({
+      ...prev,
+      [field]: !prev[field],
+    }));
+  };
+
+  // === FETCH DATA ===
   const fetchQuotations = async () => {
     try {
       const res = await api.get("/marketing-report");
-      setQuotations(
-        res.data.data.map((q) => ({
-          id: q.quotation_number,
-          ...q,
-          quotation_number: q.quotation_number,
-          client_name: q.client?.name,
-        }))
-      );
+      const data = res.data.data.map((q, idx) => ({
+        id: idx + 1,
+        no_quotation: q.no_quotation,
+        title_quotation: q.title_quotation,
+        client_name: q.client?.name || "-",
+        client_pic: q.client_pic || "-",
+        quotation_date: q.quotation_date,
+        quotation_value: q.quotation_value,
+        quotation_weeks: q.quotation_weeks || "-",
+        revision_quotation_date: q.revision_quotation_date,
+        revisi: q.revisi || "-",
+        status: q.status,
+        notes: q.notes || "-",
+      }));
+      setQuotations(data);
     } catch (err) {
       console.error(err.response?.data || err);
+      setSnackbar({
+        open: true,
+        message: "Failed to fetch marketing report",
+        severity: "error",
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  // --- Panggil di useEffect pertama kali ---
   useEffect(() => {
     fetchQuotations();
   }, []);
 
+  // === FILTER & PAGINATION ===
+  const filteredData = filterBySearch(quotations, searchTerm);
+  const paginatedData = filteredData.slice(
+    page * pageSize,
+    page * pageSize + pageSize
+  );
+
+  const rowHeight = 40; // tinggi tiap row
+  const headerHeight = 50; // tinggi header Handsontable
+  const tableHeight = paginatedData.length * rowHeight + headerHeight + 2;
+
+  const handleChangePage = (e, newPage) => setPage(newPage);
+  const handleChangePageSize = (e) => {
+    setPageSize(parseInt(e.target.value, 10));
+    setPage(0);
+  };
+
   return (
-    <div className="table-wrapper">
-      <div className="table-inner">
-        <DataGrid
-          rows={quotations}
-          columns={columns}
-          getRowId={(row) => row.id}
-          loading={loading}
-          showToolbar
-          pagination
-          rowsPerPageOptions={[10, 20, 50]}
-          disableSelectionOnClick
-          pageSizeOptions={[10, 20, 50]}
-          columnVisibilityModel={columnVisibility}
-          onColumnVisibilityModelChange={(newModel) =>
-            setColumnVisibility(newModel)
-          }
+    <Box sx={{ width: "100%", overflowX: "auto" }}>
+      {/* Loading */}
+      <LoadingOverlay loading={loading} />
+
+      {/* Top Controls */}
+      <Stack
+        direction="row"
+        spacing={1}
+        justifyContent="flex-end"
+        alignItems="center"
+        mb={2}
+      >
+        <TextField
+          size="small"
+          placeholder="Search marketing..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
           sx={{
-            borderRadius: 2,
-            ".MuiDataGrid-cell": { py: 1.2 },
-            ".MuiDataGrid-columnHeaders": {
-              backgroundColor: "#f5f5f5",
-              fontWeight: 600,
+            width: 240,
+            "& .MuiOutlinedInput-root": {
+              borderRadius: "8px",
+              paddingRight: 0,
             },
-            ".MuiDataGrid-footerContainer": {
-              borderTop: "1px solid #e0e0e0",
+            "& .MuiInputBase-input": {
+              padding: "6px 10px",
+              fontSize: "0.875rem",
             },
           }}
         />
-      </div>
-    </div>
+
+        <ColumnVisibilityModal
+          columns={allColumns}
+          columnVisibility={columnVisibility}
+          handleToggleColumn={handleToggleColumn}
+        />
+      </Stack>
+
+      {/* Handsontable */}
+      <HotTable
+        ref={hotTableRef}
+        data={paginatedData}
+        colHeaders={allColumns.map((c) => c.title)}
+        columns={allColumns}
+        width="100%"
+        height={tableHeight} // <=== tinggi dinamis
+        rowHeights={rowHeight} // konsisten tinggi baris
+        manualColumnResize
+        licenseKey="non-commercial-and-evaluation"
+        manualColumnFreeze
+        fixedColumnsLeft={2}
+        stretchH="all"
+        filters
+        dropdownMenu
+        manualColumnMove
+        hiddenColumns={{
+          columns: allColumns
+            .map((col, i) => (columnVisibility[col.data] ? null : i))
+            .filter((i) => i !== null),
+          indicators: true,
+        }}
+        className="ht-theme-horizon"
+      />
+
+      {/* Snackbar */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+      >
+        <Alert
+          severity={snackbar.severity}
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+
+      {/* Pagination */}
+      <Box display="flex" justifyContent="flex-end" mt={2}>
+        <TablePagination
+          component="div"
+          count={filteredData.length}
+          page={page}
+          onPageChange={handleChangePage}
+          rowsPerPage={pageSize}
+          onRowsPerPageChange={handleChangePageSize}
+          rowsPerPageOptions={[10, 25, 50]}
+        />
+      </Box>
+    </Box>
   );
 }

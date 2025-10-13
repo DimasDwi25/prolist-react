@@ -1,2 +1,6 @@
-- [x] Fix photo rendering in OutstandingProjectTable.jsx by updating the PIC column to use Handsontable renderer instead of React Table syntax
-- [x] Test the table to verify photos display correctly for objects with URLs and fallbacks for null photos
+- [x] Add showPreview state to control preview modal visibility
+- [x] Modify handleSubmit to show preview after validation instead of submitting directly
+- [x] Create handleConfirmSubmit function for actual API submission after preview confirmation
+- [x] Add preview modal JSX with read-only display of form data
+- [x] Update main form button to "Preview" instead of "Create Quotation"
+- [x] Add "Back to Edit" and "Confirm Create" buttons in preview modal
