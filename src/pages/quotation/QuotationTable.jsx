@@ -1,488 +1,532 @@
-import React, { useEffect, useState } from "react";
-import { DataGrid, GridActionsCellItem } from "@mui/x-data-grid";
+import React, { useEffect, useState, useRef, useMemo } from "react";
+import { HotTable } from "@handsontable/react";
 import { Plus } from "lucide-react";
-import EditIcon from "@mui/icons-material/Edit";
 import {
+  Box,
+  Typography,
+  IconButton,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   Button,
-  Typography,
+  Snackbar,
+  Alert,
   Stack,
   Chip,
   TextField,
-  Box,
-  Snackbar,
-  Alert,
-  MenuItem,
-  InputAdornment,
-  IconButton,
+  TablePagination,
 } from "@mui/material";
 
+import api from "../../api/api";
 import ColumnVisibilityModal from "../../components/ColumnVisibilityModal";
-// import CreateQuotationModal from "./create/CreateQuotationModal";
-import api from "../../api/api"; // Axios instance dengan JWT
 import QuotationFormModal from "./QuotationFormModal";
 import QuotationDetailModal from "./QuotationDetailModal";
+import { formatDate } from "../../utils/FormatDate";
+import { filterBySearch } from "../../utils/filter"; // gunakan util filter yang sama dengan ProjectTable
+import Handsontable from "handsontable";
+import LoadingOverlay from "../../components/loading/LoadingOverlay";
 
 export default function QuotationTable() {
+  const hotTableRef = useRef(null);
   const [quotations, setQuotations] = useState([]);
+  const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [paginationModel, setPaginationModel] = useState({
-    page: 0,
-    pageSize: 10,
-  });
+  const [searchTerm, setSearchTerm] = useState("");
 
-  // --- Inline Cell Edit ---
-  const [openCellConfirm, setOpenCellConfirm] = useState(false);
-  const [changedCell, setChangedCell] = useState(null);
+  // Pagination
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
 
-  // --- Snackbar ---
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
     severity: "success",
   });
 
-  // --- Tambahkan state untuk modal create ---
   const [openCreateModal, setOpenCreateModal] = useState(false);
-  const [clients, setClients] = useState([]);
-
   const [openDetailModal, setOpenDetailModal] = useState(false);
   const [selectedQuotationId, setSelectedQuotationId] = useState(null);
 
-  // --- Columns ---
-  const columns = [
-    {
-      field: "actions",
-      type: "actions",
-      headerName: "Actions",
-      flex: 1,
-      getActions: (params) => [
-        <GridActionsCellItem
-          key="view"
-          icon={<Typography color="primary">👁️</Typography>}
-          label="View"
-          onClick={() => {
-            setSelectedQuotationId(params.row.id);
-            setOpenDetailModal(true);
-          }}
-        />,
-        <GridActionsCellItem
-          key="delete"
-          icon={<Typography color="error">🗑️</Typography>}
-          label="Delete"
-          onClick={() => handleDeleteQuotation(params.row.quotation_number)}
-        />,
-      ],
-    },
-    {
-      field: "no_quotation",
-      headerName: "No. Quotation",
-      flex: 1,
-      renderCell: (params) => (
-        <Typography fontWeight={600}>{params.value}</Typography>
-      ),
-    },
-    {
-      field: "title_quotation",
-      headerName: "Title",
-      flex: 2,
-      editable: true,
-      renderCell: (params) => (
-        <Typography noWrap fontWeight={500}>
-          {params.value}
-        </Typography>
-      ),
-    },
-    {
-      field: "client_name",
-      headerName: "Client",
-      flex: 1,
-      renderCell: (params) => (
-        <Typography color="text.secondary" noWrap>
-          {params.value || "-"}
-        </Typography>
-      ),
-    },
-    {
-      field: "client_pic",
-      headerName: "PIC",
-      flex: 1,
-      renderCell: (params) => (
-        <Typography color="text.secondary" noWrap>
-          {params.value || "-"}
-        </Typography>
-      ),
-    },
-    {
-      field: "quotation_date",
-      headerName: "Date",
-      flex: 1,
-      valueFormatter: (params) => {
-        if (!params || !params.value) return "-";
-        const date = new Date(params.value);
-        if (isNaN(date)) return "-";
-        const day = String(date.getDate()).padStart(2, "0");
-        const month = String(date.getMonth() + 1).padStart(2, "0");
-        const year = date.getFullYear();
-        return `${day}-${month}-${year}`;
-      },
-      renderCell: (params) => {
-        if (!params.value)
-          return <Typography color="text.secondary">-</Typography>;
-        const date = new Date(params.value);
-        const day = String(date.getDate()).padStart(2, "0");
-        const month = String(date.getMonth() + 1).padStart(2, "0");
-        const year = date.getFullYear();
-        return (
-          <Typography color="text.secondary" noWrap>
-            {`${day}-${month}-${year}`}
-          </Typography>
-        );
-      },
-    },
+  const [openConfirmModal, setOpenConfirmModal] = useState(false);
+  const [changedCell, setChangedCell] = useState(null);
 
-    {
-      field: "quotation_value",
-      headerName: "Value",
-      flex: 1,
-      editable: true,
-      type: "number",
-      preProcessEditCellProps: (params) => {
-        let value = params.props.value;
+  // column visibility
+  const [columnVisibility, setColumnVisibility] = useState({});
 
-        if (value === "" || value === undefined || isNaN(value)) {
-          value = null; // biar aman
-        } else {
-          value = Number(value);
-        }
-
-        return { ...params.props, value };
-      },
-      valueFormatter: (params) => {
-        if (!params || params.value == null) return "-";
-        return new Intl.NumberFormat("id-ID", {
-          style: "currency",
-          currency: "IDR",
-          maximumFractionDigits: 0,
-        }).format(params.value);
-      },
-      renderCell: (params) => (
-        <Typography fontWeight={600} color="green">
-          {params.value != null
-            ? new Intl.NumberFormat("id-ID", {
-                style: "currency",
-                currency: "IDR",
-                maximumFractionDigits: 0,
-              }).format(params.value)
-            : "-"}
-        </Typography>
-      ),
-    },
-
-    {
-      field: "quotation_weeks",
-      headerName: "Week",
-      flex: 1,
-      renderCell: (params) => (
-        <Typography color="text.secondary" noWrap>
-          {params.value || "-"}
-        </Typography>
-      ),
-    },
-
-    {
-      field: "revision_quotation_date",
-      headerName: "Revision Date",
-      flex: 1,
-      editable: true,
-      type: "date",
-      valueFormatter: (params) => {
-        if (!params || !params.value) return "-";
-        const date = new Date(params.value);
-        if (isNaN(date)) return "-";
-        const day = String(date.getDate()).padStart(2, "0");
-        const month = String(date.getMonth() + 1).padStart(2, "0");
-        const year = date.getFullYear();
-        return `${day}-${month}-${year}`;
-      },
-      renderCell: (params) => {
-        if (!params.value)
-          return <Typography color="text.secondary">-</Typography>;
-        const date = new Date(params.value);
-        const day = String(date.getDate()).padStart(2, "0");
-        const month = String(date.getMonth() + 1).padStart(2, "0");
-        const year = date.getFullYear();
-        return (
-          <Typography color="text.secondary" noWrap>
-            {`${day}-${month}-${year}`}
-          </Typography>
-        );
-      },
-    },
-
-    {
-      field: "revisi",
-      headerName: "Revision",
-      flex: 1,
-      editable: true,
-      renderCell: (params) => (
-        <Typography color="text.secondary" noWrap>
-          {params.value || "-"}
-        </Typography>
-      ),
-    },
-
-    {
-      field: "status",
-      headerName: "Status",
-      flex: 1,
-      editable: true,
-      type: "singleSelect",
-      valueOptions: ["A", "D", "E", "F", "O"], // kode status
-      renderCell: (params) => {
-        // Mapping kode ke label dan warna
-        const statusMap = {
-          A: { label: "[A] ✓ Completed", color: "success", variant: "filled" },
-          D: {
-            label: "[D] ⏳ No PO Yet",
-            color: "warning",
-            variant: "outlined",
-          },
-          E: { label: "[E] ❌ Cancelled", color: "error", variant: "outlined" },
-          F: {
-            label: "[F] ⚠️ Lost Bid",
-            color: "warning",
-            variant: "outlined",
-          },
-          O: { label: "[O] 🕒 On Going", color: "info", variant: "outlined" },
-        };
-
-        const status = statusMap[params.value] || {
-          label: params.value,
-          color: "default",
-          variant: "outlined",
-        };
-
-        return (
-          <Chip
-            label={status.label}
-            color={status.color}
-            size="small"
-            variant={status.variant}
-            sx={{ fontWeight: 600, minWidth: 120, textAlign: "center" }}
-          />
-        );
-      },
-    },
-
-    {
-      field: "notes",
-      headerName: "Notes",
-      flex: 2,
-      editable: true,
-      renderCell: (params) => (
-        <Typography color="text.secondary" noWrap>
-          {params.value || "-"}
-        </Typography>
-      ),
-    },
-  ];
-
-  const [columnVisibility, setColumnVisibility] = useState(
-    columns.reduce((acc, col) => ({ ...acc, [col.field]: true }), {})
-  );
-
+  // fetch quotations
   const fetchQuotations = async () => {
     try {
+      setLoading(true);
       const res = await api.get("/quotations");
       setQuotations(
         res.data.map((q) => ({
-          id: q.quotation_number,
           ...q,
-          quotation_number: q.quotation_number,
-          client_name: q.client?.name,
+          id: q.quotation_number,
+          client_name: q.client?.name || "-",
+          quotation_value: Number(q.quotation_value) || null,
         }))
       );
     } catch (err) {
-      console.error(err.response?.data || err);
+      console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
-  // --- Panggil di useEffect pertama kali ---
-  useEffect(() => {
-    fetchQuotations();
-  }, []);
-
+  // fetch clients
   useEffect(() => {
     const fetchClients = async () => {
       try {
+        setLoading(true);
         const res = await api.get("/clients");
-        setClients(res.data.map((c) => ({ ...c, id: c.id })));
+        setClients(res.data);
       } catch (err) {
-        console.error("Error fetching clients:", err.response?.data || err);
+        console.error(err);
       }
     };
     fetchClients();
   }, []);
 
-  // --- Inline Cell Edit Handler ---
-  // processRowUpdate: jangan return newRow, cukup simpan perubahan
-  const handleProcessRowUpdate = (newRow, oldRow) => {
-    const changedField = Object.keys(newRow).find(
-      (key) => newRow[key] !== oldRow[key]
-    );
+  useEffect(() => {
+    fetchQuotations();
+  }, []);
 
-    if (changedField) {
-      setChangedCell({
-        quotation_number: oldRow.quotation_number,
-        field: changedField,
-        oldValue: oldRow[changedField],
-        newValue: newRow[changedField],
-      });
-      setOpenCellConfirm(true);
-    }
+  // delete quotation
+  // const handleDelete = async (quotation_number) => {
+  //   if (!window.confirm("Are you sure you want to delete this quotation?"))
+  //     return;
+  //   try {
+  //     await api.delete(`/quotations/${quotation_number}`);
+  //     setQuotations((prev) =>
+  //       prev.filter((q) => q.quotation_number !== quotation_number)
+  //     );
+  //     setSnackbar({
+  //       open: true,
+  //       message: "Quotation deleted successfully!",
+  //       severity: "success",
+  //     });
+  //   } catch {
+  //     setSnackbar({
+  //       open: true,
+  //       message: "Failed to delete quotation.",
+  //       severity: "error",
+  //     });
+  //   }
+  // };
 
-    return oldRow; // tetap pakai row lama dulu
-  };
-
-  // confirm modal
-  const confirmCellUpdate = async () => {
+  // inline edit confirm
+  const confirmUpdate = async () => {
+    if (!changedCell) return;
     try {
       const { quotation_number, field, newValue } = changedCell;
-      const row = quotations.find(
-        (q) => q.quotation_number === quotation_number
-      );
 
-      const payload = { ...row, [field]: newValue };
+      let payload = { [field]: newValue };
+
+      // ✅ Mapping khusus untuk client
+      if (field === "client_name") {
+        const selectedClient = clients.find(
+          (c) => c.name.toLowerCase() === newValue.toLowerCase()
+        );
+        if (selectedClient) {
+          payload = { client_id: selectedClient.id }; // ubah ke ID
+        } else {
+          throw new Error("Client not found");
+        }
+      }
+
       const res = await api.put(`/quotations/${quotation_number}`, payload);
 
-      // update state agar grid re-render
+      // ✅ Update data di frontend
       setQuotations((prev) =>
-        prev.map((r) =>
-          r.quotation_number === quotation_number
-            ? {
-                ...r, // simpan data lama
-                ...res.data.quotation, // update dari backend
-                client_name: res.data.quotation.client?.name ?? r.client_name,
-                client_pic: res.data.quotation.client?.pic ?? r.client_pic,
-              }
-            : r
+        prev.map((q) =>
+          q.quotation_number === quotation_number
+            ? { ...q, ...res.data.quotation }
+            : q
         )
       );
 
       setSnackbar({
         open: true,
-        message: "Cell updated successfully!",
+        message: "Quotation updated successfully!",
         severity: "success",
       });
-    } catch {
+    } catch (err) {
+      console.error(err);
       setSnackbar({
         open: true,
-        message: "Failed to update cell",
+        message: "Failed to update quotation.",
         severity: "error",
       });
     } finally {
-      setOpenCellConfirm(false);
+      setOpenConfirmModal(false);
       setChangedCell(null);
     }
   };
 
-  // --- Delete Quotation Handler ---
-  const handleDeleteQuotation = async (quotation_number) => {
-    if (!window.confirm("Are you sure you want to delete this quotation?"))
-      return;
-    try {
-      await api.delete(`/quotations/${quotation_number}`);
-      setQuotations((prev) =>
-        prev.filter((row) => row.quotation_number !== quotation_number)
-      );
-      setSnackbar({
-        open: true,
-        message: "Quotation deleted successfully!",
-        severity: "success",
+  // render helpers
+  // ✅ Renderer hanya untuk tampilan (tidak ubah data asli)
+  const currencyRenderer = (instance, td, row, col, prop, value) => {
+    td.innerHTML = "";
+    td.style.textAlign = "right";
+    td.style.paddingRight = "8px";
+    td.style.fontWeight = "600";
+    td.style.color = "#065f46"; // hijau lembut
+
+    if (value != null && value !== "") {
+      const num = Number(value);
+      if (!isNaN(num)) {
+        td.textContent = `Rp ${num.toLocaleString("id-ID")}`;
+      } else {
+        td.textContent = "-";
+        td.style.color = "#9ca3af";
+      }
+    } else {
+      td.textContent = "-";
+      td.style.color = "#9ca3af";
+    }
+
+    return td;
+  };
+
+  // ✅ Custom editor dengan auto-format ribuan
+  const currencyEditor = Handsontable.editors.TextEditor.prototype.extend();
+
+  currencyEditor.prototype.open = function () {
+    Handsontable.editors.TextEditor.prototype.open.apply(this, arguments);
+    const input = this.TEXTAREA;
+
+    // Ambil angka murni dari nilai sebelumnya (hindari format double)
+    const numericValue = Number(
+      String(this.originalValue).replace(/[^0-9]/g, "")
+    );
+    input.value =
+      !isNaN(numericValue) && numericValue > 0
+        ? numericValue.toLocaleString("id-ID")
+        : "";
+
+    input.style.textAlign = "right";
+    input.style.paddingRight = "4px";
+
+    // Auto-format ribuan saat user mengetik
+    this._onInputFormat = () => {
+      const raw = input.value.replace(/[^0-9]/g, "");
+      if (raw) {
+        input.value = Number(raw).toLocaleString("id-ID");
+      } else {
+        input.value = "";
+      }
+    };
+
+    input.addEventListener("input", this._onInputFormat);
+  };
+
+  currencyEditor.prototype.close = function () {
+    const input = this.TEXTAREA;
+    input.removeEventListener("input", this._onInputFormat);
+    Handsontable.editors.TextEditor.prototype.close.apply(this, arguments);
+  };
+
+  // ✅ Pastikan value disimpan angka murni
+  currencyEditor.prototype.getValue = function () {
+    const raw = this.TEXTAREA.value.replace(/[^0-9]/g, "");
+    return raw ? Number(raw) : null;
+  };
+  const dateRenderer = (instance, td, row, col, prop, value) => {
+    td.innerText = formatDate(value);
+    return td;
+  };
+
+  const actionsRenderer = (instance, td, row) => {
+    td.innerHTML = "";
+    const wrapper = document.createElement("div");
+    wrapper.style.display = "flex";
+    wrapper.style.gap = "6px";
+
+    // View
+    const viewBtn = document.createElement("button");
+    viewBtn.innerText = "👁️";
+    viewBtn.title = "View";
+    viewBtn.style.border = "none";
+    viewBtn.style.background = "transparent";
+    viewBtn.style.cursor = "pointer";
+    viewBtn.onclick = () => {
+      const quotation = instance.getSourceDataAtRow(row);
+      setSelectedQuotationId(quotation.id);
+      setOpenDetailModal(true);
+    };
+    wrapper.appendChild(viewBtn);
+
+    // // Delete
+    // const delBtn = document.createElement("button");
+    // delBtn.innerText = "🗑️";
+    // delBtn.title = "Delete";
+    // delBtn.style.border = "none";
+    // delBtn.style.background = "transparent";
+    // delBtn.style.cursor = "pointer";
+    // delBtn.onclick = () => {
+    //   const quotation = instance.getSourceDataAtRow(row);
+    //   handleDelete(quotation.quotation_number);
+    // };
+    // wrapper.appendChild(delBtn);
+
+    td.appendChild(wrapper);
+    return td;
+  };
+
+  const columns = useMemo(
+    () => [
+      {
+        data: "actions",
+        title: "Actions",
+        readOnly: true,
+        renderer: actionsRenderer,
+        width: 90,
+      },
+      { data: "no_quotation", title: "No. Quotation", width: 150 },
+      { data: "title_quotation", title: "Title", width: 250 },
+      {
+        data: "client_name",
+        title: "Client",
+        width: 180,
+        type: "dropdown",
+        source: clients.map((c) => c.name), // ✅ daftar nama client dari API
+        strict: true,
+        allowInvalid: false,
+        renderer: (instance, td, row, col, prop, value) => {
+          td.innerHTML = "";
+          td.style.textAlign = "left";
+          td.style.paddingLeft = "8px";
+          td.style.fontWeight = "500";
+          td.textContent = value || "-";
+          return td;
+        },
+      },
+
+      { data: "client_pic", title: "PIC", width: 150 },
+      {
+        data: "quotation_date",
+        title: "Date",
+        renderer: dateRenderer,
+        width: 120,
+        editor: false,
+      },
+      {
+        data: "quotation_value",
+        title: "Value",
+        renderer: currencyRenderer,
+        editor: currencyEditor,
+        width: 150,
+      },
+      { data: "quotation_weeks", title: "Week", width: 100, editor: false },
+      {
+        data: "revision_quotation_date",
+        title: "Revision Date",
+        type: "date",
+        dateFormat: "YYYY-MM-DD",
+        correctFormat: true,
+        allowEmpty: true,
+        width: 150,
+        renderer: (instance, td, row, col, prop, value) => {
+          td.innerHTML = "";
+          td.style.textAlign = "center";
+
+          if (value) {
+            const dateObj = new Date(value);
+            const formattedDate = `${String(dateObj.getDate()).padStart(
+              2,
+              "0"
+            )}-${String(dateObj.getMonth() + 1).padStart(
+              2,
+              "0"
+            )}-${dateObj.getFullYear()}`;
+
+            td.textContent = formattedDate; // ✅ hasil: 12-12-2025
+            td.style.color = "#111827";
+            td.style.fontWeight = "500";
+          } else {
+            td.textContent = "-";
+            td.style.color = "#9ca3af";
+          }
+
+          return td;
+        },
+      },
+      { data: "revisi", title: "Revision", width: 100 },
+      {
+        data: "status",
+        title: "Status",
+        type: "dropdown",
+        source: ["A", "D", "E", "F", "O"], // daftar kode status yang valid
+        strict: true,
+        allowInvalid: false,
+        width: 180,
+        renderer: (instance, td, row, col, prop, value) => {
+          const statusMap = {
+            A: "[A] ✓ Completed",
+            D: "[D] ⏳ No PO Yet",
+            E: "[E] ❌ Cancelled",
+            F: "[F] ⚠️ Lost Bid",
+            O: "[O] 🕒 On Going",
+          };
+
+          // Bersihkan konten lama
+          td.innerHTML = "";
+          td.style.textAlign = "center";
+          td.style.fontWeight = "600";
+
+          const span = document.createElement("span");
+          span.textContent = statusMap[value] || "-";
+
+          // Warna berdasarkan status
+          switch (value) {
+            case "A":
+              span.style.color = "#16a34a";
+              span.style.background = "#dcfce7";
+              break;
+            case "D":
+              span.style.color = "#92400e";
+              span.style.background = "#fef3c7";
+              break;
+            case "E":
+              span.style.color = "#b91c1c";
+              span.style.background = "#fee2e2";
+              break;
+            case "F":
+              span.style.color = "#9333ea";
+              span.style.background = "#f3e8ff";
+              break;
+            case "O":
+              span.style.color = "#2563eb";
+              span.style.background = "#dbeafe";
+              break;
+            default:
+              span.style.color = "#6b7280";
+              span.style.background = "#f3f4f6";
+              break;
+          }
+
+          span.style.padding = "4px 8px";
+          span.style.borderRadius = "8px";
+          td.appendChild(span);
+
+          return td;
+        },
+      },
+
+      { data: "notes", title: "Notes", width: 200 },
+    ],
+    [clients]
+  );
+
+  // handle cell edit
+  const handleCellEdit = (changes) => {
+    if (!changes) return;
+    const [row, prop, oldValue, newValue] = changes[0];
+    if (oldValue !== newValue) {
+      const quotation = quotations[row];
+      setChangedCell({
+        quotation_number: quotation.quotation_number,
+        field: prop,
+        oldValue,
+        newValue,
       });
-    } catch (err) {
-      console.error(err.response?.data || err);
-      setSnackbar({
-        open: true,
-        message: "Failed to delete quotation.",
-        severity: "error",
-      });
+      setOpenConfirmModal(true);
     }
   };
 
-  // --- Handler saat save dari modal ---
-  const handleAddQuotation = async () => {
-    await fetchQuotations();
-    setSnackbar({
-      open: true,
-      message: "Quotation created successfully!",
-      severity: "success",
-    });
+  // pagination & search
+  const filteredData = filterBySearch(quotations, searchTerm);
+  const paginatedData = filteredData.slice(
+    page * pageSize,
+    page * pageSize + pageSize
+  );
+
+  const handleChangePage = (event, newPage) => setPage(newPage);
+  const handleChangeRowsPerPage = (event) => {
+    setPageSize(parseInt(event.target.value, 10));
+    setPage(0);
   };
 
+  const tableHeight = Math.min(pageSize * 40 + 50, window.innerHeight - 250);
+
   return (
-    <div style={{ height: 600, width: "100%" }}>
-      <div className="flex justify-end mb-2">
-        <IconButton
-          onClick={() => setOpenCreateModal(true)}
-          sx={{
-            backgroundColor: "#2563eb",
-            color: "#fff",
-            width: 36, // lebar
-            height: 36, // tinggi
-            "&:hover": { backgroundColor: "#1d4ed8" },
+    <Box>
+      <LoadingOverlay loading={loading} />
+      {/* Top Controls */}
+      <Stack
+        direction="row"
+        justifyContent="space-between"
+        alignItems="center"
+        mb={2}
+        spacing={2}
+      >
+        <TextField
+          size="small"
+          placeholder="Search quotation..."
+          value={searchTerm}
+          onChange={(e) => {
+            setSearchTerm(e.target.value);
+            setPage(0);
           }}
-        >
-          <Plus fontSize="small" />
-        </IconButton>
-        <ColumnVisibilityModal
-          columns={columns}
-          columnVisibility={columnVisibility}
-          handleToggleColumn={(field) =>
-            setColumnVisibility((prev) => ({ ...prev, [field]: !prev[field] }))
-          }
+          sx={{ width: 260 }}
         />
-      </div>
-      <div className="table-wrapper">
-        <div className="table-inner">
-          <DataGrid
-            rows={quotations}
-            getRowId={(row) => row.id}
-            columns={columns}
-            loading={loading}
-            showToolbar
-            pagination
-            paginationModel={paginationModel}
-            onPaginationModelChange={setPaginationModel}
-            rowsPerPageOptions={[10, 20, 50]}
-            disableSelectionOnClick
-            experimentalFeatures={{ newEditingApi: true }}
-            processRowUpdate={handleProcessRowUpdate}
-            pageSizeOptions={[10, 20, 50]}
-            columnVisibilityModel={columnVisibility}
-            onColumnVisibilityModelChange={(newModel) =>
-              setColumnVisibility(newModel)
-            }
+
+        <Box display="flex" alignItems="center" gap={1}>
+          <IconButton
+            onClick={() => setOpenCreateModal(true)}
             sx={{
-              borderRadius: 2,
-              ".MuiDataGrid-cell": { py: 1.2 },
-              ".MuiDataGrid-columnHeaders": {
-                backgroundColor: "#f5f5f5",
-                fontWeight: 600,
-              },
-              ".MuiDataGrid-footerContainer": {
-                borderTop: "1px solid #e0e0e0",
-              },
+              backgroundColor: "#2563eb",
+              color: "#fff",
+              width: 36,
+              height: 36,
+              "&:hover": { backgroundColor: "#1d4ed8" },
             }}
+          >
+            <Plus fontSize="small" />
+          </IconButton>
+          <ColumnVisibilityModal
+            columns={columns}
+            columnVisibility={columnVisibility}
+            handleToggleColumn={(field) =>
+              setColumnVisibility((prev) => ({
+                ...prev,
+                [field]: !prev[field],
+              }))
+            }
           />
-        </div>
-      </div>
+        </Box>
+      </Stack>
+
+      <HotTable
+        ref={hotTableRef}
+        data={paginatedData}
+        colHeaders={columns.map((c) => c.title)}
+        columns={columns}
+        width="100%"
+        height={tableHeight}
+        stretchH="all"
+        manualColumnResize
+        manualColumnFreeze
+        fixedColumnsLeft={3}
+        licenseKey="non-commercial-and-evaluation"
+        afterChange={handleCellEdit}
+        className="ht-theme-horizon"
+        filters
+        dropdownMenu
+        columnSorting
+      />
+
+      {/* Pagination */}
+      <TablePagination
+        component="div"
+        count={filteredData.length}
+        page={page}
+        onPageChange={handleChangePage}
+        rowsPerPage={pageSize}
+        onRowsPerPageChange={handleChangeRowsPerPage}
+        rowsPerPageOptions={[5, 10, 20, 50]}
+      />
 
       {/* Snackbar */}
       <Snackbar
@@ -492,70 +536,79 @@ export default function QuotationTable() {
         anchorOrigin={{ vertical: "top", horizontal: "right" }}
       >
         <Alert
-          onClose={() => setSnackbar({ ...snackbar, open: false })}
           severity={snackbar.severity}
           sx={{ width: "100%" }}
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
         >
           {snackbar.message}
         </Alert>
       </Snackbar>
 
-      {/* --- Modal Single Cell --- */}
+      {/* Confirm Modal */}
       <Dialog
-        open={openCellConfirm}
-        onClose={() => setOpenCellConfirm(false)}
+        open={openConfirmModal}
+        onClose={() => setOpenConfirmModal(false)}
         maxWidth="xs"
         fullWidth
-        PaperProps={{ sx: { borderRadius: 3, p: 1 } }}
       >
-        <DialogTitle sx={{ fontWeight: "bold", fontSize: "1.1rem" }}>
-          Confirm Change
-        </DialogTitle>
-        <DialogContent dividers sx={{ py: 3 }}>
+        <DialogTitle>Confirm Change</DialogTitle>
+        <DialogContent>
           {changedCell && (
             <Stack spacing={2} alignItems="center">
               <Typography variant="body2" color="text.secondary">
-                You are about to update:
+                Update field: <b>{changedCell.field}</b>
               </Typography>
-              <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
-                {changedCell.field.replace(/_/g, " ")}
-              </Typography>
-              <Box sx={{ display: "flex", gap: 2 }}>
-                <Chip
-                  label={
-                    changedCell.oldValue instanceof Date
-                      ? changedCell.oldValue.toLocaleDateString("id-ID")
-                      : changedCell.oldValue || "—"
+
+              {/* 🔍 Format nilai berdasarkan field */}
+              {(() => {
+                const formatValue = (value) => {
+                  if (!value) return "—";
+
+                  // Jika field berkaitan dengan tanggal
+                  if (changedCell.field.toLowerCase().includes("date")) {
+                    const date = new Date(value);
+                    if (isNaN(date)) return value;
+                    return date
+                      .toLocaleDateString("id-ID", {
+                        day: "2-digit",
+                        month: "2-digit",
+                        year: "numeric",
+                      })
+                      .replace(/\//g, "-");
                   }
-                  color="error"
-                  variant="outlined"
-                />
-                <Chip
-                  label={
-                    changedCell.newValue instanceof Date
-                      ? changedCell.newValue.toLocaleDateString("id-ID")
-                      : changedCell.newValue || "—"
+
+                  // Jika field berkaitan dengan nominal/value
+                  if (changedCell.field.toLowerCase().includes("value")) {
+                    const num = Number(String(value).replace(/[^0-9.-]/g, ""));
+                    if (isNaN(num)) return value;
+                    return "Rp " + num.toLocaleString("id-ID");
                   }
-                  color="success"
-                  variant="outlined"
-                />
-              </Box>
+
+                  // Default: tampilkan teks apa adanya
+                  return value;
+                };
+
+                return (
+                  <Box display="flex" gap={2}>
+                    <Chip
+                      label={formatValue(changedCell.oldValue)}
+                      color="error"
+                      variant="outlined"
+                    />
+                    <Chip
+                      label={formatValue(changedCell.newValue)}
+                      color="success"
+                      variant="outlined"
+                    />
+                  </Box>
+                );
+              })()}
             </Stack>
           )}
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button
-            variant="outlined"
-            onClick={() => setOpenCellConfirm(false)}
-            sx={{ borderRadius: 2 }}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            onClick={confirmCellUpdate}
-            sx={{ borderRadius: 2 }}
-          >
+        <DialogActions>
+          <Button onClick={() => setOpenConfirmModal(false)}>Cancel</Button>
+          <Button variant="contained" onClick={confirmUpdate}>
             Confirm
           </Button>
         </DialogActions>
@@ -565,7 +618,7 @@ export default function QuotationTable() {
         open={openCreateModal}
         onClose={() => setOpenCreateModal(false)}
         clients={clients}
-        onSave={handleAddQuotation}
+        onSave={fetchQuotations}
       />
 
       <QuotationDetailModal
@@ -573,6 +626,6 @@ export default function QuotationTable() {
         onClose={() => setOpenDetailModal(false)}
         quotationId={selectedQuotationId}
       />
-    </div>
+    </Box>
   );
 }

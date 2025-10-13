@@ -65,7 +65,7 @@ export default function OutstandingProjectsTable() {
                   .map((l) => l.log)
                   .join("\n"),
                 item.user_id, // kolom user_id tersembunyi
-                item.photo ?? null, // kolom photo untuk PIC
+                index === 0 ? item.photo ?? null : null, // kolom photo untuk PIC
               ]);
             });
 
@@ -146,42 +146,19 @@ export default function OutstandingProjectsTable() {
     {
       data: 0,
       title: "PIC",
-      renderer: (instance, td, row) => {
-        const rowData = instance.getDataAtRow(row);
-        const picName = rowData ? rowData[0] : "-";
-        const photoPath = rowData && rowData[7] ? rowData[7] : null;
-        const photoUrl = photoPath
-          ? `http://localhost:8000${photoPath}` // karena sudah ada /storage/ di path
-          : null;
-
-        console.log("photoPath:", photoPath, "photoUrl:", photoUrl);
-
-        // Kosongkan cell dulu
-        td.innerHTML = "";
-
-        // Container
-        const container = document.createElement("div");
-        container.style.display = "flex";
-        container.style.alignItems = "center";
-        container.style.gap = "8px";
-
-        // Gambar
-        if (photoUrl) {
-          const img = document.createElement("img");
-          img.src = photoUrl;
-          img.width = 32;
-          img.height = 32;
-          img.style.borderRadius = "50%";
-          container.appendChild(img);
-        }
-
-        // Nama PIC
-        const span = document.createElement("span");
-        span.textContent = picName;
-        container.appendChild(span);
-
-        td.appendChild(container);
-        return td;
+      renderer: function (instance, td, row, col, prop, value) {
+        const pic = value; // data[row][0]
+        const photo = instance.getDataAtRow(row)[7]; // photo
+        const imgSrc = photo
+          ? photo.startsWith("http")
+            ? photo
+            : `http://localhost:8000/storage/${photo}`
+          : `https://ui-avatars.com/api/?name=${encodeURIComponent(
+              pic
+            )}&background=random&bold=true`;
+        td.innerHTML = `<div class="flex items-center gap-2"><img src="${imgSrc}" alt="${pic}" class="w-8 h-8 rounded-full object-cover border border-gray-300" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(
+          pic
+        )}&background=random&bold=true'" /><span class="text-gray-800 font-medium">${pic}</span></div>`;
       },
     },
     { data: 1, title: "Project Number" },

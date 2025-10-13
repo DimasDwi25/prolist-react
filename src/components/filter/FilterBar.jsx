@@ -9,7 +9,7 @@ import {
   Button,
 } from "@mui/material";
 
-export default function FilterBar({ stats, onFilter }) {
+export default function FilterBar({ stats, onFilter, initialFilters }) {
   const currentYear = new Date().getFullYear();
 
   const months = [
@@ -27,11 +27,17 @@ export default function FilterBar({ stats, onFilter }) {
     { value: 12, label: "Desember" },
   ];
 
-  const [selectedYear, setSelectedYear] = useState(currentYear);
-  const [rangeType, setRangeType] = useState("monthly");
-  const [selectedMonth, setSelectedMonth] = useState(null);
-  const [customFrom, setCustomFrom] = useState("");
-  const [customTo, setCustomTo] = useState("");
+  const [selectedYear, setSelectedYear] = useState(
+    initialFilters?.year || currentYear
+  );
+  const [rangeType, setRangeType] = useState(
+    initialFilters?.rangeType || "monthly"
+  );
+  const [selectedMonth, setSelectedMonth] = useState(
+    initialFilters?.month || null
+  );
+  const [customFrom, setCustomFrom] = useState(initialFilters?.from || "");
+  const [customTo, setCustomTo] = useState(initialFilters?.to || "");
 
   // Trigger parent callback saat filter berubah
   useEffect(() => {

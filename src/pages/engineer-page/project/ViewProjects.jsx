@@ -144,27 +144,6 @@ const ViewProjects = () => {
           {project.phc && project.phc.status === "ready" && (
             <div className="flex gap-2">
               <Link
-                to={`/engineer/phc/${project.phc.id}`}
-                className="flex items-center gap-1 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                  />
-                </svg>
-                Update PHC
-              </Link>
-
-              <Link
                 to={`/phcs/show/${project.phc.id}`}
                 className="flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm"
               >
@@ -649,12 +628,8 @@ const ViewProjects = () => {
         open={openStatusModal}
         handleClose={() => setOpenStatusModal(false)}
         project={project}
-        onStatusUpdated={(newStatus) => {
-          // Update project.status_project di state
-          setProject((prev) => ({
-            ...prev,
-            status_project: newStatus,
-          }));
+        onStatusUpdated={(updatedProject) => {
+          setProject(updatedProject);
         }}
       />
     </div>

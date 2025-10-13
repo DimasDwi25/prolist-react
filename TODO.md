@@ -1,0 +1,2 @@
+- [x] Fix photo rendering in OutstandingProjectTable.jsx by updating the PIC column to use Handsontable renderer instead of React Table syntax
+- [x] Test the table to verify photos display correctly for objects with URLs and fallbacks for null photos

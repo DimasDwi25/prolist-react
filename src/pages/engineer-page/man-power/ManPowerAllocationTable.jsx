@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { DataGrid, GridActionsCellItem, GridToolbar } from "@mui/x-data-grid";
-import { Plus, ArrowLeft } from "lucide-react";
+import { Plus, Edit3 } from "lucide-react";
 import EditIcon from "@mui/icons-material/Edit";
 import CloseIcon from "@mui/icons-material/Close";
 import {
@@ -26,13 +26,15 @@ import {
 } from "@mui/material";
 
 import api from "../../../api/api";
-import { useParams, useNavigate } from "react-router-dom";
 
 import { sortOptions } from "../../../helper/SortOptions";
 
-export default function ManPowerAllocationTable() {
-  const navigate = useNavigate();
-  const { pn_number } = useParams();
+export default function ManPowerAllocationTable({
+  open,
+  onClose,
+  pn_number,
+  embedded = false,
+}) {
   const [allocations, setAllocations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [paginationModel, setPaginationModel] = useState({
@@ -343,18 +345,9 @@ export default function ManPowerAllocationTable() {
     }
   };
 
-  return (
-    <div style={{ height: 600, width: "100%" }}>
-      <div className="flex justify-between mb-2">
-        {/* Tombol Back */}
-        <Button
-          variant="outlined"
-          startIcon={<ArrowLeft />}
-          onClick={() => navigate(-1)}
-        >
-          Back
-        </Button>
-
+  const content = (
+    <>
+      <div className="flex justify-end mb-2">
         {/* Tombol Add Allocation Compact */}
         <Tooltip title="Add Allocation">
           <IconButton
@@ -605,6 +598,17 @@ export default function ManPowerAllocationTable() {
           </Button>
         </DialogActions>
       </Dialog>
-    </div>
+    </>
   );
+
+  if (embedded) {
+    return content;
+  } else {
+    return (
+      <Dialog open={open} onClose={onClose} maxWidth="xl" fullWidth>
+        <DialogTitle>Man Power Allocation</DialogTitle>
+        <DialogContent>{content}</DialogContent>
+      </Dialog>
+    );
+  }
 }

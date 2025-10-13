@@ -5,19 +5,40 @@ import {
   Typography,
   Button,
   FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Autocomplete,
   TextField,
 } from "@mui/material";
 import api from "../../api/api";
+import { formatDateForInput } from "../../utils/formatDateForInput";
 
 const UpdateStatusModal = ({ open, handleClose, project, onStatusUpdated }) => {
   const [allStatus, setAllStatus] = useState([]);
   const [selectedStatus, setSelectedStatus] = useState("");
+  const [phcDates, setPhcDates] = useState("");
+  const [materialStatus, setMaterialStatus] = useState("");
+  const [dokumenFinishDate, setDokumenFinishDate] = useState("");
+  const [engineeringFinishDate, setEngineeringFinishDate] = useState("");
+  const [projectFinishDate, setProjectFinishDate] = useState("");
+  const [projectProgress, setProjectProgress] = useState("");
   const [loadingStatus, setLoadingStatus] = useState(true);
   const [updating, setUpdating] = useState(false);
+
+  // Initialize form fields when modal opens or project changes
+  useEffect(() => {
+    if (!open || !project) return;
+
+    setSelectedStatus(project.status_project?.id || "");
+    setPhcDates(formatDateForInput(project.phc_dates));
+    setMaterialStatus(project.material_status || "");
+    setDokumenFinishDate(formatDateForInput(project.dokumen_finish_date));
+    setEngineeringFinishDate(
+      formatDateForInput(project.engineering_finish_date)
+    );
+    setProjectFinishDate(formatDateForInput(project.project_finish_date));
+    setProjectProgress(
+      project.project_progress !== undefined ? project.project_progress : ""
+    );
+  }, [open, project]);
 
   // Fetch all status when modal opens
   useEffect(() => {
@@ -29,11 +50,6 @@ const UpdateStatusModal = ({ open, handleClose, project, onStatusUpdated }) => {
         const res = await api.get("/status-projects");
         const statusData = res.data || [];
         setAllStatus(statusData);
-
-        // Set selectedStatus only if project has status
-        if (project?.status_project?.id) {
-          setSelectedStatus(project.status_project.id);
-        }
       } catch (err) {
         console.error("Failed to fetch status:", err);
       } finally {
@@ -42,20 +58,29 @@ const UpdateStatusModal = ({ open, handleClose, project, onStatusUpdated }) => {
     };
 
     fetchStatus();
-  }, [open, project]);
+  }, [open]);
 
   const handleStatusChange = async () => {
     try {
       setUpdating(true);
-      await api.post(`/engineer/projects/${project.pn_number}/status`, {
-        status_project_id: selectedStatus,
-      });
+      const payload = {
+        phc_dates: phcDates || null,
+        material_status: materialStatus || null,
+        dokumen_finish_date: dokumenFinishDate || null,
+        engineering_finish_date: projectFinishDate || null,
+        project_finish_date: engineeringFinishDate || null,
+        status_project_id: selectedStatus || null,
+        project_progress:
+          projectProgress !== "" ? Number(projectProgress) : null,
+      };
 
-      // Lookup status terbaru dari allStatus
-      const updatedStatus = allStatus.find((s) => s.id === selectedStatus);
+      const res = await api.post(
+        `/engineer/projects/${project.pn_number}/status`,
+        payload
+      );
 
       if (onStatusUpdated) {
-        onStatusUpdated(updatedStatus);
+        onStatusUpdated(res.data.data);
       }
 
       handleClose();
@@ -80,11 +105,14 @@ const UpdateStatusModal = ({ open, handleClose, project, onStatusUpdated }) => {
           top: "50%",
           left: "50%",
           transform: "translate(-50%, -50%)",
-          width: 350,
+          width: 400,
           bgcolor: "background.paper",
           borderRadius: 2,
           boxShadow: 24,
           p: 4,
+          display: "flex",
+          flexDirection: "column",
+          gap: 2,
         }}
       >
         <Typography id="update-status-modal" variant="h6" component="h2" mb={2}>
@@ -104,7 +132,64 @@ const UpdateStatusModal = ({ open, handleClose, project, onStatusUpdated }) => {
           />
         </FormControl>
 
-        <Box mt={3} display="flex" justifyContent="flex-end" gap={1}>
+        <TextField
+          label="PHC Dates"
+          type="date"
+          fullWidth
+          value={phcDates}
+          onChange={(e) => setPhcDates(e.target.value)}
+          InputLabelProps={{ shrink: true }}
+        />
+
+        <TextField
+          label="Material Status"
+          fullWidth
+          value={materialStatus}
+          onChange={(e) => setMaterialStatus(e.target.value)}
+        />
+
+        <TextField
+          label="Document Finish Date"
+          type="date"
+          fullWidth
+          value={dokumenFinishDate}
+          onChange={(e) => setDokumenFinishDate(e.target.value)}
+          InputLabelProps={{ shrink: true }}
+        />
+
+        <TextField
+          label="Engineering Finish Date"
+          type="date"
+          fullWidth
+          value={engineeringFinishDate}
+          onChange={(e) => setEngineeringFinishDate(e.target.value)}
+          InputLabelProps={{ shrink: true }}
+        />
+
+        <TextField
+          label="Project Finish Date"
+          type="date"
+          fullWidth
+          value={projectFinishDate}
+          onChange={(e) => setProjectFinishDate(e.target.value)}
+          InputLabelProps={{ shrink: true }}
+        />
+
+        <TextField
+          label="Project Progress (%)"
+          type="number"
+          fullWidth
+          inputProps={{ min: 0, max: 100 }}
+          value={projectProgress}
+          onChange={(e) => {
+            const val = e.target.value;
+            if (val === "" || (Number(val) >= 0 && Number(val) <= 100)) {
+              setProjectProgress(val);
+            }
+          }}
+        />
+
+        <Box mt={2} display="flex" justifyContent="flex-end" gap={1}>
           <Button onClick={handleClose} variant="outlined" size="small">
             Cancel
           </Button>

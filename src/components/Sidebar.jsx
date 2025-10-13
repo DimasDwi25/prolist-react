@@ -185,6 +185,22 @@ const menuByRole = {
       ],
     },
     {
+      name: "Summary",
+      icon: <FaFileInvoice />,
+      submenu: [
+        {
+          name: "Project Finished Summary",
+          path: "/projects/finished-summary",
+          icon: <FaTasks />,
+        },
+        {
+          name: "Work Order Summary",
+          path: "/work-order/summary",
+          icon: <FaTasks />,
+        },
+      ],
+    },
+    {
       name: "List Project Outstanding",
       path: "/outstanding-project",
       icon: <FaTasks />,

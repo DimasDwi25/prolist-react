@@ -4,6 +4,7 @@ import { format, parseISO } from "date-fns";
 import api from "../../api/api";
 import LoadingScreen from "../../components/loading/loadingScreen";
 import LogTable from "../../components/table/LogTable";
+import PhcFormModal from "../../components/modal/PhcFormModal";
 
 const ProjectDetails = () => {
   const { pn_number } = useParams();
@@ -11,30 +12,28 @@ const ProjectDetails = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("project");
+  const [openPhcModal, setOpenPhcModal] = useState(false);
+
+  const fetchProject = async () => {
+    try {
+      setLoading(true);
+      // ✅ pakai axios instance yang sudah ada
+      const res = await api.get(`/projects/${pn_number}`);
+
+      const projectData = res.data?.data?.project;
+
+      setProject(projectData);
+    } catch (err) {
+      console.error(err.response?.data || err);
+      setError("Failed to fetch project details");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchProject = async () => {
-      try {
-        // ✅ pakai axios instance yang sudah ada
-        const res = await api.get(`/projects/${pn_number}`);
-
-        const projectData = res.data?.data?.project;
-
-        setProject(projectData);
-      } catch (err) {
-        console.error(err.response?.data || err);
-        setError("Failed to fetch project details");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchProject();
   }, [pn_number]);
-
-  if (loading) {
-    return <LoadingScreen />;
-  }
 
   // Helper functions
   const display = (value) => value || "—";
@@ -162,9 +161,8 @@ const ProjectDetails = () => {
               </Link>
             </>
           ) : (
-            <Link
-              to={`/phc/${project.pn_number}`}
-              state={{ project }}
+            <button
+              onClick={() => setOpenPhcModal(true)}
               className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm"
             >
               <svg
@@ -182,7 +180,7 @@ const ProjectDetails = () => {
                 />
               </svg>
               Create PHC
-            </Link>
+            </button>
           )}
         </div>
       </div>
@@ -725,6 +723,14 @@ const ProjectDetails = () => {
 
       {/* Recent Activity Section */}
       <LogTable projectId={project.pn_number} />
+
+      {/* PHC Form Modal */}
+      <PhcFormModal
+        open={openPhcModal}
+        onClose={() => setOpenPhcModal(false)}
+        project={project}
+        onSave={fetchProject}
+      />
     </div>
   );
 };

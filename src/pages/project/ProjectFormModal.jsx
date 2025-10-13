@@ -39,6 +39,7 @@ export default function ProjectFormModal({
   categories = [],
   token,
   onSave,
+  project = null,
 }) {
   const [form, setForm] = useState({
     project_name: "",
@@ -67,8 +68,6 @@ export default function ProjectFormModal({
   const memoQuotations = useMemo(() => quotations, [quotations]);
   const memoProjects = useMemo(() => projects, [projects]);
   const memoCategories = useMemo(() => categories, [categories]);
-
-  // Tambah state
   const [selectedQuotation, setSelectedQuotation] = useState(null);
 
   // Memo filter quotation by client_id dan status A/D
@@ -88,6 +87,7 @@ export default function ProjectFormModal({
 
   // --- Generate Project Number if Confirmation Order ---
   useEffect(() => {
+    if (!open || project) return; // ⛔ skip kalau edit
     let mounted = true;
 
     api
@@ -97,12 +97,10 @@ export default function ProjectFormModal({
       })
       .then((res) => {
         if (!mounted) return;
-
-        const { project_number, pn_number } = res.data.data; // ✅ ambil dari data
         setForm((prev) => ({
           ...prev,
-          project_number,
-          pn_number, // kalau mau simpan juga di state
+          project_number: res.data.data.project_number,
+          pn_number: res.data.data.pn_number,
         }));
       })
       .catch(console.error);
@@ -110,7 +108,7 @@ export default function ProjectFormModal({
     return () => {
       mounted = false;
     };
-  }, [open, form.is_confirmation_order, token]);
+  }, [open, form.is_confirmation_order, token, project]);
 
   // --- Hitung Sales Week dari PO Date ---
   useEffect(() => {
@@ -129,50 +127,165 @@ export default function ProjectFormModal({
     setForm((prev) => ({ ...prev, sales_weeks: newSalesWeek }));
   }, [form.po_date]);
 
+  // ✅ isi form saat mode edit
+  useEffect(() => {
+    console.log("useEffect edit mode triggered:", { project, open });
+    console.log("Project details:", {
+      pn_number: project?.pn_number,
+      project_name: project?.project_name,
+      is_confirmation_order: project?.is_confirmation_order,
+      hasProject: !!project,
+    });
+    if (project && open) {
+      console.log("=== DEBUG CONFIRMATION ORDER ===");
+      console.log(
+        "Raw project.is_confirmation_order =",
+        project.is_confirmation_order
+      );
+      console.log(
+        "Type of project.is_confirmation_order =",
+        typeof project.is_confirmation_order
+      );
+      console.log(
+        "Boolean(project.is_confirmation_order) =",
+        Boolean(project.is_confirmation_order)
+      );
+      console.log(
+        "Final conversion result =",
+        project.is_confirmation_order === 1 ||
+          project.is_confirmation_order === true ||
+          project.is_confirmation_order === "1"
+      );
+      setForm((prev) => ({
+        ...prev,
+        project_name: project.project_name || "",
+        client_id: project.client_id || "",
+        quotations_id: project.quotations_id || "",
+
+        project_number: project.project_number || "",
+        target_dates: project.target_dates || "",
+        po_number: project.po_number || "",
+        po_date: project.po_date ? project.po_date.slice(0, 10) : "",
+        po_value: project.po_value || "",
+        sales_weeks: project.sales_weeks || "",
+        is_confirmation_order:
+          project.is_confirmation_order === 1 ||
+          project.is_confirmation_order === true ||
+          project.is_confirmation_order === "1",
+
+        is_variant_order: !!project.is_variant_order,
+        parent_pn_number: project.parent_pn_number || "",
+        mandays_engineer: project.mandays_engineer || "",
+        mandays_technician: project.mandays_technician || "",
+        useDifferentClient: !!project.client_id, // jika override client
+        categories_project_id:
+          project.categories_project_id || project.categories?.id || "",
+      }));
+
+      // quotation yg terpilih
+      const q = quotations.find(
+        (q) => q.quotation_number === project?.quotations_id
+      );
+
+      setSelectedQuotation(q || null);
+
+      // Debug: tampilkan nilai form setelah di-set
+      console.log("Form values after setting:", {
+        is_confirmation_order:
+          project.is_confirmation_order === 1 ||
+          project.is_confirmation_order === true ||
+          project.is_confirmation_order === "1",
+        is_variant_order: !!project.is_variant_order,
+      });
+    } else if (!project && open) {
+      // reset saat create
+      setForm({
+        project_name: "",
+        client_id: "",
+        quotations_id: "",
+        project_number: "",
+        target_dates: "",
+        po_number: "",
+        po_date: "",
+        po_value: "",
+        sales_weeks: "",
+        is_confirmation_order: false,
+        is_variant_order: false,
+        parent_pn_number: "",
+        mandays_engineer: "",
+        mandays_technician: "",
+        useDifferentClient: false,
+        categories_project_id: "",
+      });
+      setSelectedQuotation(null);
+    }
+  }, [project, open, quotations]);
+
   const handleChange = (field, value) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
   const handleCurrencyChange = (value) =>
     setForm((prev) => ({ ...prev, po_value: value.replace(/[^0-9]/g, "") }));
 
-  const formatCurrency = (value) =>
-    value
-      ? new Intl.NumberFormat("id-ID").format(
-          value.toString().replace(/[^0-9]/g, "")
-        )
-      : "";
-
+  // --- Submit ---
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrors({});
     setServerErrors([]);
 
-    const newErrors = {};
-    if (!form.project_name) newErrors.project_name = "Project name is required";
-    if (!selectedQuotation) newErrors.quotations_id = "Quotation is required";
-    if (form.useDifferentClient && !form.client_id)
-      newErrors.client_id = "Client is required when overriding";
-    if (!form.po_number) newErrors.po_number = "PO Number is required";
-    if (!form.po_date) newErrors.po_date = "PO Date is required";
-    if (!form.po_value) newErrors.po_value = "PO Value is required";
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
+    console.log("=== SUBMIT DEBUG ===");
+    console.log("Form values before submit:", {
+      is_confirmation_order: form.is_confirmation_order,
+      is_variant_order: form.is_variant_order,
+      project: project?.pn_number,
+    });
 
     try {
       const payload = {
         ...form,
-        quotations_id: selectedQuotation.quotation_number,
-        client_id: form.useDifferentClient
-          ? form.client_id // override dipakai
-          : null,
+        quotations_id:
+          selectedQuotation?.quotation_number || form.quotations_id,
+        client_id: form.useDifferentClient ? form.client_id : null,
       };
 
-      const res = await api.post("/projects", payload, {
-        headers: { Authorization: `Bearer ${token}` },
+      console.log("Payload to be sent:", {
+        is_confirmation_order: payload.is_confirmation_order,
+        is_variant_order: payload.is_variant_order,
+        project_name: payload.project_name,
       });
+
+      // Debug: tampilkan semua field boolean
+      console.log("All boolean fields in payload:", {
+        is_confirmation_order: payload.is_confirmation_order,
+        is_variant_order: payload.is_variant_order,
+        useDifferentClient: payload.useDifferentClient,
+      });
+
+      // kalau bukan variant order, hapus parent_pn_number
+      if (!form.is_variant_order) {
+        delete payload.parent_pn_number;
+      }
+
+      let res;
+      if (project) {
+        // 🔹 update mode
+        console.log(
+          "Sending PUT request to:",
+          `/projects/${project.pn_number}`
+        );
+        res = await api.put(`/projects/${project.pn_number}`, payload, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        console.log("API Response:", res.data);
+      } else {
+        // 🔹 create mode
+        console.log("Sending POST request to:", `/projects`);
+        res = await api.post(`/projects`, payload, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        console.log("API Response:", res.data);
+      }
+
       onSave?.(res.data);
       onClose();
     } catch (err) {
@@ -184,7 +297,6 @@ export default function ProjectFormModal({
       } else {
         setServerErrors(["Failed to save project. Please try again."]);
       }
-      console.error("Submit Project Error:", err);
     }
   };
 
@@ -192,6 +304,26 @@ export default function ProjectFormModal({
     () => memoClients.find((c) => c.id === form.client_id) || null,
     [memoClients, form.client_id]
   );
+
+  // Debug: tampilkan nilai form saat render
+  console.log("=== PROJECT FORM MODAL DEBUG ===");
+  console.log("Modal props:", {
+    open,
+    project: project?.pn_number,
+    projectName: project?.project_name,
+  });
+  console.log("Form values at render:", {
+    is_confirmation_order: form.is_confirmation_order,
+    is_variant_order: form.is_variant_order,
+    project: project?.pn_number,
+  });
+
+  // Warning jika project undefined saat edit
+  if (open && !project) {
+    console.warn(
+      "⚠️ Modal dibuka tanpa project data - akan menampilkan form CREATE"
+    );
+  }
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
@@ -207,9 +339,11 @@ export default function ProjectFormModal({
             pb: 1.5,
           }}
         >
-          Create New Project
+          {project ? "Edit Project" : "Create New Project"}
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-            Fill in the form below to create a new project
+            {project
+              ? "Update the project details below"
+              : "Fill in the form below to create a new project"}
           </Typography>
         </DialogTitle>
 
@@ -290,16 +424,31 @@ export default function ProjectFormModal({
                       )}
                     />
 
-                    {/* Quotation */}
                     <Autocomplete
                       size="small"
                       fullWidth
                       options={filteredQuotations}
                       getOptionLabel={(option) => option.no_quotation || ""}
-                      value={selectedQuotation || null}
+                      isOptionEqualToValue={(option, value) =>
+                        String(option.quotation_number) ===
+                        String(value.quotation_number)
+                      }
+                      value={
+                        selectedQuotation ||
+                        (form.quotations_id
+                          ? filteredQuotations.find(
+                              (q) =>
+                                String(q.quotation_number) ===
+                                String(form.quotations_id)
+                            ) || null
+                          : null)
+                      }
                       onChange={(e, newVal) => {
-                        setSelectedQuotation(newVal);
-                        handleChange("quotations_id", newVal ? newVal.id : "");
+                        setSelectedQuotation(newVal || null);
+                        handleChange(
+                          "quotations_id",
+                          newVal ? newVal.quotation_number : ""
+                        );
                       }}
                       renderInput={(params) => (
                         <TextField
@@ -426,12 +575,15 @@ export default function ProjectFormModal({
                       fullWidth
                       options={memoCategories}
                       getOptionLabel={(option) => option.name || ""}
+                      // 🟢 ini penting → supaya value lama match berdasarkan id
+                      isOptionEqualToValue={(option, value) =>
+                        option.id === value.id
+                      }
                       value={
-                        form.categories_project_id
-                          ? memoCategories.find(
-                              (c) => c.id === form.categories_project_id
-                            ) || null
-                          : null
+                        categories.find(
+                          (c) =>
+                            String(c.id) === String(form.categories_project_id)
+                        ) || null
                       }
                       onChange={(e, newVal) =>
                         handleChange(
@@ -529,18 +681,19 @@ export default function ProjectFormModal({
                   <TextField
                     size="small"
                     label="PO Value (IDR) *"
-                    value={formatCurrency(form.po_value)}
+                    value={
+                      form.po_value
+                        ? Number(form.po_value).toLocaleString("id-ID")
+                        : ""
+                    }
                     onChange={(e) => handleCurrencyChange(e.target.value)}
-                    error={!!errors.po_value}
-                    helperText={errors.po_value}
-                    fullWidth
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">Rp</InputAdornment>
                       ),
                     }}
+                    fullWidth
                   />
-
                   <TextField
                     size="small"
                     label="Sales Week"
@@ -581,12 +734,13 @@ export default function ProjectFormModal({
                     control={
                       <Checkbox
                         checked={form.is_confirmation_order}
-                        onChange={(e) =>
+                        onChange={(e) => {
+                          console.log("Checkbox changed:", e.target.checked);
                           handleChange(
                             "is_confirmation_order",
                             e.target.checked
-                          )
-                        }
+                          );
+                        }}
                       />
                     }
                     label="Confirmation Order"
@@ -612,14 +766,14 @@ export default function ProjectFormModal({
                     value={
                       form.parent_pn_number
                         ? memoProjects.find(
-                            (p) => p.project_number === form.parent_pn_number
+                            (p) => p.pn_number === form.parent_pn_number
                           ) || null
                         : null
                     }
                     onChange={(e, newVal) =>
                       handleChange(
                         "parent_pn_number",
-                        newVal ? newVal.project_number : ""
+                        newVal ? newVal.pn_number : ""
                       )
                     }
                     renderInput={(params) => (
@@ -709,7 +863,7 @@ export default function ProjectFormModal({
               "&:hover": { bgcolor: "#1d4ed8", transform: "translateY(-1px)" },
             }}
           >
-            Create Project
+            {project ? "Update" : "Create"}
           </Button>
         </DialogActions>
       </form>

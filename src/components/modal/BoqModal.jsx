@@ -28,6 +28,7 @@ const engineerRoles = [
   "project controller",
   "engineering_director",
   "project manager",
+  "engineering_admin",
 ];
 
 const BoqModal = ({

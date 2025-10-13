@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
 import { HotTable } from "@handsontable/react";
 import Handsontable from "handsontable";
-import { Plus, Eye } from "lucide-react";
+import { Plus, Eye, Key } from "lucide-react";
 import {
   Typography,
   Stack,
@@ -21,10 +21,13 @@ import ReactDOM from "react-dom";
 import { useNavigate } from "react-router-dom";
 import api from "../../api/api";
 import ProjectFormModal from "../project/ProjectFormModal";
+import ProjectDetailsModal from "../../components/modal/ProjectDetailsModal";
+import ViewProjectsModal from "../../components/modal/ViewProjectsModal";
 import { getUser } from "../../utils/storage";
 import LoadingOverlay from "../../components/loading/LoadingOverlay";
 import ColumnVisibilityModal from "../../components/ColumnVisibilityModal";
 import { filterBySearch } from "../../utils/filter";
+import { formatDate } from "../../utils/FormatDate";
 
 export default function ProjectTable() {
   const navigate = useNavigate();
@@ -38,13 +41,20 @@ export default function ProjectTable() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
+  const [selectedProject, setSelectedProject] = useState(null);
 
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
     severity: "success",
   });
-  const [openCreateModal, setOpenCreateModal] = useState(false);
+  const [openProjectModal, setOpenProjectModal] = useState(false);
+  const [openDetailsModal, setOpenDetailsModal] = useState(false);
+  const [selectedPnNumber, setSelectedPnNumber] = useState(null);
+
+  const [openViewProjectsModal, setOpenViewProjectsModal] = useState(false);
+  const [selectedPnNumberForViewProjects, setSelectedPnNumberForViewProjects] =
+    useState(null);
 
   const user = getUser();
   const userRole = user?.role?.name?.toLowerCase();
@@ -65,22 +75,6 @@ export default function ProjectTable() {
     "engineering_admin",
   ].includes(userRole);
   const suc = ["warehouse"].includes(userRole);
-
-  const formatDate = (val) => {
-    if (!val) return "-";
-    try {
-      const date = new Date(val);
-      if (isNaN(date)) return "-";
-
-      const day = String(date.getDate()).padStart(2, "0");
-      const month = String(date.getMonth() + 1).padStart(2, "0");
-      const year = date.getFullYear();
-
-      return `${day}-${month}-${year}`;
-    } catch {
-      return "-";
-    }
-  };
 
   const formatValue = (val) => {
     if (val == null || val === "" || val === undefined) return "-";
@@ -109,7 +103,7 @@ export default function ProjectTable() {
     val == null || val === "" ? fallback : String(val);
 
   const dateRenderer = (instance, td, row, col, prop, value) => {
-    td.innerText = safeText(formatDate(value));
+    td.innerText = formatDate(value);
     return td;
   };
 
@@ -145,33 +139,64 @@ export default function ProjectTable() {
         width: 60,
         renderer: (instance, td, row) => {
           td.innerHTML = "";
-          const button = document.createElement("button");
-          button.style.cursor = "pointer";
-          button.style.border = "none";
-          button.style.background = "transparent";
-          button.title = "View";
+
+          // wrapper flex
+          const wrapper = document.createElement("div");
+          wrapper.style.display = "flex";
+          wrapper.style.alignItems = "center";
+          wrapper.style.gap = "6px"; // jarak antar tombol
+
+          // 👁️ View button
+          const viewBtn = document.createElement("button");
+          viewBtn.style.cursor = "pointer";
+          viewBtn.style.border = "none";
+          viewBtn.style.background = "transparent";
+          viewBtn.title = "View";
 
           const icon = document.createElement("span");
           icon.innerHTML = "👁️";
-          button.appendChild(icon);
+          viewBtn.appendChild(icon);
 
-          button.onclick = () => {
+          viewBtn.onclick = () => {
             const project = instance.getSourceDataAtRow(row);
-            if (project?.id) {
-              if (marketingRoles) {
-                navigate(`/projects/${project.id}`);
-              } else if (engineerRoles) {
-                navigate(`/engineer/projects/${project.id}`);
-              } else if (suc) {
-                navigate(`/warehouse/projects/${project.id}`);
+            if (project?.pn_number) {
+              if (engineerRoles) {
+                setSelectedPnNumberForViewProjects(project.pn_number);
+                setOpenViewProjectsModal(true);
+              } else {
+                setSelectedPnNumber(project.pn_number);
+                setOpenDetailsModal(true);
               }
             }
           };
 
-          td.appendChild(button);
+          wrapper.appendChild(viewBtn);
+
+          // ✏️ Edit button (hanya role marketing/super_admin)
+          if (!engineerRoles && !suc) {
+            const editBtn = document.createElement("button");
+            editBtn.style.cursor = "pointer";
+            editBtn.style.border = "none";
+            editBtn.style.background = "transparent";
+            editBtn.title = "Edit";
+            editBtn.innerHTML = "✏️";
+            editBtn.onclick = () => {
+              const rowData = instance.getSourceDataAtRow(row); // ⬅️ ambil data row
+
+              const fullProject = projects.find(
+                (p) => p.pn_number === rowData.pn_number
+              );
+              setSelectedProject(fullProject);
+              setOpenProjectModal(true);
+            };
+            wrapper.appendChild(editBtn);
+          }
+
+          td.appendChild(wrapper);
           return td;
         },
       },
+      { data: "pn_number", title: "PN NUmber" },
       { data: "project_number", title: "Project Number" },
       { data: "project_name", title: "Project Name" },
       { data: "categories_name", title: "Category" },
@@ -210,7 +235,7 @@ export default function ProjectTable() {
       { data: "parent_pn_number", title: "Parent PN" },
       { data: "status_project", title: "Status", renderer: statusRenderer },
     ],
-    [marketingRoles, engineerRoles, suc, navigate]
+    [marketingRoles, engineerRoles, suc, navigate, projects]
   );
 
   // Role-based filter
@@ -225,8 +250,10 @@ export default function ProjectTable() {
       "phc_dates",
       "target_dates",
       "material_status",
-      "po_number",
-      "po_date",
+      "dokumen_finish_date",
+      "engineering_finish_date",
+      "mandays_engineer",
+      "mandays_technician",
       "project_progress",
       "status_project",
     ],
@@ -283,17 +310,19 @@ export default function ProjectTable() {
   const fetchProjects = async () => {
     try {
       const resProjects = await api.get("/projects");
-      const clientsData = clients.length ? clients : [];
 
       const projectsData = resProjects.data?.data?.map((p) => {
         let clientName = "-";
-        const projectClient = clientsData.find((cl) => cl.id == p.client_id);
-        if (projectClient) clientName = projectClient.name;
-        else if (p.quotation?.client?.name)
+        // prioritas: project.client_id → ambil client relasi
+        if (p.client_id && p.client?.name) {
+          clientName = p.client.name;
+        }
+        // fallback: ambil dari quotation.client
+        else if (p.quotation?.client?.name) {
           clientName = p.quotation.client.name;
-
+        }
         return {
-          id: p.pn_number,
+          pn_number: p.pn_number,
           ...p,
           client_name: clientName,
           no_quotation: p.quotation?.no_quotation || "-",
@@ -359,7 +388,7 @@ export default function ProjectTable() {
       }
 
       try {
-        const res = await api.put(`/projects/${project.id}`, payload);
+        const res = await api.put(`/projects/${project.pn_number}`, payload);
         setProjects((prev) => {
           const newProjects = [...prev];
           newProjects[rowIndex] = {
@@ -386,7 +415,7 @@ export default function ProjectTable() {
 
   const filteredData = filterBySearch(projects, searchTerm).map((p) => ({
     actions: "👁️",
-    id: p.pn_number, // untuk navigasi (pastikan konsisten)
+    pn_number: p.pn_number, // untuk navigasi (pastikan konsisten)
     project_number: p.project_number,
     project_name: p.project_name,
     categories_name: p.categories_name,
@@ -413,6 +442,8 @@ export default function ProjectTable() {
     page * pageSize,
     page * pageSize + pageSize
   );
+
+  const tableHeight = Math.min(pageSize * 40 + 50, window.innerHeight - 250);
 
   return (
     <Box sx={{ position: "relative" }}>
@@ -453,7 +484,10 @@ export default function ProjectTable() {
 
         {!engineerRoles && !suc && (
           <IconButton
-            onClick={() => setOpenCreateModal(true)}
+            onClick={() => {
+              setSelectedProject(null); // create mode
+              setOpenProjectModal(true);
+            }}
             sx={{
               backgroundColor: "#2563eb",
               color: "#fff",
@@ -472,30 +506,34 @@ export default function ProjectTable() {
       </Stack>
 
       {/* Handsontable */}
-      <HotTable
-        ref={hotTableRef}
-        data={paginatedData}
-        colHeaders={filteredColumns.map((c) => c.title)}
-        columns={filteredColumns}
-        width="100%"
-        height={450}
-        manualColumnResize
-        licenseKey="non-commercial-and-evaluation"
-        manualColumnFreeze
-        fixedColumnsLeft={3}
-        afterChange={handleCellChange}
-        stretchH="all"
-        filters
-        dropdownMenu
-        className="ht-theme-horizon"
-        manualColumnMove
-        hiddenColumns={{
-          columns: filteredColumns
-            .map((col, i) => (columnVisibility[col.data] ? null : i))
-            .filter((i) => i !== null),
-          indicators: true,
-        }}
-      />
+      <div className="table-wrapper">
+        <div className="table-inner">
+          <HotTable
+            ref={hotTableRef}
+            data={paginatedData}
+            colHeaders={filteredColumns.map((c) => c.title)}
+            columns={filteredColumns}
+            width="auto"
+            height={tableHeight}
+            manualColumnResize
+            licenseKey="non-commercial-and-evaluation"
+            manualColumnFreeze
+            fixedColumnsLeft={3}
+            afterChange={handleCellChange}
+            stretchH="all"
+            filters
+            dropdownMenu
+            className="ht-theme-horizon"
+            manualColumnMove
+            hiddenColumns={{
+              columns: filteredColumns
+                .map((col, i) => (columnVisibility[col.data] ? null : i))
+                .filter((i) => i !== null),
+              indicators: true,
+            }}
+          />
+        </div>
+      </div>
 
       {/* Snackbar */}
       <Snackbar
@@ -513,19 +551,44 @@ export default function ProjectTable() {
         </Alert>
       </Snackbar>
 
-      {/* Modal Create Project */}
-      {openCreateModal && (
+      {/* Modal Project (Create/Edit) */}
+      {openProjectModal && (
         <ProjectFormModal
-          open={openCreateModal}
-          onClose={() => setOpenCreateModal(false)}
+          open={openProjectModal}
+          onClose={() => {
+            setOpenProjectModal(false);
+            setSelectedProject(null); // Reset selected project saat close
+          }}
           clients={clients}
           quotations={quotations}
           projects={projects}
           categories={categories}
           token={""}
           onSave={loadData}
+          project={selectedProject}
         />
       )}
+
+      {/* Project Details Modal */}
+      <ProjectDetailsModal
+        open={openDetailsModal}
+        onClose={() => {
+          setOpenDetailsModal(false);
+          setSelectedPnNumber(null);
+        }}
+        pn_number={selectedPnNumber}
+      />
+
+      {/* View Projects Modal */}
+      <ViewProjectsModal
+        open={openViewProjectsModal}
+        onClose={() => {
+          setOpenViewProjectsModal(false);
+          setSelectedPnNumberForViewProjects(null);
+        }}
+        pn_number={selectedPnNumberForViewProjects}
+      />
+
       {/* Pagination */}
       <Box display="flex" justifyContent="flex-end" mt={2}>
         <TablePagination

@@ -17,6 +17,7 @@ import StatusProjectTable from "../pages/status-project/StatusProjectTable";
 import SalesReportTable from "../pages/sales-report/SalesReport";
 import MarketingReport from "../pages/marketing-report/MarketingReport";
 import ProjectTable from "../pages/project/ProjectTable";
+import ProjectFinishedSummary from "../pages/project/ProjectFinishedSummary";
 import ProjectDetails from "../pages/project/ProjectDetails";
 import PhcForm from "../pages/phc/PhcForm";
 import ApprovalPage from "../pages/approvall/ApprovallPage";
@@ -30,6 +31,7 @@ import MaterialRequestPage from "../pages/material-request/MaterialRequestPage";
 import MaterialRequestTable from "../pages/material-request/MaterialRequestTable";
 import WorkOrderPage from "../pages/engineer-page/work-order/WorkOrderPage";
 import WorkOrderTable from "../pages/engineer-page/work-order/WorkOrderTable";
+import WorkOrderSummary from "../pages/work-order/WorkOrderSummary";
 import ManPowerAllocationTable from "../pages/engineer-page/man-power/ManPowerAllocationTable";
 import PackingListPage from "../pages/packing-list/PackingListPage";
 import AdminDashboard from "../pages/dashboard/AdminDashboard";
@@ -233,6 +235,24 @@ function AppRoutes() {
             >
               <MainLayout>
                 <ProjectTable />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/projects/finished-summary"
+          element={
+            <ProtectedRoute
+              roles={[
+                "super_admin",
+                "engineering_director",
+                "project controller",
+                "project manager",
+                "engineering_admin",
+              ]}
+            >
+              <MainLayout>
+                <ProjectFinishedSummary />
               </MainLayout>
             </ProtectedRoute>
           }
@@ -451,6 +471,25 @@ function AppRoutes() {
             >
               <MainLayout>
                 <WorkOrderTable />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/work-order/summary"
+          element={
+            <ProtectedRoute
+              roles={[
+                "super_admin",
+                "engineering_director",
+                "project controller",
+                "project manager",
+                "engineering_admin",
+              ]}
+            >
+              <MainLayout>
+                <WorkOrderSummary />
               </MainLayout>
             </ProtectedRoute>
           }
