@@ -14,7 +14,13 @@ import { DataGrid } from "@mui/x-data-grid";
 import api from "../../api/api";
 import SowFormModal from "../modal/SowFormModal";
 
-const SowModal = ({ open, handleClose, projectId, token }) => {
+const SowModal = ({
+  open,
+  handleClose,
+  projectId,
+  token,
+  viewOnly = false,
+}) => {
   const [boqs, setBoqs] = useState([]);
   const [sows, setSows] = useState([]);
   const [loadingBoq, setLoadingBoq] = useState(false);
@@ -143,7 +149,7 @@ const SowModal = ({ open, handleClose, projectId, token }) => {
       field: "work_details",
       headerName: "Work Details",
       width: 250,
-      editable: true,
+      editable: !viewOnly,
       cellClassName: "sticky-col sticky-col-1",
       headerClassName: "sticky-col sticky-col-1",
     },
@@ -151,14 +157,14 @@ const SowModal = ({ open, handleClose, projectId, token }) => {
       field: "pic",
       headerName: "PIC",
       width: 120,
-      editable: true,
+      editable: !viewOnly,
       renderCell: (params) => params.row.pic_user?.name || "-",
     },
     {
       field: "target_finish_date",
       headerName: "Target Finish",
       width: 150,
-      editable: true,
+      editable: !viewOnly,
       renderCell: (params) => (params.value ? formatDate(params.value) : "-"),
       renderEditCell: (params) => <DateEditCell {...params} />,
     },
@@ -166,7 +172,7 @@ const SowModal = ({ open, handleClose, projectId, token }) => {
       field: "start_date",
       headerName: "Start Date",
       width: 150,
-      editable: true,
+      editable: !viewOnly,
       renderCell: (params) => (params.value ? formatDate(params.value) : "-"),
       renderEditCell: (params) => <DateEditCell {...params} />,
     },
@@ -174,7 +180,7 @@ const SowModal = ({ open, handleClose, projectId, token }) => {
       field: "finish_date",
       headerName: "Finish Date",
       width: 150,
-      editable: true,
+      editable: !viewOnly,
       renderCell: (params) => (params.value ? formatDate(params.value) : "-"),
       renderEditCell: (params) => <DateEditCell {...params} />,
     },
@@ -220,6 +226,7 @@ const SowModal = ({ open, handleClose, projectId, token }) => {
                 pageSizeOptions={[10, 20, 50]}
                 showToolbar
                 processRowUpdate={(newRow, oldRow) => {
+                  if (viewOnly) return oldRow;
                   setEditRow(oldRow);
                   setPendingChanges(newRow);
                   setOpenConfirm(true);
@@ -236,13 +243,15 @@ const SowModal = ({ open, handleClose, projectId, token }) => {
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button
-            onClick={() => setOpenForm(true)}
-            variant="contained"
-            color="primary"
-          >
-            Add SOW
-          </Button>
+          {!viewOnly && (
+            <Button
+              onClick={() => setOpenForm(true)}
+              variant="contained"
+              color="primary"
+            >
+              Add SOW
+            </Button>
+          )}
           <Button onClick={handleClose} variant="outlined">
             Close
           </Button>

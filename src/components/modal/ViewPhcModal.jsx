@@ -10,6 +10,9 @@ import {
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import api from "../../api/api";
+import BoqModal from "./BoqModal";
+import SowModal from "./SowModal";
+import { getToken, getUser } from "../../utils/storage";
 
 export default function ViewPhcModal({ phcId, open, handleClose }) {
   const [step, setStep] = useState(1);
@@ -17,6 +20,17 @@ export default function ViewPhcModal({ phcId, open, handleClose }) {
   const [project, setProject] = useState(null);
   const [phc, setPhc] = useState(null);
   const [documents, setDocuments] = useState([]);
+  const [openBoqModal, setOpenBoqModal] = useState(false);
+  const [openSowModal, setOpenSowModal] = useState(false);
+  const token = getToken();
+  const user = getUser();
+  const role = user?.role || "";
+
+  const normalizeValue = (val) => {
+    if (val === "0") return "NA";
+    if (val === "1") return "A";
+    return val;
+  };
 
   useEffect(() => {
     if (!phcId || !open) return;
@@ -27,7 +41,11 @@ export default function ViewPhcModal({ phcId, open, handleClose }) {
         if (res.data) {
           const { phc, project } = res.data;
           setProject(project);
-          setPhc(phc);
+          setPhc({
+            ...phc,
+            costing_by_marketing: normalizeValue(phc.costing_by_marketing),
+            boq: normalizeValue(phc.boq),
+          });
         }
 
         // Fetch document preparations untuk step 3
@@ -235,6 +253,17 @@ export default function ViewPhcModal({ phcId, open, handleClose }) {
                         Detail: {phc[`${key}_detail`]}
                       </p>
                     )}
+                    {key === "boq" && phc?.[key] === "A" && (
+                      <div className="pt-2">
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          onClick={() => setOpenBoqModal(true)}
+                        >
+                          View BOQ
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -261,9 +290,24 @@ export default function ViewPhcModal({ phcId, open, handleClose }) {
                     size="small"
                   />
                   {doc.status === "A" && (
-                    <p className="text-sm text-gray-600">
-                      Date Prepared: {formatDate(doc.date_prepared)}
-                    </p>
+                    <>
+                      <p className="text-sm text-gray-600">
+                        Date Prepared: {formatDate(doc.date_prepared)}
+                      </p>
+                      {doc.name
+                        .toLowerCase()
+                        .includes("scope_of_work_approval") && (
+                        <div className="pt-2">
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            onClick={() => setOpenSowModal(true)}
+                          >
+                            View SOW
+                          </Button>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               ))}
@@ -276,6 +320,24 @@ export default function ViewPhcModal({ phcId, open, handleClose }) {
           Close
         </Button>
       </DialogActions>
+
+      <BoqModal
+        open={openBoqModal}
+        handleClose={() => setOpenBoqModal(false)}
+        projectId={project?.pn_number}
+        projectValue={project?.po_value}
+        role={role}
+        token={token}
+        viewOnly={true}
+      />
+
+      <SowModal
+        open={openSowModal}
+        handleClose={() => setOpenSowModal(false)}
+        projectId={project?.pn_number}
+        token={token}
+        viewOnly={true}
+      />
     </Dialog>
   );
 }

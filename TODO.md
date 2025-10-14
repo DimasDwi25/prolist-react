@@ -1,17 +1,18 @@
-# SalesReport.jsx Update Plan
+# TODO List for ViewPhcModal Enhancement
 
-- [x] Import additional components (FilterBar, summary card components, filters)
-- [x] Add state for filters, totals, availableYears, selectedClient, selectedCategory, selectedStatus
-- [x] Update fetchProjects to accept filterParams, set totals and availableYears
-- [x] Add FilterBar component
-- [x] Add summary cards for total sales value and project count
-- [x] Add client, category, status filters in top controls
-- [x] Update columns to include client_name, category_name, status, etc.
-- [x] Add filteredData calculation with filters, calculate filtered totals
-- [x] Use similar formatters/renderers as MarketingReport
-- [x] Update component name to SalesReport
-- [x] Implement frontend filtering for FilterBar since backend may not be filtering
-- [x] Show 0 in summary cards when no projects match filters
-- [x] Add empty state message when no data in table
-- [x] Update MarketingReport to show 0 and empty state message
-- [x] Test the component
+## Tasks
+
+- [x] Add "View BOQ" button in Step 2 if BOQ is applicable
+- [x] Add "View SOW" button in Step 3 if Scope of Work document is applicable
+- [x] Import BoqModal and SowModal components
+- [x] Add state for modal open/close
+- [x] Retrieve token and role from storage for modal props
+- [x] Add modal components at the end of the return statement
+- [x] Test the functionality to ensure buttons appear correctly and modals open
+
+## Notes
+
+- BOQ is applicable if `phc?.boq === "A"`
+- SOW is applicable if there's a document with name including "scope_of_work_approval" and status "A"
+- Use existing BoqModal and SowModal components for viewing
+- Props for modals: projectId (project?.pn_number), projectValue (project?.po_value), token (from storage), role (from storage)

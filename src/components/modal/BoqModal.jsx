@@ -38,6 +38,7 @@ const BoqModal = ({
   projectValue,
   role,
   token,
+  viewOnly = false,
 }) => {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -147,7 +148,7 @@ const BoqModal = ({
       field: "description",
       headerName: "Description",
       width: 250,
-      editable: true,
+      editable: !viewOnly,
       renderCell: (params) => (
         <Box
           sx={{
@@ -167,7 +168,7 @@ const BoqModal = ({
       width: 160,
       align: "right",
       headerAlign: "right",
-      editable: true,
+      editable: !viewOnly,
       type: "number",
       preProcessEditCellProps: (params) => {
         let value = params.props.value;
@@ -229,7 +230,7 @@ const BoqModal = ({
       width: 160,
       align: "right",
       headerAlign: "right",
-      editable: true,
+      editable: !viewOnly,
       type: "number",
       preProcessEditCellProps: (params) => {
         let value = params.props.value;
@@ -340,7 +341,7 @@ const BoqModal = ({
       headerName: "Progress Material (%)",
       type: "number",
       width: 200,
-      editable: isEngineer,
+      editable: isEngineer && !viewOnly,
       renderCell: (params) => `${params.value ?? 0}%`,
       preProcessEditCellProps: (params) => {
         const value = Number(params.props.value);
@@ -372,7 +373,7 @@ const BoqModal = ({
       headerName: "Progress Engineer (%)",
       type: "number",
       width: 200,
-      editable: isEngineer,
+      editable: isEngineer && !viewOnly,
       renderCell: (params) => `${params.value ?? 0}%`,
       preProcessEditCellProps: (params) => {
         const value = Number(params.props.value);
@@ -462,19 +463,21 @@ const BoqModal = ({
               columns={columns}
               loading={loading}
               disableRowSelectionOnClick
-              processRowUpdate={processRowUpdate}
+              processRowUpdate={viewOnly ? undefined : processRowUpdate}
               onProcessRowUpdateError={(error) => console.error(error)}
             />
           </div>
         </DialogContent>
         <DialogActions>
-          <Button
-            onClick={() => setOpenForm(true)}
-            variant="contained"
-            color="primary"
-          >
-            Add Item
-          </Button>
+          {!viewOnly && (
+            <Button
+              onClick={() => setOpenForm(true)}
+              variant="contained"
+              color="primary"
+            >
+              Add Item
+            </Button>
+          )}
           <Button onClick={handleClose} variant="outlined">
             Close
           </Button>

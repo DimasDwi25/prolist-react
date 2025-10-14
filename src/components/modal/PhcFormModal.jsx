@@ -821,6 +821,8 @@ export default function PhcFormModal({
         handleClose={() => setOpenBoq(false)}
         projectId={project?.pn_number}
         projectValue={project?.po_value}
+        role={localStorage.getItem("role")}
+        token={localStorage.getItem("token")}
       />
     </Dialog>
   );

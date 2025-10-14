@@ -652,12 +652,15 @@ export default function UpdateDocumentPhcModal({
           open={openSowModal}
           handleClose={() => setOpenSowModal(false)}
           projectId={project?.pn_number}
+          token={localStorage.getItem("token")}
         />
         <BoqModal
           open={openBoq}
           handleClose={() => setOpenBoq(false)}
           projectId={project?.pn_number}
           projectValue={project?.po_value}
+          role={phcDetail?.user?.role}
+          token={localStorage.getItem("token")}
         />
       </DialogContent>
     </Dialog>
