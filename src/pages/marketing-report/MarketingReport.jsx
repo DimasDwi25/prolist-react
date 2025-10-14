@@ -10,10 +10,21 @@ import {
   TextField,
   TablePagination,
   Chip,
+  Card,
+  CardContent,
+  Grid,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Autocomplete,
 } from "@mui/material";
+import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
+import DescriptionIcon from "@mui/icons-material/Description";
 import api from "../../api/api";
 import LoadingOverlay from "../../components/loading/LoadingOverlay";
 import ColumnVisibilityModal from "../../components/ColumnVisibilityModal";
+import FilterBar from "../../components/filter/FilterBar";
 import { filterBySearch } from "../../utils/filter";
 
 export default function MarketingReport() {
@@ -21,8 +32,22 @@ export default function MarketingReport() {
   const [quotations, setQuotations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState("");
+  const [selectedClient, setSelectedClient] = useState("");
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
+  // const [totalQuotationValue, setTotalQuotationValue] = useState(null);
+  // const [totalQuotationsCount, setTotalQuotationsCount] = useState(0);
+  const [filteredTotalValue, setFilteredTotalValue] = useState(null);
+  const [filteredCount, setFilteredCount] = useState(0);
+  const [filters, setFilters] = useState({
+    year: new Date().getFullYear(),
+    rangeType: "monthly",
+    month: null,
+    from: "",
+    to: "",
+  });
+  const [availableYears, setAvailableYears] = useState([]);
 
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -55,7 +80,13 @@ export default function MarketingReport() {
 
   const dateRenderer = (instance, td, row, col, prop, value) => {
     td.innerText = formatDate(value);
-    td.style.color = "#555";
+    td.style.color = "#000";
+    return td;
+  };
+
+  const textRenderer = (instance, td, row, col, prop, value) => {
+    td.innerText = value || "-";
+    td.style.color = "#000";
     return td;
   };
 
@@ -126,21 +157,67 @@ export default function MarketingReport() {
   // === COLUMNS ===
   const allColumns = useMemo(
     () => [
-      { data: "no_quotation", title: "No. Quotation" },
-      { data: "title_quotation", title: "Title" },
-      { data: "client_name", title: "Client" },
-      { data: "client_pic", title: "PIC" },
-      { data: "quotation_date", title: "Date", renderer: dateRenderer },
-      { data: "quotation_value", title: "Value", renderer: valueRenderer },
-      { data: "quotation_weeks", title: "Week" },
+      {
+        data: "no_quotation",
+        title: "No. Quotation",
+        renderer: textRenderer,
+        readOnly: true,
+      },
+      {
+        data: "title_quotation",
+        title: "Title",
+        renderer: textRenderer,
+        readOnly: true,
+      },
+      {
+        data: "client_name",
+        title: "Client",
+        renderer: textRenderer,
+        readOnly: true,
+      },
+      {
+        data: "client_pic",
+        title: "PIC",
+        renderer: textRenderer,
+        readOnly: true,
+      },
+      {
+        data: "quotation_date",
+        title: "Date",
+        renderer: dateRenderer,
+        readOnly: true,
+      },
+      {
+        data: "quotation_value",
+        title: "Value",
+        renderer: valueRenderer,
+        readOnly: true,
+      },
+      {
+        data: "quotation_weeks",
+        title: "Week",
+        renderer: textRenderer,
+        readOnly: true,
+      },
       {
         data: "revision_quotation_date",
         title: "Revision Date",
         renderer: dateRenderer,
+        readOnly: true,
       },
-      { data: "revisi", title: "Revision" },
-      { data: "status", title: "Status", renderer: statusRenderer },
-      { data: "notes", title: "Notes" },
+      {
+        data: "revisi",
+        title: "Revision",
+        renderer: textRenderer,
+        readOnly: true,
+      },
+      {
+        data: "status",
+        title: "Status",
+        renderer: statusRenderer,
+        readOnly: true,
+      },
+      { data: "notes", title: "Notes", renderer: textRenderer, readOnly: true },
     ],
     []
   );
@@ -160,9 +237,17 @@ export default function MarketingReport() {
   };
 
   // === FETCH DATA ===
-  const fetchQuotations = async () => {
+  const fetchQuotations = async (filterParams = {}) => {
     try {
-      const res = await api.get("/marketing-report");
+      const params = new URLSearchParams();
+      if (filterParams.year) params.append("year", filterParams.year);
+      if (filterParams.rangeType)
+        params.append("range_type", filterParams.rangeType);
+      if (filterParams.month) params.append("month", filterParams.month);
+      if (filterParams.from) params.append("from_date", filterParams.from);
+      if (filterParams.to) params.append("to_date", filterParams.to);
+
+      const res = await api.get(`/marketing-report?${params.toString()}`);
       const data = res.data.data.map((q, idx) => ({
         id: idx + 1,
         no_quotation: q.no_quotation,
@@ -178,6 +263,15 @@ export default function MarketingReport() {
         notes: q.notes || "-",
       }));
       setQuotations(data);
+      // setTotalQuotationValue(
+      //   res.data.totalQuotationValue ||
+      //     res.data.filters?.totalQuotationValue ||
+      //     0
+      // );
+      // setTotalQuotationsCount(data.length);
+      setAvailableYears(
+        res.data.availableYears || res.data.filters?.available_years || []
+      );
     } catch (err) {
       console.error(err.response?.data || err);
       setSnackbar({
@@ -190,20 +284,45 @@ export default function MarketingReport() {
     }
   };
 
+  const handleFilterChange = (newFilters) => {
+    setFilters(newFilters);
+    fetchQuotations(newFilters);
+  };
+
   useEffect(() => {
     fetchQuotations();
   }, []);
 
   // === FILTER & PAGINATION ===
-  const filteredData = filterBySearch(quotations, searchTerm);
+  const filteredData = useMemo(() => {
+    let data = filterBySearch(quotations, searchTerm);
+    if (selectedStatus) {
+      data = data.filter((item) => item.status === selectedStatus);
+    }
+    if (selectedClient) {
+      data = data.filter((item) => item.client_name === selectedClient);
+    }
+    return data;
+  }, [quotations, searchTerm, selectedStatus, selectedClient]);
+
+  // Calculate filtered totals
+  useEffect(() => {
+    if (quotations.length > 0) {
+      const totalValue = filteredData.reduce(
+        (sum, item) => sum + (Number(item.quotation_value) || 0),
+        0
+      );
+      setFilteredTotalValue(totalValue);
+      setFilteredCount(filteredData.length);
+    }
+  }, [filteredData, quotations.length]);
+
   const paginatedData = filteredData.slice(
     page * pageSize,
     page * pageSize + pageSize
   );
 
-  const rowHeight = 40; // tinggi tiap row
-  const headerHeight = 50; // tinggi header Handsontable
-  const tableHeight = paginatedData.length * rowHeight + headerHeight + 2;
+  const tableHeight = Math.min(pageSize * 70 + 50, window.innerHeight - 250);
 
   const handleChangePage = (e, newPage) => setPage(newPage);
   const handleChangePageSize = (e) => {
@@ -216,6 +335,52 @@ export default function MarketingReport() {
       {/* Loading */}
       <LoadingOverlay loading={loading} />
 
+      {/* FilterBar */}
+      <FilterBar
+        stats={{
+          availableYears:
+            availableYears.length > 0
+              ? availableYears
+              : [new Date().getFullYear()],
+        }}
+        onFilter={handleFilterChange}
+        initialFilters={filters}
+      />
+
+      {/* Summary Cards */}
+      <Grid container spacing={2} sx={{ mb: 2 }}>
+        <Grid item xs={12} sm={6}>
+          <Card>
+            <CardContent>
+              <Stack direction="row" alignItems="center" spacing={1}>
+                <AttachMoneyIcon color="primary" />
+                <Typography variant="h6" component="div">
+                  Quote Ammounts
+                </Typography>
+              </Stack>
+              <Typography variant="h4" color="primary">
+                {formatValue(filteredTotalValue || 0)}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={6}>
+          <Card>
+            <CardContent>
+              <Stack direction="row" alignItems="center" spacing={1}>
+                <DescriptionIcon color="primary" />
+                <Typography variant="h6" component="div">
+                  Total Quotations
+                </Typography>
+              </Stack>
+              <Typography variant="h4" color="primary">
+                {filteredCount || 0}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
       {/* Top Controls */}
       <Stack
         direction="row"
@@ -224,9 +389,45 @@ export default function MarketingReport() {
         alignItems="center"
         mb={2}
       >
+        {/* Status Filter */}
+        <FormControl size="small" sx={{ minWidth: 120 }}>
+          <InputLabel>Status</InputLabel>
+          <Select
+            value={selectedStatus}
+            label="Status"
+            onChange={(e) => setSelectedStatus(e.target.value)}
+          >
+            <MenuItem value="">
+              <em>All</em>
+            </MenuItem>
+            <MenuItem value="A">[A] Completed</MenuItem>
+            <MenuItem value="D">[D] No PO Yet</MenuItem>
+            <MenuItem value="E">[E] Cancelled</MenuItem>
+            <MenuItem value="F">[F] Lost Bid</MenuItem>
+            <MenuItem value="O">[O] On Going</MenuItem>
+          </Select>
+        </FormControl>
+
+        {/* Client Filter */}
+        <Autocomplete
+          size="small"
+          sx={{ minWidth: 120 }}
+          options={[...new Set(quotations.map((q) => q.client_name))]}
+          value={selectedClient}
+          onChange={(event, newValue) => setSelectedClient(newValue || "")}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label="Client"
+              placeholder="Select client..."
+            />
+          )}
+          clearOnEscape
+        />
+
         <TextField
           size="small"
-          placeholder="Search marketing..."
+          placeholder="Search Quotation..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           sx={{
@@ -250,30 +451,48 @@ export default function MarketingReport() {
       </Stack>
 
       {/* Handsontable */}
-      <HotTable
-        ref={hotTableRef}
-        data={paginatedData}
-        colHeaders={allColumns.map((c) => c.title)}
-        columns={allColumns}
-        width="100%"
-        height={tableHeight} // <=== tinggi dinamis
-        rowHeights={rowHeight} // konsisten tinggi baris
-        manualColumnResize
-        licenseKey="non-commercial-and-evaluation"
-        manualColumnFreeze
-        fixedColumnsLeft={2}
-        stretchH="all"
-        filters
-        dropdownMenu
-        manualColumnMove
-        hiddenColumns={{
-          columns: allColumns
-            .map((col, i) => (columnVisibility[col.data] ? null : i))
-            .filter((i) => i !== null),
-          indicators: true,
-        }}
-        className="ht-theme-horizon"
-      />
+      {paginatedData.length === 0 ? (
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            height: tableHeight,
+            border: "1px solid #e0e0e0",
+            borderRadius: "8px",
+            backgroundColor: "#f9f9f9",
+          }}
+        >
+          <Typography variant="h6" color="textSecondary">
+            No marketing data found for the selected filters
+          </Typography>
+        </Box>
+      ) : (
+        <HotTable
+          ref={hotTableRef}
+          data={paginatedData}
+          colHeaders={allColumns.map((c) => c.title)}
+          columns={allColumns}
+          width="100%"
+          height={tableHeight} // <=== tinggi dinamis
+          rowHeights={40} // konsisten tinggi baris
+          manualColumnResize
+          licenseKey="non-commercial-and-evaluation"
+          manualColumnFreeze
+          fixedColumnsLeft={2}
+          stretchH="all"
+          filters
+          dropdownMenu
+          manualColumnMove
+          hiddenColumns={{
+            columns: allColumns
+              .map((col, i) => (columnVisibility[col.data] ? null : i))
+              .filter((i) => i !== null),
+            indicators: true,
+          }}
+          className="ht-theme-horizon"
+        />
+      )}
 
       {/* Snackbar */}
       <Snackbar

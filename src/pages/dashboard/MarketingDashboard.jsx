@@ -14,6 +14,7 @@ import {
 import api from "../../api/api";
 import FilterBar from "../../components/filter/FilterBar";
 import LoadingScreen from "../../components/loading/loadingScreen";
+import { formatValue } from "../../utils/formatValue";
 
 // Warna card
 const colorMap = {
@@ -98,12 +99,25 @@ const useMarketingStats = (initialFilter) => {
 };
 
 // Chart dengan fade-in animation
-const DashboardCharts = ({ stats, updating }) => {
+const DashboardCharts = ({
+  stats,
+  updating,
+  enableTarget,
+  targetMode,
+  targetQuotation,
+  targetSales,
+  monthlyTargets,
+  setEnableTarget,
+  setTargetMode,
+  setTargetQuotation,
+  setTargetSales,
+  setMonthlyTargets,
+}) => {
   const barChartRef = useRef(null);
   const pieChartRef = useRef(null);
   const lineChartRef = useRef(null);
 
-  const renderCharts = useCallback((data) => {
+  const renderCharts = useCallback((data, targets) => {
     // Destroy chart jika sudah ada
     if (barChartRef.current) barChartRef.current.destroy();
     if (pieChartRef.current) pieChartRef.current.destroy();
@@ -148,28 +162,77 @@ const DashboardCharts = ({ stats, updating }) => {
     });
 
     // Line chart
+    const datasets = [
+      {
+        label: "Quotation",
+        data: data.quotationPerMonthData,
+        borderColor: "#3b82f6",
+        fill: true,
+        backgroundColor: "rgba(59,130,246,0.1)",
+        tension: 0.4,
+      },
+      {
+        label: "Sales",
+        data: data.salesPerMonthData,
+        borderColor: "#10b981",
+        fill: true,
+        backgroundColor: "rgba(16,185,129,0.1)",
+        tension: 0.4,
+      },
+    ];
+
+    // Tambahkan target datasets jika enabled
+    if (targets.enableTarget) {
+      if (targets.targetMode === "yearly") {
+        if (targets.targetQuotation > 0) {
+          datasets.push({
+            label: "Target Quotation",
+            data: Array(data.months.length).fill(targets.targetQuotation),
+            borderColor: "#ef4444",
+            borderDash: [5, 5],
+            fill: false,
+            tension: 0,
+          });
+        }
+        if (targets.targetSales > 0) {
+          datasets.push({
+            label: "Target Sales",
+            data: Array(data.months.length).fill(targets.targetSales),
+            borderColor: "#f59e0b",
+            borderDash: [5, 5],
+            fill: false,
+            tension: 0,
+          });
+        }
+      } else if (targets.targetMode === "monthly") {
+        if (targets.monthlyTargets.quotation.some((v) => v > 0)) {
+          datasets.push({
+            label: "Target Quotation",
+            data: targets.monthlyTargets.quotation,
+            borderColor: "#ef4444",
+            borderDash: [5, 5],
+            fill: false,
+            tension: 0.4,
+          });
+        }
+        if (targets.monthlyTargets.sales.some((v) => v > 0)) {
+          datasets.push({
+            label: "Target Sales",
+            data: targets.monthlyTargets.sales,
+            borderColor: "#f59e0b",
+            borderDash: [5, 5],
+            fill: false,
+            tension: 0.4,
+          });
+        }
+      }
+    }
+
     lineChartRef.current = new Chart(document.getElementById("lineChart"), {
       type: "line",
       data: {
         labels: data.months,
-        datasets: [
-          {
-            label: "Quotation",
-            data: data.quotationPerMonthData,
-            borderColor: "#3b82f6",
-            fill: true,
-            backgroundColor: "rgba(59,130,246,0.1)",
-            tension: 0.4,
-          },
-          {
-            label: "Sales",
-            data: data.salesPerMonthData,
-            borderColor: "#10b981",
-            fill: true,
-            backgroundColor: "rgba(16,185,129,0.1)",
-            tension: 0.4,
-          },
-        ],
+        datasets: datasets,
       },
       options: {
         responsive: true,
@@ -180,8 +243,23 @@ const DashboardCharts = ({ stats, updating }) => {
   }, []);
 
   useEffect(() => {
-    if (stats?.months?.length > 0) renderCharts(stats);
-  }, [stats, renderCharts]);
+    if (stats?.months?.length > 0)
+      renderCharts(stats, {
+        enableTarget,
+        targetMode,
+        targetQuotation,
+        targetSales,
+        monthlyTargets,
+      });
+  }, [
+    stats,
+    renderCharts,
+    enableTarget,
+    targetMode,
+    targetQuotation,
+    targetSales,
+    monthlyTargets,
+  ]);
 
   return (
     <div
@@ -197,7 +275,7 @@ const DashboardCharts = ({ stats, updating }) => {
           <div className="flex items-center gap-2 mb-3">
             <FaChartBar className="text-blue-500" />
             <h2 className="text-sm font-semibold text-gray-700">
-              Quotation & Sales Value
+              Quote Ammounts & Booking Sales
             </h2>
           </div>
           <canvas id="barChart" className="h-60"></canvas>
@@ -219,6 +297,160 @@ const DashboardCharts = ({ stats, updating }) => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Target Settings */}
+      <div className="bg-white shadow rounded-xl p-4 mb-4 mt-4">
+        <div className="flex items-center gap-2 mb-4">
+          <input
+            type="checkbox"
+            id="enableTarget"
+            checked={enableTarget}
+            onChange={(e) => setEnableTarget(e.target.checked)}
+            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+          />
+          <label
+            htmlFor="enableTarget"
+            className="text-lg font-semibold text-gray-700"
+          >
+            Set Target
+          </label>
+        </div>
+
+        {enableTarget && (
+          <>
+            <div className="flex items-center gap-4 mb-4">
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="targetMode"
+                  value="yearly"
+                  checked={targetMode === "yearly"}
+                  onChange={(e) => setTargetMode(e.target.value)}
+                />
+                Per Tahun
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="targetMode"
+                  value="monthly"
+                  checked={targetMode === "monthly"}
+                  onChange={(e) => setTargetMode(e.target.value)}
+                />
+                Per Bulan
+              </label>
+            </div>
+
+            {targetMode === "yearly" ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Target Quotation
+                  </label>
+                  <input
+                    type="text"
+                    value={formatValue(targetQuotation)
+                      .formatted.replace("Rp", "")
+                      .trim()}
+                    onChange={(e) => {
+                      const numValue = e.target.value.replace(/[^\d]/g, "");
+                      setTargetQuotation(Number(numValue));
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Target Sales
+                  </label>
+                  <input
+                    type="text"
+                    value={formatValue(targetSales)
+                      .formatted.replace("Rp", "")
+                      .trim()}
+                    onChange={(e) => {
+                      const numValue = e.target.value.replace(/[^\d]/g, "");
+                      setTargetSales(Number(numValue));
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <h4 className="text-md font-medium text-gray-700 mb-2">
+                    Target Quotation per Bulan
+                  </h4>
+                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                    {monthlyTargets.quotation.map((val, idx) => (
+                      <div key={idx}>
+                        <label className="block text-xs text-gray-500 mb-1">
+                          {new Date(0, idx).toLocaleString("id-ID", {
+                            month: "short",
+                          })}
+                        </label>
+                        <input
+                          type="text"
+                          value={formatValue(val)
+                            .formatted.replace("Rp", "")
+                            .trim()}
+                          onChange={(e) => {
+                            const numValue = e.target.value.replace(
+                              /[^\d]/g,
+                              ""
+                            );
+                            const newTargets = { ...monthlyTargets };
+                            newTargets.quotation[idx] = Number(numValue);
+                            setMonthlyTargets(newTargets);
+                          }}
+                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          placeholder="0"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <h4 className="text-md font-medium text-gray-700 mb-2">
+                    Target Sales per Bulan
+                  </h4>
+                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                    {monthlyTargets.sales.map((val, idx) => (
+                      <div key={idx}>
+                        <label className="block text-xs text-gray-500 mb-1">
+                          {new Date(0, idx).toLocaleString("id-ID", {
+                            month: "short",
+                          })}
+                        </label>
+                        <input
+                          type="text"
+                          value={formatValue(val)
+                            .formatted.replace("Rp", "")
+                            .trim()}
+                          onChange={(e) => {
+                            const numValue = e.target.value.replace(
+                              /[^\d]/g,
+                              ""
+                            );
+                            const newTargets = { ...monthlyTargets };
+                            newTargets.sales[idx] = Number(numValue);
+                            setMonthlyTargets(newTargets);
+                          }}
+                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          placeholder="0"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       <div className="bg-white shadow rounded-xl p-4 relative mt-4">
@@ -247,11 +479,87 @@ export default function MarketingDashboard() {
     to: "",
   });
 
-  const formatRp = (num) =>
-    new Intl.NumberFormat("id-ID", {
-      style: "currency",
-      currency: "IDR",
-    }).format(num);
+  // State untuk target
+  const [enableTarget, setEnableTarget] = useState(() => {
+    try {
+      const saved = localStorage.getItem("marketingTargets");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return parsed.enable ?? false;
+      }
+    } catch (e) {
+      console.error("Error loading enableTarget from localStorage:", e);
+    }
+    return false;
+  });
+  const [targetMode, setTargetMode] = useState(() => {
+    try {
+      const saved = localStorage.getItem("marketingTargets");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return parsed.mode ?? "yearly";
+      }
+    } catch (e) {
+      console.error("Error loading targetMode from localStorage:", e);
+    }
+    return "yearly";
+  });
+  const [targetQuotation, setTargetQuotation] = useState(() => {
+    try {
+      const saved = localStorage.getItem("marketingTargets");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return parsed.quotation ?? 0;
+      }
+    } catch (e) {
+      console.error("Error loading targetQuotation from localStorage:", e);
+    }
+    return 0;
+  });
+  const [targetSales, setTargetSales] = useState(() => {
+    try {
+      const saved = localStorage.getItem("marketingTargets");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return parsed.sales ?? 0;
+      }
+    } catch (e) {
+      console.error("Error loading targetSales from localStorage:", e);
+    }
+    return 0;
+  });
+  const [monthlyTargets, setMonthlyTargets] = useState(() => {
+    try {
+      const saved = localStorage.getItem("marketingTargets");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return (
+          parsed.monthly ?? {
+            quotation: Array(12).fill(0),
+            sales: Array(12).fill(0),
+          }
+        );
+      }
+    } catch (e) {
+      console.error("Error loading monthlyTargets from localStorage:", e);
+    }
+    return {
+      quotation: Array(12).fill(0),
+      sales: Array(12).fill(0),
+    };
+  });
+
+  // Save target ke localStorage setiap kali state berubah
+  useEffect(() => {
+    const data = {
+      enable: enableTarget,
+      mode: targetMode,
+      quotation: targetQuotation,
+      sales: targetSales,
+      monthly: monthlyTargets,
+    };
+    localStorage.setItem("marketingTargets", JSON.stringify(data));
+  }, [enableTarget, targetMode, targetQuotation, targetSales, monthlyTargets]);
 
   if (loading) return <LoadingScreen />;
 
@@ -281,15 +589,21 @@ export default function MarketingDashboard() {
   const cardsRow2 = !hideSensitive
     ? [
         {
-          title: "Total Quotation Value",
-          value: formatRp(stats.totalQuotationValue),
+          title: "Quote Ammounts",
+          value: new Intl.NumberFormat("id-ID", {
+            style: "currency",
+            currency: "IDR",
+          }).format(stats.totalQuotationValue),
           color: "green",
           icon: <FaMoneyBillWave size={22} />,
           mask: true, // nilai sensitif default hide
         },
         {
-          title: "Total Sales Value",
-          value: formatRp(stats.totalSalesValue),
+          title: "Booking Sales",
+          value: new Intl.NumberFormat("id-ID", {
+            style: "currency",
+            currency: "IDR",
+          }).format(stats.totalSalesValue),
           color: "purple",
           icon: <FaChartLine size={22} />,
           mask: true, // nilai sensitif default hide
@@ -315,7 +629,26 @@ export default function MarketingDashboard() {
         </div>
       )}
 
-      <DashboardCharts stats={stats} updating={updating} />
+      <DashboardCharts
+        stats={stats}
+        updating={updating}
+        enableTarget={enableTarget}
+        targetMode={targetMode}
+        targetQuotation={targetQuotation}
+        targetSales={targetSales}
+        monthlyTargets={monthlyTargets}
+        setEnableTarget={setEnableTarget}
+        setTargetMode={setTargetMode}
+        setTargetQuotation={setTargetQuotation}
+        setTargetSales={setTargetSales}
+        setMonthlyTargets={setMonthlyTargets}
+        formatRp={(num) =>
+          new Intl.NumberFormat("id-ID", {
+            style: "currency",
+            currency: "IDR",
+          }).format(num)
+        }
+      />
     </div>
   );
 }

@@ -172,7 +172,7 @@ export default function ViewWorkOrderModal({ open, onClose, workOrderId }) {
                 Approved By
               </h3>
               <p className="mt-1 text-sm font-medium text-gray-900">
-                {display(workOrder?.approved_by?.name)}
+                {display(workOrder?.approver?.name)}
               </p>
             </div>
           </div>
@@ -351,8 +351,8 @@ export default function ViewWorkOrderModal({ open, onClose, workOrderId }) {
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 text-center w-full">
               {[
                 { label: "Requested By", value: workOrder?.creator?.name },
-                { label: "Approved By", value: workOrder?.approved_by?.name },
-                { label: "Accepted By", value: workOrder?.accepted_by?.name },
+                { label: "Approved By", value: workOrder?.approver?.name },
+                { label: "Accepted By", value: workOrder?.acceptor?.name },
                 {
                   label: "Client Approve",
                   value: workOrder?.client_approve?.name,

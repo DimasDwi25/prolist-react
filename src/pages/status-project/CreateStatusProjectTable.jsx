@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import api from "../../api/api";
+import { clearAuth } from "../../utils/storage";
 
 export default function CreateStatusProjectModal({
   open,
@@ -48,7 +49,7 @@ export default function CreateStatusProjectModal({
         setErrors(err.response.data.errors || {});
       } else if (err.response?.status === 401) {
         alert("Session expired. Please login again.");
-        localStorage.clear();
+        clearAuth();
         window.location.href = "/login";
       } else {
         alert("Failed to create status. Please try again.");

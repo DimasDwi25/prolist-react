@@ -132,8 +132,8 @@ export default function WorkOrderFormModal({
       add_work: Boolean(Number(workOrder.add_work)),
       approved_by: workOrder.approved_by || "",
       status: workOrder.status || "draft",
-      start_work_time: workOrder.start_work_time || "",
-      stop_work_time: workOrder.stop_work_time || "",
+      start_work_time: extractTime(workOrder.start_work_time),
+      stop_work_time: extractTime(workOrder.stop_work_time),
       continue_date: formatDate(workOrder.continue_date),
       continue_time: workOrder.continue_time || "",
       client_note: workOrder.client_note || "",
@@ -262,6 +262,14 @@ export default function WorkOrderFormModal({
     return `${yyyy}-${mm}-${dd}`; // Format yyyy-MM-dd
   }
 
+  function extractTime(datetime) {
+    if (!datetime) return "";
+    const date = new Date(datetime);
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    return `${hours}:${minutes}`;
+  }
+
   const getWoDatesPreview = () => {
     if (!form.wo_date || form.wo_count < 1) return [];
     const startDate = new Date(form.wo_date);
@@ -302,15 +310,23 @@ export default function WorkOrderFormModal({
         add_work: form.add_work,
         approved_by: form.approved_by,
         status: form.status,
-        start_work_time: form.start_work_time,
-        stop_work_time: form.stop_work_time,
-        continue_date: form.continue_date,
-        continue_time: form.continue_time,
+        ...(form.start_work_time && { start_work_time: form.start_work_time }),
+        ...(form.stop_work_time && { stop_work_time: form.stop_work_time }),
+        ...(form.continue_date && { continue_date: form.continue_date }),
+        ...(form.continue_time && { continue_time: form.continue_time }),
         client_note: form.client_note,
-        scheduled_start_working_date: form.scheduled_start_working_date,
-        scheduled_end_working_date: form.scheduled_end_working_date,
-        actual_start_working_date: form.actual_start_working_date,
-        actual_end_working_date: form.actual_end_working_date,
+        ...(form.scheduled_start_working_date && {
+          scheduled_start_working_date: form.scheduled_start_working_date,
+        }),
+        ...(form.scheduled_end_working_date && {
+          scheduled_end_working_date: form.scheduled_end_working_date,
+        }),
+        ...(form.actual_start_working_date && {
+          actual_start_working_date: form.actual_start_working_date,
+        }),
+        ...(form.actual_end_working_date && {
+          actual_end_working_date: form.actual_end_working_date,
+        }),
         accomodation: form.accomodation,
         material_required: form.material_required,
         wo_count: form.wo_count,
@@ -360,7 +376,7 @@ export default function WorkOrderFormModal({
   };
 
   const getPurposeOption = (id) => {
-    const p = purposes.find((p) => p.id === id);
+    const p = purposes.find((p) => String(p.id) === String(id));
     return p ? { label: p.name, value: p.id } : null;
   };
 
@@ -734,9 +750,7 @@ export default function WorkOrderFormModal({
                     updateDescription(index, "result", e.target.value)
                   }
                   fullWidth
-                  disabled={
-                    workOrder && workOrder.status !== "waiting_client_approval"
-                  }
+                  disabled={!workOrder || workOrder.status !== "approved"}
                 />
 
                 <Tooltip title="Remove Description">

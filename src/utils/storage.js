@@ -51,4 +51,11 @@ export const clearAuth = () => {
       .replace(/^ +/, "")
       .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
   });
+
+  // Hapus localStorage kecuali marketingTargets
+  const marketingTargets = localStorage.getItem("marketingTargets");
+  localStorage.clear();
+  if (marketingTargets) {
+    localStorage.setItem("marketingTargets", marketingTargets);
+  }
 };

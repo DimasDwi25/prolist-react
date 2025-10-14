@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import api from "../../../api/api"; // Axios instance yang sudah include JWT
+import { clearAuth } from "../../../utils/storage";
 
 export default function CreateClientModal({ open, onClose, onClientCreated }) {
   const initialForm = {
@@ -58,7 +59,7 @@ export default function CreateClientModal({ open, onClose, onClientCreated }) {
         alert(
           err.response.data?.message || "Session expired. Please login again."
         );
-        localStorage.clear();
+        clearAuth();
         window.location.href = "/login";
       } else {
         alert("Failed to create client. Please try again.");

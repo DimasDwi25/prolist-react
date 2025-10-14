@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import api from "../../api/api"; // Axios instance sudah include JWT
+import { clearAuth } from "../../utils/storage";
 
 export default function CreateCategorieProjectModal({
   open,
@@ -56,7 +57,7 @@ export default function CreateCategorieProjectModal({
         alert(
           err.response.data?.message || "Session expired. Please login again."
         );
-        localStorage.clear();
+        clearAuth();
         window.location.href = "/login";
       } else {
         alert("Failed to create category. Please try again.");

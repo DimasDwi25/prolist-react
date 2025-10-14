@@ -20,6 +20,8 @@ import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import IconButton from "@mui/material/IconButton";
 import ViewPhcModal from "../../components/modal/ViewPhcModal";
+import ViewWorkOrderModal from "../../components/modal/ViewWorkOrderModal";
+import ViewLogModal from "../../components/modal/ViewLogModal";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 
 export default function ApprovalPage() {
@@ -40,7 +42,11 @@ export default function ApprovalPage() {
     message: "",
     severity: "success",
   });
-  const [selectedProjectId, setSelectedProjectId] = useState(null);
+  const [selectedPhcId, setSelectedPhcId] = useState(null);
+  const [openWorkOrderModal, setOpenWorkOrderModal] = useState(false);
+  const [selectedWorkOrderId, setSelectedWorkOrderId] = useState(null);
+  const [openLogModal, setOpenLogModal] = useState(false);
+  const [selectedLogId, setSelectedLogId] = useState(null);
 
   const fetchApprovals = async () => {
     setLoading(true);
@@ -49,15 +55,11 @@ export default function ApprovalPage() {
       const data = Array.isArray(res.data) ? res.data : res.data.data;
       setApprovals(data || []);
 
-      console.log(approvals);
-
       // Hitung jumlah status
       const approved = data.filter((a) => a.status === "approved").length;
       const pending = data.filter((a) => a.status === "pending").length;
       const rejected = data.filter((a) => a.status === "rejected").length;
       setCounts({ approved, pending, rejected });
-
-      console.log(res.data);
     } catch (err) {
       console.error(err);
       setAlert({
@@ -119,8 +121,6 @@ export default function ApprovalPage() {
         typeToEndpoint[approvableClass] ||
         `/approvals/${selectedApproval.id}/status`;
 
-      console.log("Calling endpoint:", endpoint);
-
       await api.post(endpoint, {
         status: statusToUpdate,
         pin,
@@ -145,9 +145,23 @@ export default function ApprovalPage() {
     }
   };
 
-  const handleViewPhc = (pnNumber) => {
-    setSelectedProjectId(pnNumber);
-    setOpenModal(true);
+  const handleView = (approval) => {
+    const type =
+      approval.type?.toLowerCase() || approval.approvable_type?.toLowerCase();
+
+    if (type === "phc") {
+      setSelectedPhcId(approval.approvable.project.phc.id);
+      setOpenModal(true);
+    } else if (type === "work order" || type === "workorder") {
+      setSelectedWorkOrderId(approval.approvable.id);
+      setOpenWorkOrderModal(true);
+    } else if (type === "work order update" || type === "workorder") {
+      setSelectedWorkOrderId(approval.approvable.id);
+      setOpenWorkOrderModal(true);
+    } else if (type === "log") {
+      setSelectedLogId(approval.approvable.id);
+      setOpenLogModal(true);
+    }
   };
 
   const columns = [
@@ -178,8 +192,8 @@ export default function ApprovalPage() {
         <GridActionsCellItem
           key="view"
           icon={<VisibilityIcon color="primary" />}
-          label="View PHC"
-          onClick={() => handleViewPhc(params.row.approvable.project.phc.id)}
+          label="View"
+          onClick={() => handleView(params.row)}
           showInMenu={false}
         />,
       ],
@@ -308,7 +322,17 @@ export default function ApprovalPage() {
       <ViewPhcModal
         open={openModal}
         handleClose={() => setOpenModal(false)}
-        projectId={selectedProjectId}
+        phcId={selectedPhcId}
+      />
+      <ViewWorkOrderModal
+        open={openWorkOrderModal}
+        onClose={() => setOpenWorkOrderModal(false)}
+        workOrderId={selectedWorkOrderId}
+      />
+      <ViewLogModal
+        open={openLogModal}
+        onClose={() => setOpenLogModal(false)}
+        logId={selectedLogId}
       />
     </Box>
   );

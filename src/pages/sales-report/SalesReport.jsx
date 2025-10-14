@@ -9,21 +9,46 @@ import {
   Alert,
   TextField,
   TablePagination,
-  IconButton,
+  Chip,
+  Card,
+  CardContent,
+  Grid,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Autocomplete,
 } from "@mui/material";
-import { Eye } from "lucide-react";
+import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
+import DescriptionIcon from "@mui/icons-material/Description";
 import api from "../../api/api";
 import LoadingOverlay from "../../components/loading/LoadingOverlay";
 import ColumnVisibilityModal from "../../components/ColumnVisibilityModal";
+import FilterBar from "../../components/filter/FilterBar";
 import { filterBySearch } from "../../utils/filter";
 
-export default function SalesReportTable() {
+export default function SalesReport() {
   const hotTableRef = useRef(null);
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState("");
+  const [selectedClient, setSelectedClient] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("");
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
+  // const [totalProjectValue, setTotalProjectValue] = useState(null);
+  // const [totalProjectsCount, setTotalProjectsCount] = useState(0);
+  const [filteredTotalValue, setFilteredTotalValue] = useState(null);
+  const [filteredCount, setFilteredCount] = useState(0);
+  const [filters, setFilters] = useState({
+    year: new Date().getFullYear(),
+    rangeType: "monthly",
+    month: null,
+    from: "",
+    to: "",
+  });
+  const [availableYears, setAvailableYears] = useState([]);
 
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -56,7 +81,13 @@ export default function SalesReportTable() {
 
   const dateRenderer = (instance, td, row, col, prop, value) => {
     td.innerText = formatDate(value);
-    td.style.color = "#555";
+    td.style.color = "#000";
+    return td;
+  };
+
+  const textRenderer = (instance, td, row, col, prop, value) => {
+    td.innerText = value || "-";
+    td.style.color = "#000";
     return td;
   };
 
@@ -67,16 +98,68 @@ export default function SalesReportTable() {
     return td;
   };
 
+  const statusRenderer = (instance, td, row, col, prop, value) => {
+    td.innerText = value || "-";
+    return td;
+  };
+
   // === COLUMNS ===
   const allColumns = useMemo(
     () => [
-      { data: "project_number", title: "Project Number" },
-      { data: "project_name", title: "Project Name" },
-      { data: "category_name", title: "Category" },
-      { data: "quotation_number", title: "Quotation" },
-      { data: "po_date", title: "PO Date", renderer: dateRenderer },
-      { data: "po_value", title: "Value", renderer: valueRenderer },
-      { data: "po_number", title: "PO Number" },
+      {
+        data: "project_number",
+        title: "Project Number",
+        renderer: textRenderer,
+        readOnly: true,
+      },
+      {
+        data: "project_name",
+        title: "Project Name",
+        renderer: textRenderer,
+        readOnly: true,
+      },
+      {
+        data: "client_name",
+        title: "Client",
+        renderer: textRenderer,
+        readOnly: true,
+      },
+      {
+        data: "category_name",
+        title: "Category",
+        renderer: textRenderer,
+        readOnly: true,
+      },
+      {
+        data: "quotation_number",
+        title: "Quotation",
+        renderer: textRenderer,
+        readOnly: true,
+      },
+      {
+        data: "po_date",
+        title: "PO Date",
+        renderer: dateRenderer,
+        readOnly: true,
+      },
+      {
+        data: "po_value",
+        title: "Value",
+        renderer: valueRenderer,
+        readOnly: true,
+      },
+      {
+        data: "po_number",
+        title: "PO Number",
+        renderer: textRenderer,
+        readOnly: true,
+      },
+      {
+        data: "status",
+        title: "Status",
+        renderer: statusRenderer,
+        readOnly: true,
+      },
     ],
     []
   );
@@ -96,20 +179,37 @@ export default function SalesReportTable() {
   };
 
   // === FETCH DATA ===
-  const fetchProjects = async () => {
+  const fetchProjects = async (filterParams = {}) => {
     try {
-      const res = await api.get("/sales-report");
-      const data = res.data?.data?.map((p, idx) => ({
+      const params = new URLSearchParams();
+      if (filterParams.year) params.append("year", filterParams.year);
+      if (filterParams.rangeType)
+        params.append("range_type", filterParams.rangeType);
+      if (filterParams.month) params.append("month", filterParams.month);
+      if (filterParams.from) params.append("from_date", filterParams.from);
+      if (filterParams.to) params.append("to_date", filterParams.to);
+
+      const res = await api.get(`/sales-report?${params.toString()}`);
+      const data = res.data.data.map((p, idx) => ({
         id: idx + 1,
-        project_number: p.project_number,
+        project_number: p.pn_number || p.project_number,
         project_name: p.project_name,
+        client_name: p.client?.name || p.quotation?.client?.name || "-",
         category_name: p.category?.name || "-",
         quotation_number: p.quotation?.no_quotation || "-",
         po_date: p.po_date,
         po_value: p.po_value,
         po_number: p.po_number,
+        status: p.status?.name || p.status_project?.name || "-",
       }));
       setProjects(data);
+      // setTotalProjectValue(
+      //   res.data.totalProjectValue || res.data.filters?.totalProjectValue || 0
+      // );
+      // setTotalProjectsCount(data.length);
+      setAvailableYears(
+        res.data.availableYears || res.data.filters?.available_years || []
+      );
     } catch (err) {
       console.error(err.response?.data || err);
       setSnackbar({
@@ -122,12 +222,88 @@ export default function SalesReportTable() {
     }
   };
 
+  const handleFilterChange = (newFilters) => {
+    setFilters(newFilters);
+    // Note: Backend filtering may not be implemented, so we rely on frontend filtering
+    // fetchProjects(newFilters); // Commented out since backend may not filter
+  };
+
   useEffect(() => {
     fetchProjects();
   }, []);
 
   // === FILTER & PAGINATION ===
-  const filteredData = filterBySearch(projects, searchTerm);
+  const filteredData = useMemo(() => {
+    let data = projects;
+
+    // FilterBar filters (frontend implementation since backend may not be filtering)
+    if (filters.year) {
+      data = data.filter((item) => {
+        const itemYear = new Date(
+          item.po_date || item.created_at
+        ).getFullYear();
+        return itemYear === filters.year;
+      });
+    }
+    if (filters.rangeType === "monthly" && filters.month) {
+      data = data.filter((item) => {
+        const itemMonth =
+          new Date(item.po_date || item.created_at).getMonth() + 1;
+        return itemMonth === filters.month;
+      });
+    }
+    if (filters.rangeType === "weekly") {
+      const now = new Date();
+      const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 6);
+      data = data.filter((item) => {
+        const itemDate = new Date(item.po_date || item.created_at);
+        return itemDate >= startOfWeek && itemDate <= endOfWeek;
+      });
+    }
+    if (filters.rangeType === "custom" && filters.from && filters.to) {
+      const fromDate = new Date(filters.from);
+      const toDate = new Date(filters.to);
+      data = data.filter((item) => {
+        const itemDate = new Date(item.po_date || item.created_at);
+        return itemDate >= fromDate && itemDate <= toDate;
+      });
+    }
+
+    // Frontend filters
+    data = filterBySearch(data, searchTerm);
+    if (selectedStatus) {
+      data = data.filter((item) => item.status === selectedStatus);
+    }
+    if (selectedClient) {
+      data = data.filter((item) => item.client_name === selectedClient);
+    }
+    if (selectedCategory) {
+      data = data.filter((item) => item.category_name === selectedCategory);
+    }
+    return data;
+  }, [
+    projects,
+    searchTerm,
+    selectedStatus,
+    selectedClient,
+    selectedCategory,
+    filters,
+  ]);
+
+  // Calculate filtered totals
+  useEffect(() => {
+    if (projects.length > 0) {
+      const totalValue = filteredData.reduce(
+        (sum, item) => sum + (Number(item.po_value) || 0),
+        0
+      );
+      setFilteredTotalValue(totalValue);
+      setFilteredCount(filteredData.length);
+    }
+  }, [filteredData, projects.length]);
+
   const paginatedData = filteredData.slice(
     page * pageSize,
     page * pageSize + pageSize
@@ -135,7 +311,10 @@ export default function SalesReportTable() {
 
   const rowHeight = 40; // tinggi tiap row
   const headerHeight = 50; // tinggi header Handsontable
-  const tableHeight = paginatedData.length * rowHeight + headerHeight + 2;
+  const tableHeight = Math.min(
+    paginatedData.length * rowHeight + headerHeight + 2,
+    window.innerHeight - 400
+  );
 
   const handleChangePage = (e, newPage) => setPage(newPage);
   const handleChangePageSize = (e) => {
@@ -148,6 +327,52 @@ export default function SalesReportTable() {
       {/* Loading */}
       <LoadingOverlay loading={loading} />
 
+      {/* FilterBar */}
+      <FilterBar
+        stats={{
+          availableYears:
+            availableYears.length > 0
+              ? availableYears
+              : [new Date().getFullYear()],
+        }}
+        onFilter={handleFilterChange}
+        initialFilters={filters}
+      />
+
+      {/* Summary Cards */}
+      <Grid container spacing={2} sx={{ mb: 2 }}>
+        <Grid item xs={12} sm={6}>
+          <Card>
+            <CardContent>
+              <Stack direction="row" alignItems="center" spacing={1}>
+                <AttachMoneyIcon color="primary" />
+                <Typography variant="h6" component="div">
+                  Total Sales Value
+                </Typography>
+              </Stack>
+              <Typography variant="h4" color="primary">
+                {formatValue(filteredTotalValue || 0)}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={6}>
+          <Card>
+            <CardContent>
+              <Stack direction="row" alignItems="center" spacing={1}>
+                <DescriptionIcon color="primary" />
+                <Typography variant="h6" component="div">
+                  Total Projects
+                </Typography>
+              </Stack>
+              <Typography variant="h4" color="primary">
+                {filteredCount || 0}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
       {/* Top Controls */}
       <Stack
         direction="row"
@@ -156,6 +381,57 @@ export default function SalesReportTable() {
         alignItems="center"
         mb={2}
       >
+        {/* Status Filter */}
+        <Autocomplete
+          size="small"
+          sx={{ minWidth: 120 }}
+          options={[...new Set(projects.map((p) => p.status))].filter(Boolean)}
+          value={selectedStatus}
+          onChange={(event, newValue) => setSelectedStatus(newValue || "")}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label="Status"
+              placeholder="Select status..."
+            />
+          )}
+          clearOnEscape
+        />
+
+        {/* Client Filter */}
+        <Autocomplete
+          size="small"
+          sx={{ minWidth: 120 }}
+          options={[...new Set(projects.map((p) => p.client_name))]}
+          value={selectedClient}
+          onChange={(event, newValue) => setSelectedClient(newValue || "")}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label="Client"
+              placeholder="Select client..."
+            />
+          )}
+          clearOnEscape
+        />
+
+        {/* Category Filter */}
+        <Autocomplete
+          size="small"
+          sx={{ minWidth: 120 }}
+          options={[...new Set(projects.map((p) => p.category_name))]}
+          value={selectedCategory}
+          onChange={(event, newValue) => setSelectedCategory(newValue || "")}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label="Category"
+              placeholder="Select category..."
+            />
+          )}
+          clearOnEscape
+        />
+
         <TextField
           size="small"
           placeholder="Search sales..."
@@ -182,30 +458,48 @@ export default function SalesReportTable() {
       </Stack>
 
       {/* Handsontable */}
-      <HotTable
-        ref={hotTableRef}
-        data={paginatedData}
-        colHeaders={allColumns.map((c) => c.title)}
-        columns={allColumns}
-        width="100%"
-        height={tableHeight} // <=== tinggi dinamis
-        rowHeights={rowHeight} // konsisten tinggi baris
-        manualColumnResize
-        licenseKey="non-commercial-and-evaluation"
-        manualColumnFreeze
-        fixedColumnsLeft={2}
-        stretchH="all"
-        filters
-        dropdownMenu
-        manualColumnMove
-        hiddenColumns={{
-          columns: allColumns
-            .map((col, i) => (columnVisibility[col.data] ? null : i))
-            .filter((i) => i !== null),
-          indicators: true,
-        }}
-        className="ht-theme-horizon"
-      />
+      {paginatedData.length === 0 ? (
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            height: tableHeight,
+            border: "1px solid #e0e0e0",
+            borderRadius: "8px",
+            backgroundColor: "#f9f9f9",
+          }}
+        >
+          <Typography variant="h6" color="textSecondary">
+            No sales data found for the selected filters
+          </Typography>
+        </Box>
+      ) : (
+        <HotTable
+          ref={hotTableRef}
+          data={paginatedData}
+          colHeaders={allColumns.map((c) => c.title)}
+          columns={allColumns}
+          width="100%"
+          height={tableHeight} // <=== tinggi dinamis
+          rowHeights={rowHeight} // konsisten tinggi baris
+          manualColumnResize
+          licenseKey="non-commercial-and-evaluation"
+          manualColumnFreeze
+          fixedColumnsLeft={2}
+          stretchH="all"
+          filters
+          dropdownMenu
+          manualColumnMove
+          hiddenColumns={{
+            columns: allColumns
+              .map((col, i) => (columnVisibility[col.data] ? null : i))
+              .filter((i) => i !== null),
+            indicators: true,
+          }}
+          className="ht-theme-horizon"
+        />
+      )}
 
       {/* Snackbar */}
       <Snackbar

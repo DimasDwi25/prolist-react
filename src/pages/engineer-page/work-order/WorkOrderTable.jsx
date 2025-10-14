@@ -56,16 +56,10 @@ export default function WorkOrderTable() {
   }, [pn_number]);
 
   // === HANDLE EDIT FUNCTION ===
-  const handleEdit = async (woId) => {
-    try {
-      const res = await api.get(`/work-order/detail/${woId}`); // endpoint detail
-      setSelectedWorkOrder(res.data.data); // data lengkap
-      setOpenWO(true);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+  const handleEdit = (woId) => {
+    const wo = workOrders.find((w) => w.id === woId);
+    setSelectedWorkOrder(wo);
+    setOpenWO(true);
   };
 
   // === HANDLE VIEW FUNCTION ===
@@ -158,6 +152,7 @@ export default function WorkOrderTable() {
           }
           label="Edit"
           onClick={() => handleEdit(params.row.id)}
+          disabled={params.row.status === "finished"}
         />,
       ],
     },
