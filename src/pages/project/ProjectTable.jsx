@@ -364,6 +364,37 @@ export default function ProjectTable() {
     loadData();
   }, []);
 
+  // Expose refresh function to window for modal communication
+  useEffect(() => {
+    window.parentRefreshProjects = async () => {
+      await fetchProjects();
+      // Refresh the table data after fetching
+      const resProjects = await api.get("/projects");
+      const projectsData = resProjects.data?.data?.map((p) => {
+        let clientName = "-";
+        if (p.client_id && p.client?.name) {
+          clientName = p.client.name;
+        } else if (p.quotation?.client?.name) {
+          clientName = p.quotation.client.name;
+        }
+        return {
+          pn_number: p.pn_number,
+          ...p,
+          client_name: clientName,
+          no_quotation: p.quotation?.no_quotation || "-",
+          categories_name: p.category?.name || "-",
+          status_project: p.status_project || {
+            id: Number(p.status_project_id),
+          },
+        };
+      });
+      setProjects(projectsData);
+    };
+    return () => {
+      delete window.parentRefreshProjects;
+    };
+  }, []);
+
   const handleCellChange = async (changes, source) => {
     if (source === "loadData" || !changes) return;
 

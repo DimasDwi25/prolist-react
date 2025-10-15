@@ -16,6 +16,7 @@ import {
   Autocomplete,
 } from "@mui/material";
 import api from "../../api/api"; // gunakan api instance
+import { getUser } from "../../utils/storage";
 
 export default function FormLogModal({
   open,
@@ -23,6 +24,11 @@ export default function FormLogModal({
   projectId,
   onLogCreated,
 }) {
+  const user = getUser();
+  const isSpecialRole =
+    user?.role?.name === "project controller" ||
+    user?.role?.name === "engineering_admin";
+
   const [categories, setCategories] = useState([]);
   const [users, setUsers] = useState([]);
   const [form, setForm] = useState({
@@ -31,6 +37,7 @@ export default function FormLogModal({
     tgl_logs: new Date().toISOString().split("T")[0],
     need_response: false,
     response_by: "",
+    users_id: "",
   });
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
@@ -76,6 +83,10 @@ export default function FormLogModal({
 
     try {
       const payload = { ...form, project_id: projectId };
+      // For special roles, include users_id if set, otherwise backend uses auth user
+      if (isSpecialRole && form.users_id) {
+        payload.users_id = form.users_id;
+      }
       const res = await api.post("/logs", payload); // backend otomatis ambil user login
       onLogCreated(res.data);
 
@@ -85,6 +96,7 @@ export default function FormLogModal({
         tgl_logs: new Date().toISOString().split("T")[0],
         need_response: false,
         response_by: "",
+        users_id: "",
       });
       handleClose();
     } catch (err) {
@@ -184,6 +196,29 @@ export default function FormLogModal({
                   {...params}
                   label="Assign to User"
                   required
+                  fullWidth
+                />
+              )}
+              isOptionEqualToValue={(option, value) => option.id === value.id}
+            />
+          )}
+
+          {/* Delegation User for Special Roles */}
+          {isSpecialRole && (
+            <Autocomplete
+              options={users}
+              getOptionLabel={(option) => option.name || ""}
+              value={users.find((u) => u.id === form.users_id) || null}
+              onChange={(event, newValue) =>
+                setForm((prev) => ({
+                  ...prev,
+                  users_id: newValue?.id || "",
+                }))
+              }
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Log for User (Optional)"
                   fullWidth
                 />
               )}

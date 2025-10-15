@@ -1,15 +1,15 @@
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import ProfileDropdown from "./ProfileDropdown";
-// import NotificationDropdown from "./NotificationDropdown";
+import NotificationDropdown from "./NotificationDropdown";
 import LogoCitasys from "../../public/assets/CITASys Logo.jpg";
 
 export default function Header({
   user,
   toggleSidebar,
   fullScreenHandle,
-  // notifications,
-  // onReadNotification,
+  notifications,
+  onReadNotification,
 }) {
   return (
     <header className="bg-white border-b shadow-sm px-4 py-2 flex items-center justify-between">
@@ -64,6 +64,12 @@ export default function Header({
             <FullscreenIcon />
           )}
         </button>
+
+        {/* Notifikasi */}
+        <NotificationDropdown
+          notifications={notifications}
+          onRead={onReadNotification}
+        />
 
         {/* Profil */}
         <ProfileDropdown user={user} />

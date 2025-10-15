@@ -12,6 +12,8 @@ import {
   Link,
   CircularProgress,
   DialogContent,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import UpdateStatusModal from "./UpdateStatusModal";
@@ -32,6 +34,11 @@ const ViewProjectsModal = ({ open, onClose, pn_number }) => {
   const [openStatusModal, setOpenStatusModal] = useState(false);
   const [openUpdatePhcModal, setOpenUpdatePhcModal] = useState(false);
   const [showViewPhc, setShowViewPhc] = useState(false);
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
 
   useEffect(() => {
     if (!open || !pn_number) return;
@@ -48,6 +55,24 @@ const ViewProjectsModal = ({ open, onClose, pn_number }) => {
       } finally {
         setLoading(false);
       }
+    };
+
+    // Expose refresh function to window for modal communication
+    window.handleRefreshProject = () => {
+      const refreshProject = async () => {
+        try {
+          setLoading(true);
+          const res = await api.get(`/projects/${pn_number}`);
+          const projectData = res.data?.data?.project;
+          setProject(projectData);
+        } catch (err) {
+          console.error(err.response?.data || err);
+          setError("Failed to fetch project details");
+        } finally {
+          setLoading(false);
+        }
+      };
+      refreshProject();
     };
 
     fetchProject();
@@ -626,6 +651,10 @@ const ViewProjectsModal = ({ open, onClose, pn_number }) => {
               // Fallback to updatedProject if refetch fails
               setProject(updatedProject);
             }
+            // Notify parent component to refresh project list
+            if (window.parentRefreshProjects) {
+              window.parentRefreshProjects();
+            }
           }}
         />
         <UpdateDocumentPhcModal
@@ -633,6 +662,17 @@ const ViewProjectsModal = ({ open, onClose, pn_number }) => {
           onClose={() => setOpenUpdatePhcModal(false)}
           phcId={project.phc?.id}
           project={project}
+          onSave={(success) => {
+            if (success) {
+              setSnackbar({
+                open: true,
+                message: "PHC updated successfully!",
+                severity: "success",
+              });
+              // Refresh project data
+              window.handleRefreshProject();
+            }
+          }}
         />
         {/* Render View PHC Modal */}
         <ViewPhcModal
@@ -640,6 +680,23 @@ const ViewProjectsModal = ({ open, onClose, pn_number }) => {
           open={showViewPhc}
           handleClose={() => setShowViewPhc(false)}
         />
+
+        {/* Snackbar for success messages */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={3000}
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          anchorOrigin={{ vertical: "top", horizontal: "center" }}
+          sx={{ zIndex: 9999 }}
+        >
+          <Alert
+            onClose={() => setSnackbar({ ...snackbar, open: false })}
+            severity={snackbar.severity}
+            sx={{ width: "100%" }}
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
       </div>
     </Dialog>
   );

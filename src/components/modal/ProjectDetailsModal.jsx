@@ -20,7 +20,6 @@ import LogTable from "../../components/table/LogTable";
 import BoqModal from "./BoqModal";
 import PhcFormModal from "./PhcFormModal";
 import ViewPhcModal from "./ViewPhcModal";
-import Swal from "sweetalert2";
 
 const ProjectDetailsModal = ({ open, onClose, pn_number }) => {
   const [project, setProject] = useState(null);
@@ -29,6 +28,11 @@ const ProjectDetailsModal = ({ open, onClose, pn_number }) => {
   const [activeTab, setActiveTab] = useState("project");
   const [showPhcForm, setShowPhcForm] = useState(false);
   const [showViewPhc, setShowViewPhc] = useState(false);
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
 
   const fetchProject = async () => {
     try {
@@ -758,9 +762,20 @@ const ProjectDetailsModal = ({ open, onClose, pn_number }) => {
         onClose={() => setShowPhcForm(false)}
         project={project}
         phcData={project.phc}
-        onSave={() => {
+        onSave={(success) => {
           fetchProject();
           setShowPhcForm(false);
+          if (success) {
+            setSnackbar({
+              open: true,
+              message: "PHC created successfully!",
+              severity: "success",
+            });
+            // Notify parent component to refresh project list
+            if (window.parentRefreshProjects) {
+              window.parentRefreshProjects();
+            }
+          }
         }}
       />
 
@@ -770,6 +785,23 @@ const ProjectDetailsModal = ({ open, onClose, pn_number }) => {
         open={showViewPhc}
         handleClose={() => setShowViewPhc(false)}
       />
+
+      {/* Snackbar for success messages */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        sx={{ zIndex: 9999 }}
+      >
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+          sx={{ width: "100%" }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Dialog>
   );
 };

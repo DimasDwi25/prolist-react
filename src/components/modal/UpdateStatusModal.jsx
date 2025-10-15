@@ -83,6 +83,11 @@ const UpdateStatusModal = ({ open, handleClose, project, onStatusUpdated }) => {
         onStatusUpdated(res.data.data);
       }
 
+      // Notify parent component to refresh project list
+      if (window.parentRefreshProjects) {
+        window.parentRefreshProjects();
+      }
+
       handleClose();
     } catch (err) {
       console.error(err);

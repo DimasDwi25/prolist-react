@@ -225,23 +225,24 @@ export default function PhcFormModal({
           handover_date: formData.handover_date || null,
           start_date: formData.start_date || null,
           target_finish_date: formData.target_finish_date || null,
+          ho_marketings_id: String(formData.ho_marketings_id?.id || ""),
+          pic_marketing_id: String(formData.pic_marketing_id?.id || ""),
+          ho_engineering_id: String(formData.ho_engineering_id?.id || ""),
+          pic_engineering_id: String(formData.pic_engineering_id?.id || ""),
         });
       }
 
       console.log("API response data:", res.data);
 
-      if (res.data.success === true) {
+      if (res.data.status === "success") {
         setPhcCreated(true);
 
         // close BOQ modal otomatis setelah PHC dibuat
         setOpenBoq(false);
         setSubmitting(false);
 
-        // Call onSave to refresh parent
-        if (onSave) onSave();
-
-        // Close modal
-        onClose();
+        // Call onSave to refresh parent and close modal, passing success flag
+        if (onSave) onSave(true);
       } else {
         setSubmitting(false);
       }

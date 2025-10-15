@@ -213,6 +213,16 @@ export default function ProjectFinishedSummary() {
     fetchData();
   }, [filters]);
 
+  // Expose refresh function to window for modal communication
+  useEffect(() => {
+    window.parentRefreshProjects = async () => {
+      await fetchData();
+    };
+    return () => {
+      delete window.parentRefreshProjects;
+    };
+  }, [filters]);
+
   const handleFilter = (newFilters) => {
     const payload = {
       year: newFilters.year,

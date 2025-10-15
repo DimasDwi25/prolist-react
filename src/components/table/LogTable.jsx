@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from "react";
-import { DataGrid, GridActionsCellItem } from "@mui/x-data-grid";
+import React, { useEffect, useState, useRef, useMemo } from "react";
+import { HotTable } from "@handsontable/react";
+import Handsontable from "handsontable";
 import {
   Button,
   Stack,
@@ -9,12 +10,16 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  TablePagination,
+  Box,
 } from "@mui/material";
 import { Close as CloseIcon } from "@mui/icons-material";
 import api from "../../api/api";
 import FormLogModal from "../modal/FormLogModal";
+import { formatDate } from "../../utils/FormatDate";
 
 export default function LogTable({ projectId }) {
+  const hotTableRef = useRef(null);
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openModal, setOpenModal] = useState(false);
@@ -23,10 +28,8 @@ export default function LogTable({ projectId }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [selectedLog, setSelectedLog] = useState(null);
 
-  const [paginationModel, setPaginationModel] = useState({
-    page: 0,
-    pageSize: 10,
-  });
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
 
   // ------------------ Fetch logs ------------------ //
   const fetchLogs = async () => {
@@ -87,117 +90,190 @@ export default function LogTable({ projectId }) {
   };
 
   // ------------------ Columns ------------------ //
-  const columns = [
-    {
-      field: "actions",
-      type: "actions",
-      headerName: "Actions",
-      flex: 1,
-      getActions: (params) => [
-        <GridActionsCellItem
-          key="close"
-          icon={<CloseIcon color="error" />}
-          label="Close"
-          onClick={() => openConfirm(params.row)}
-          showInMenu={false} // tampil langsung icon
-        />,
-      ],
-    },
-    {
-      field: "tgl_logs",
-      headerName: "Date",
-      flex: 2,
-      renderCell: (params) => (
-        <Typography>{new Date(params.value).toLocaleDateString()}</Typography>
-      ),
-    },
-    { field: "user", headerName: "Created By", flex: 2 },
-    { field: "categorie", headerName: "Category", flex: 2 },
-    { field: "logs", headerName: "Log", flex: 4 },
-    {
-      field: "status",
-      headerName: "Status",
-      flex: 2,
-      renderCell: (params) => {
-        const statusColors = {
-          "waiting approval": "warning",
-          open: "success",
-          closed: "error",
-        };
-        return (
-          <Chip
-            label={params.value}
-            color={statusColors[params.value] || "default"}
-            size="small"
-          />
-        );
+  const allColumns = useMemo(
+    () => [
+      {
+        data: "actions",
+        title: "Actions",
+        readOnly: true,
+        width: 60,
+        renderer: (instance, td, row) => {
+          td.innerHTML = "";
+
+          const log = instance.getSourceDataAtRow(row);
+
+          // Only show close button if status is not closed
+          if (log.status !== "closed") {
+            const closeBtn = document.createElement("button");
+            closeBtn.style.cursor = "pointer";
+            closeBtn.style.border = "none";
+            closeBtn.style.background = "transparent";
+            closeBtn.title = "Close";
+
+            const icon = document.createElement("span");
+            icon.innerHTML = "❌";
+            closeBtn.appendChild(icon);
+
+            closeBtn.onclick = () => {
+              openConfirm(log);
+            };
+
+            td.appendChild(closeBtn);
+          }
+
+          return td;
+        },
       },
-    },
-    {
-      field: "responseUser",
-      headerName: "Response User",
-      flex: 2,
-      renderCell: (params) => params.value || "-",
-    },
-  ];
+      {
+        data: "tgl_logs",
+        title: "Date",
+        renderer: (instance, td, row, col, prop, value) => {
+          td.innerText = formatDate(value);
+          return td;
+        },
+      },
+      { data: "user", title: "Created By" },
+      { data: "categorie", title: "Category" },
+      { data: "logs", title: "Log" },
+      {
+        data: "status",
+        title: "Status",
+        renderer: (instance, td, row, col, prop, value) => {
+          const statusColors = {
+            "waiting approval": "warning",
+            open: "success",
+            closed: "error",
+          };
+          const color = statusColors[value] || "default";
+          td.innerHTML = `<span style="background-color: ${
+            color === "warning"
+              ? "#ff9800"
+              : color === "success"
+              ? "#4caf50"
+              : color === "error"
+              ? "#f44336"
+              : "#9e9e9e"
+          }; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">${value}</span>`;
+          return td;
+        },
+      },
+      {
+        data: "responseUser",
+        title: "Response User",
+        renderer: (instance, td, row, col, prop, value) => {
+          td.innerText = value || "-";
+          return td;
+        },
+      },
+    ],
+    []
+  );
+
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangePageSize = (event) => {
+    setPageSize(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  const paginatedData = logs.slice(page * pageSize, page * pageSize + pageSize);
+
+  const tableHeight = Math.min(pageSize * 40 + 50, window.innerHeight - 250);
 
   // ------------------ Render ------------------ //
   return (
-    <Stack spacing={2} p={2}>
-      <Button
-        variant="contained"
-        color="primary"
-        onClick={() => setOpenModal(true)}
-        sx={{ alignSelf: "flex-end" }}
-      >
-        + Add Log
-      </Button>
+    <Box sx={{ position: "relative" }}>
+      <Stack spacing={2} p={2}>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={() => setOpenModal(true)}
+          sx={{ alignSelf: "flex-end" }}
+        >
+          + Add Log
+        </Button>
 
-      <FormLogModal
-        open={openModal}
-        handleClose={() => setOpenModal(false)}
-        projectId={projectId}
-        onLogCreated={handleLogCreated}
-      />
+        <FormLogModal
+          open={openModal}
+          handleClose={() => setOpenModal(false)}
+          projectId={projectId}
+          onLogCreated={handleLogCreated}
+        />
 
-      <DataGrid
-        rows={logs}
-        columns={columns}
-        autoHeight
-        loading={loading}
-        showToolbar
-        pagination
-        paginationModel={paginationModel}
-        onPaginationModelChange={setPaginationModel}
-        rowsPerPageOptions={[10, 20, 50]}
-        pageSizeOptions={[10, 20, 50]}
-        disableSelectionOnClick
-        sx={{
-          borderRadius: 2,
-          ".MuiDataGrid-cell": { py: 1 },
-          ".MuiDataGrid-columnHeaders": {
-            backgroundColor: "#f5f5f5",
-            fontWeight: 600,
-          },
-          ".MuiDataGrid-footerContainer": { borderTop: "1px solid #e0e0e0" },
-        }}
-      />
-
-      {/* ------------------ Modal Konfirmasi Close ------------------ */}
-      <Dialog open={confirmOpen} onClose={handleCancelClose}>
-        <DialogTitle>Confirm Close Log</DialogTitle>
-        <DialogContent>Are you sure you want to close this log?</DialogContent>
-        <DialogActions>
-          <Button onClick={handleCancelClose}>Cancel</Button>
-          <Button
-            variant="contained"
-            color="error"
-            onClick={handleConfirmClose}
+        {logs.length === 0 && !loading ? (
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              height: 200,
+              border: "1px solid #e0e0e0",
+              borderRadius: 2,
+              backgroundColor: "#fafafa",
+            }}
           >
-            Close Log
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Stack>
+            <Typography variant="h6" color="textSecondary">
+              No logs available for this project.
+            </Typography>
+          </Box>
+        ) : (
+          <div className="table-wrapper">
+            <div className="table-inner">
+              <HotTable
+                ref={hotTableRef}
+                data={paginatedData}
+                colHeaders={allColumns.map((c) => c.title)}
+                columns={allColumns}
+                width="auto"
+                height={tableHeight}
+                manualColumnResize
+                licenseKey="non-commercial-and-evaluation"
+                manualColumnFreeze
+                fixedColumnsLeft={1}
+                stretchH="all"
+                filters
+                dropdownMenu
+                className="ht-theme-horizon"
+                manualColumnMove
+                loading={loading}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Pagination */}
+        <Box display="flex" justifyContent="flex-end" mt={2}>
+          <TablePagination
+            component="div"
+            count={logs.length}
+            page={page}
+            onPageChange={handleChangePage}
+            rowsPerPage={pageSize}
+            onRowsPerPageChange={handleChangePageSize}
+            rowsPerPageOptions={[5, 10, 25, 50]}
+          />
+        </Box>
+
+        {/* ------------------ Modal Konfirmasi Close ------------------ */}
+        <Dialog open={confirmOpen} onClose={handleCancelClose}>
+          <DialogTitle>Confirm Close Log</DialogTitle>
+          <DialogContent>
+            Are you sure you want to close this log?
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCancelClose}>Cancel</Button>
+            <Button
+              variant="contained"
+              color="error"
+              onClick={handleConfirmClose}
+            >
+              Close Log
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </Stack>
+    </Box>
   );
 }

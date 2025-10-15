@@ -11,11 +11,12 @@ import {
   DialogContent,
   DialogTitle,
   IconButton,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import AddIcon from "@mui/icons-material/Add";
 import api from "../../api/api";
-import Swal from "sweetalert2";
 import SowModal from "./SowModal";
 import { formatDateForInput } from "../../utils/formatDateForInput";
 import BoqModal from "./BoqModal";
@@ -30,6 +31,11 @@ export default function UpdateDocumentPhcModal({
   const [documents, setDocuments] = useState([]);
   const [openSowModal, setOpenSowModal] = useState(false);
   const [openBoq, setOpenBoq] = useState(false);
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
 
   const [formData, setFormData] = useState({
     handover_date: "",
@@ -151,7 +157,22 @@ export default function UpdateDocumentPhcModal({
 
       const res = await api.put(`/phcs/${phcId}`, payload);
       if (res.data.success) {
-        onClose();
+        setSnackbar({
+          open: true,
+          message: "PHC updated successfully!",
+          severity: "success",
+        });
+        // Notify parent component to refresh project list
+        if (window.parentRefreshProjects) {
+          window.parentRefreshProjects();
+        }
+        // Notify ViewProjectsModal to refresh
+        if (window.handleRefreshProject) {
+          window.handleRefreshProject();
+        }
+        setTimeout(() => {
+          onClose();
+        }, 2000);
       }
     } catch (err) {
       console.error(err);
@@ -662,6 +683,23 @@ export default function UpdateDocumentPhcModal({
           role={phcDetail?.user?.role}
           token={localStorage.getItem("token")}
         />
+
+        {/* Snackbar for success messages */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={3000}
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          anchorOrigin={{ vertical: "top", horizontal: "center" }}
+          sx={{ zIndex: 9999 }}
+        >
+          <Alert
+            onClose={() => setSnackbar({ ...snackbar, open: false })}
+            severity={snackbar.severity}
+            sx={{ width: "100%" }}
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
       </DialogContent>
     </Dialog>
   );
