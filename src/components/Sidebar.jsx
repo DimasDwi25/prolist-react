@@ -233,8 +233,6 @@ const menuByRole = {
     },
     { name: "Work Order", path: "/work-order", icon: <FaFileInvoice /> },
     { name: "Projects", path: "/man-power/project", icon: <FaTools /> },
-    { name: "Tasks", path: "/tasks", icon: <FaTasks /> },
-    { name: "Approvall", path: "/approvall", icon: <FaCheckCircle /> },
   ],
 };
 

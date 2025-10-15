@@ -135,16 +135,10 @@ export default function QuotationTable() {
         }
       }
 
-      const res = await api.put(`/quotations/${quotation_number}`, payload);
+      await api.put(`/quotations/${quotation_number}`, payload);
 
-      // ✅ Update data di frontend
-      setQuotations((prev) =>
-        prev.map((q) =>
-          q.quotation_number === quotation_number
-            ? { ...q, ...res.data.quotation }
-            : q
-        )
-      );
+      // ✅ Refresh data setelah update untuk menghindari masalah pagination
+      await fetchQuotations();
 
       setSnackbar({
         open: true,
@@ -424,7 +418,7 @@ export default function QuotationTable() {
     if (!changes) return;
     const [row, prop, oldValue, newValue] = changes[0];
     if (oldValue !== newValue) {
-      const quotation = quotations[row];
+      const quotation = paginatedData[row];
       setChangedCell({
         quotation_number: quotation.quotation_number,
         field: prop,
