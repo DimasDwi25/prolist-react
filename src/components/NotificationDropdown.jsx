@@ -5,6 +5,9 @@ import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { AnimatePresence, motion } from "framer-motion";
 
+// eslint-disable-next-line no-unused-vars
+const _ = motion; // suppress unused var warning
+
 export default function NotificationDropdown({ notifications, onRead }) {
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -113,10 +116,14 @@ export default function NotificationDropdown({ notifications, onRead }) {
                       <div className="flex items-start justify-between">
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-gray-900 truncate">
-                            {notif.data.title || "New Notification"}
+                            {notif.data?.title ||
+                              notif.message ||
+                              "PHC Validation Requested"}
                           </p>
                           <p className="text-sm text-gray-600 mt-1 line-clamp-2">
-                            {notif.data.message || notif.data}
+                            {notif.data?.message ||
+                              notif.message ||
+                              "New notification"}
                           </p>
                           <p className="text-xs text-gray-400 mt-2">
                             {new Date(notif.created_at).toLocaleString()}

@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Test Pusher & Echo Connection</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .status {
+        padding: 10px;
+        margin: 10px 0;
+        border-radius: 5px;
+      }
+      .connected {
+        background-color: #d4edda;
+        color: #155724;
+      }
+      .disconnected {
+        background-color: #f8d7da;
+        color: #721c24;
+      }
+      .connecting {
+        background-color: #fff3cd;
+        color: #856404;
+      }
+      button {
+        background-color: #007bff;
+        color: white;
+        border: none;
+        padding: 10px 15px;
+        margin: 5px;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      button:hover {
+        background-color: #0056b3;
+      }
+      .log {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        padding: 10px;
+        height: 300px;
+        overflow-y: auto;
+        font-family: monospace;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Test Pusher & Echo Connection</h1>
+
+    <div id="pusher-status" class="status connecting">
+      Pusher: Connecting...
+    </div>
+    <div id="echo-status" class="status connecting">Echo: Connecting...</div>
+
+    <h2>Test Actions</h2>
+    <button onclick="testConnection()">Check Connection</button>
+    <button onclick="sendTestNotification()">Send Test Notification</button>
+    <button onclick="clearLog()">Clear Log</button>
+
+    <h2>Connection Log</h2>
+    <div id="log" class="log"></div>
+
+    <script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/laravel-echo@1.15.3/dist/echo.iife.js"></script>
+    <script>
+      let pusher;
+      let echo;
+      let logElement = document.getElementById("log");
+
+      function log(message, type = "info") {
+        const timestamp = new Date().toLocaleTimeString();
+        const logEntry = `[${timestamp}] ${message}\n`;
+        logElement.textContent += logEntry;
+        logElement.scrollTop = logElement.scrollHeight;
+        console.log(message);
+      }
+
+      function updateStatus(elementId, status, message) {
+        const element = document.getElementById(elementId);
+        element.className = `status ${status}`;
+        element.textContent = message;
+      }
+
+      // Initialize Pusher
+      function initPusher() {
+        log("🔄 Initializing Pusher...");
+
+        pusher = new Pusher("your-pusher-key", {
+          cluster: "your-cluster",
+          forceTLS: true,
+          enabledTransports: ["ws", "wss"],
+        });
+
+        pusher.connection.bind("connected", () => {
+          log("✅ Pusher connected successfully!");
+          updateStatus("pusher-status", "connected", "Pusher: Connected");
+        });
+
+        pusher.connection.bind("connecting", () => {
+          log("🔄 Pusher connecting...");
+          updateStatus("pusher-status", "connecting", "Pusher: Connecting...");
+        });
+
+        pusher.connection.bind("disconnected", () => {
+          log("⚠️ Pusher disconnected");
+          updateStatus("pusher-status", "disconnected", "Pusher: Disconnected");
+        });
+
+        pusher.connection.bind("error", (error) => {
+          log("❌ Pusher connection error: " + JSON.stringify(error));
+          updateStatus("pusher-status", "disconnected", "Pusher: Error");
+        });
+      }
+
+      // Initialize Echo
+      function initEcho() {
+        log("🔄 Initializing Echo...");
+
+        window.Pusher = Pusher;
+
+        echo = new Echo({
+          broadcaster: "pusher",
+          key: "your-pusher-key",
+          cluster: "your-cluster",
+          forceTLS: true,
+          enabledTransports: ["ws", "wss"],
+          authEndpoint: "http://localhost:8000/api/broadcasting/auth",
+          auth: {
+            headers: {
+              Authorization: "Bearer " + localStorage.getItem("token"),
+              "X-CSRF-TOKEN": document
+                .querySelector('meta[name="csrf-token"]')
+                ?.getAttribute("content"),
+            },
+          },
+        });
+
+        log("✅ Echo initialized");
+        updateStatus("echo-status", "connected", "Echo: Connected");
+
+        // Test channel subscription
+        const user = JSON.parse(localStorage.getItem("user") || "{}");
+        if (user.id) {
+          log(`🔄 Subscribing to user channel: ${user.id}`);
+
+          const channel = echo.private(`App.Models.User.${user.id}`);
+          channel.notification((notification) => {
+            log("🔔 Notification received: " + JSON.stringify(notification));
+          });
+
+          const phcChannel = echo.private(`phc.notifications.${user.id}`);
+          phcChannel.listen(".phc.created", (event) => {
+            log("🔔 PHC created: " + JSON.stringify(event));
+          });
+
+          log("✅ Channels subscribed");
+        } else {
+          log("⚠️ No user ID found in localStorage");
+        }
+      }
+
+      // Test connection
+      function testConnection() {
+        log("🔍 Testing connection...");
+
+        if (pusher) {
+          log("Pusher state: " + pusher.connection.state);
+        }
+
+        if (echo) {
+          log("Echo available: " + !!echo);
+        }
+
+        // Test API endpoint
+        fetch("http://localhost:8000/api/user", {
+          headers: {
+            Authorization: "Bearer " + localStorage.getItem("token"),
+          },
+        })
+          .then((response) => {
+            if (response.ok) {
+              log("✅ API connection successful");
+            } else {
+              log("❌ API connection failed: " + response.status);
+            }
+          })
+          .catch((error) => {
+            log("❌ API connection error: " + error.message);
+          });
+      }
+
+      // Send test notification
+      function sendTestNotification() {
+        log("📤 Sending test notification...");
+
+        const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+        fetch("http://localhost:8000/api/test-notification", {
+          method: "POST",
+          headers: {
+            Authorization: "Bearer " + localStorage.getItem("token"),
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            message: "Test notification from HTML tester",
+            user_id: user.id,
+          }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            log("✅ Test notification sent: " + JSON.stringify(data));
+          })
+          .catch((error) => {
+            log("❌ Error sending test notification: " + error.message);
+          });
+      }
+
+      function clearLog() {
+        logElement.textContent = "";
+      }
+
+      // Initialize on page load
+      window.onload = function () {
+        initPusher();
+        setTimeout(initEcho, 1000); // Delay Echo init to ensure Pusher is ready
+      };
+    </script>
+  </body>
+</html>

@@ -234,7 +234,7 @@ export default function PhcFormModal({
 
       console.log("API response data:", res.data);
 
-      if (res.data.status === "success") {
+      if (res.data.success || res.data.status === "success") {
         setPhcCreated(true);
 
         // close BOQ modal otomatis setelah PHC dibuat
@@ -243,7 +243,17 @@ export default function PhcFormModal({
 
         // Call onSave to refresh parent and close modal, passing success flag
         if (onSave) onSave(true);
+
+        // Close the modal after successful edit
+        if (isEditMode) {
+          onClose();
+        }
       } else {
+        Swal.fire({
+          icon: "error",
+          title: "Gagal Menyimpan PHC",
+          text: res.data.message || "Terjadi kesalahan saat menyimpan PHC",
+        });
         setSubmitting(false);
       }
     } catch (err) {

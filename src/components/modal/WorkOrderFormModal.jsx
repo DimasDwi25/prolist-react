@@ -750,7 +750,7 @@ export default function WorkOrderFormModal({
                     updateDescription(index, "result", e.target.value)
                   }
                   fullWidth
-                  disabled={!workOrder || workOrder.status !== "approved"}
+                  // disabled={!workOrder || workOrder.status !== "approved"}
                 />
 
                 <Tooltip title="Remove Description">

@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { FullScreen, useFullScreenHandle } from "react-full-screen";
+import toast, { Toaster } from "react-hot-toast";
 import Sidebar from "../components/Sidebar";
 import Header from "../components/Header";
-import { getUser } from "../utils/storage";
+import { getUser, getToken } from "../utils/storage";
 import api from "../api/api";
 
 export default function MainLayout({ children }) {
@@ -16,15 +17,18 @@ export default function MainLayout({ children }) {
     if (!user) return;
 
     // Ambil notifikasi lama
+    const token = getToken();
+    if (!token) return;
+
     api
       .get("/notifications", {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `Bearer ${token}`,
         },
       })
       .then((res) => {
         console.log("📥 Notifikasi lama:", res.data);
-        setNotifications(res.data);
+        setNotifications(res.data.notifications || []);
       })
       .catch((err) => {
         console.error("❌ Error fetch notifikasi:", err);
@@ -32,12 +36,44 @@ export default function MainLayout({ children }) {
 
     // Listen realtime notifikasi baru
     if (window.Echo) {
-      window.Echo.private(`App.Models.User.${user.id}`).notification(
-        (notif) => {
-          console.log("🔔 Notifikasi baru:", notif);
-          setNotifications((prev) => [notif, ...prev]);
-        }
-      );
+      console.log("🔄 Setting up realtime notifications for user:", user.id);
+
+      // Listen untuk broadcast notification (database + broadcast)
+      const notificationChannel = window.Echo.private(
+        `App.Models.User.${user.id}`
+      ).notification((notif) => {
+        console.log("🔔 Notifikasi baru via notification:", notif);
+        setNotifications((prev) => [notif, ...prev]);
+
+        // Tampilkan toast notification
+        toast.success(notif.message || "Notifikasi baru!", {
+          duration: 5000,
+          position: "top-right",
+        });
+      });
+
+      // Listen untuk custom event PHC created
+      const phcChannel = window.Echo.private(
+        `phc.notifications.${user.id}`
+      ).listen(".phc.created", (e) => {
+        console.log("🔔 PHC baru dibuat:", e);
+        // Update state notifikasi tanpa reload
+        setNotifications((prev) => [e, ...prev]);
+
+        // Tampilkan toast notification untuk PHC
+        toast.success("PHC baru telah dibuat!", {
+          duration: 5000,
+          position: "top-right",
+        });
+      });
+
+      // Cleanup function untuk useEffect
+      return () => {
+        notificationChannel.stopListening("notification");
+        phcChannel.stopListening(".phc.created");
+      };
+    } else {
+      console.warn("⚠️ Echo tidak tersedia, realtime notifications disabled");
     }
   }, []); // kosong, supaya hanya jalan sekali
 
@@ -91,6 +127,7 @@ export default function MainLayout({ children }) {
           </div>
         </div>
       </div>
+      <Toaster />
     </FullScreen>
   );
 }

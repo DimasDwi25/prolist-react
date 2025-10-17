@@ -211,6 +211,7 @@ export default function WorkOrderSummary() {
 
   const filteredData = filterBySearch(workOrders, searchTerm).map((wo) => ({
     actions: "👁️",
+    wo_id: wo.wo_id,
     wo_code: wo.wo_code,
     project_number: wo.project_number,
     project_name: wo.project_name,

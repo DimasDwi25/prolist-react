@@ -152,7 +152,7 @@ export default function WorkOrderTable() {
           }
           label="Edit"
           onClick={() => handleEdit(params.row.id)}
-          disabled={params.row.status === "finished"}
+          // disabled={params.row.status === "finished"}
         />,
       ],
     },
