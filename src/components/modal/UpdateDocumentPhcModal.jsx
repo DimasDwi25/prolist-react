@@ -75,24 +75,28 @@ export default function UpdateDocumentPhcModal({
     try {
       const phcRes = await api.get(`/phcs/show/${phcId}`);
       if (phcRes.data) {
-        const { documents } = phcRes.data;
+        const { documents: serverDocuments } = phcRes.data;
 
-        setDocuments(
-          documents.map((doc) => {
-            const prep = doc.preparations?.[0];
-            let datePrepared = "";
+        setDocuments((prevDocuments) =>
+          prevDocuments.map((currentDoc) => {
+            const serverDoc = serverDocuments.find(
+              (d) => d.id === currentDoc.id
+            );
+            if (!serverDoc) return currentDoc;
+
+            const prep = serverDoc.preparations?.[0];
+            let datePrepared = currentDoc.date_prepared; // Preserve local date_prepared
 
             if (prep?.date_prepared) {
-              // Gunakan formatDateForInput supaya selalu jadi "YYYY-MM-DD"
+              // Update from server if available
               datePrepared = formatDateForInput(prep.date_prepared);
             }
 
             return {
-              id: doc.id,
-              name: doc.name,
-              status: prep ? (prep.is_applicable ? "A" : "NA") : "NA",
+              ...currentDoc,
               date_prepared: datePrepared,
-              preparationId: prep?.id || null,
+              preparationId: prep?.id || currentDoc.preparationId,
+              // Preserve local status
             };
           })
         );
@@ -194,12 +198,13 @@ export default function UpdateDocumentPhcModal({
         }
       );
 
+      setSnackbar({
+        open: true,
+        message: "Document uploaded successfully!",
+        severity: "success",
+      });
+
       if (res.data) {
-        setSnackbar({
-          open: true,
-          message: "Document uploaded successfully!",
-          severity: "success",
-        });
         // Refresh documents to reflect the uploaded file
         await refreshDocuments();
         // Clear selected file after successful upload
@@ -207,10 +212,6 @@ export default function UpdateDocumentPhcModal({
           ...prev,
           [documentPreparationId]: null,
         }));
-        // Close the modal after successful upload, like in other modal components
-        setTimeout(() => {
-          onClose();
-        }, 2000);
       }
     } catch (err) {
       console.error(err);
