@@ -392,7 +392,14 @@ export default function EngineerDashboard() {
               <div className="table-inner">
                 <HotTable
                   data={workOrdersThisMonth.slice(0, 10)}
-                  colHeaders={["WO Code", "Project Name", "Status", "End Date"]}
+                  colHeaders={[
+                    "WO Code",
+                    "WO Date",
+                    "Project Name",
+                    "Client Name",
+                    "Created By",
+                    "PIC Names",
+                  ]}
                   columns={[
                     {
                       data: "wo_kode_no",
@@ -423,12 +430,8 @@ export default function EngineerDashboard() {
                       type: "text",
                       editor: false,
                       width: 150,
-                      renderer: (instance, td, row) => {
-                        const form = modalData[row];
-                        td.innerText =
-                          form?.client?.name ||
-                          form?.quotation?.client?.name ||
-                          "-";
+                      renderer: (instance, td, row, col, prop, value) => {
+                        td.innerText = value || "-";
                         return td;
                       },
                     },
@@ -475,6 +478,7 @@ export default function EngineerDashboard() {
                   colHeaders={[
                     "PN Number",
                     "Project Name",
+                    "Client Name",
                     "PIC",
                     "Target Date",
                     "Delay (days)",
@@ -483,6 +487,16 @@ export default function EngineerDashboard() {
                   columns={[
                     { data: "pn_number", type: "text", editor: false },
                     { data: "project_name", type: "text", editor: false },
+                    {
+                      data: "client_name",
+                      title: "Client Name",
+                      type: "text",
+                      editor: false,
+                      renderer: (instance, td, row, col, prop, value) => {
+                        td.innerText = value || "-";
+                        return td;
+                      },
+                    },
                     { data: "pic", type: "text", editor: false },
                     {
                       data: "target_dates",
@@ -527,12 +541,23 @@ export default function EngineerDashboard() {
                   colHeaders={[
                     "PN Number",
                     "Project Name",
+                    "Client Name",
                     "Target Date",
                     "Status",
                   ]}
                   columns={[
                     { data: "pn_number", type: "text" },
                     { data: "project_name", type: "text" },
+                    {
+                      data: "client_name",
+                      title: "Client Name",
+                      type: "text",
+                      editor: false,
+                      renderer: (instance, td, row, col, prop, value) => {
+                        td.innerText = value || "-";
+                        return td;
+                      },
+                    },
                     {
                       data: "target_dates",
                       type: "date",

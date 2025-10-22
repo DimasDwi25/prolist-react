@@ -18,6 +18,7 @@ import LoadingOverlay from "../../components/loading/LoadingOverlay";
 import FilterBar from "../../components/filter/FilterBar";
 import DashboardCard from "../../components/card/DashboardCard";
 import { filterBySearch } from "../../utils/filter";
+import { getClientName } from "../../utils/getClientName";
 
 export default function RequestInvoiceSummary() {
   const hotTableRef = useRef(null);
@@ -165,7 +166,7 @@ export default function RequestInvoiceSummary() {
       actions: "👁️",
       pn_number: item.pn_number || "",
       project_name: item.project_name || "",
-      client: item.client || "",
+      client: getClientName(item),
       total_request_invoices: item.total_request_invoices || 0,
     })
   );

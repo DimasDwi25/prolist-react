@@ -20,6 +20,7 @@ import FilterBar from "../../components/filter/FilterBar";
 import DashboardCard from "../../components/card/DashboardCard";
 import { filterBySearch } from "../../utils/filter";
 import { formatValue } from "../../utils/formatValue";
+import { getClientName } from "../../utils/getClientName";
 
 export default function InvoiceSummary() {
   const hotTableRef = useRef(null);
@@ -212,7 +213,7 @@ export default function InvoiceSummary() {
       actions: "👁️",
       pn_number: item.pn_number || "",
       project_name: item.project_name || "",
-      client: item.client || "",
+      client: getClientName(item),
       project_value: item.project_value || 0,
       invoice_total: item.invoice_total || 0,
       payment_total: item.payment_total || 0,

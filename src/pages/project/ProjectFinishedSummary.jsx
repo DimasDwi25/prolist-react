@@ -22,6 +22,7 @@ import FilterBar from "../../components/filter/FilterBar";
 import DashboardCard from "../../components/card/DashboardCard";
 import { filterBySearch } from "../../utils/filter";
 import { formatDate } from "../../utils/FormatDate";
+import { getClientName } from "../../utils/getClientName";
 
 export default function ProjectFinishedSummary() {
   const navigate = useNavigate();
@@ -244,7 +245,7 @@ export default function ProjectFinishedSummary() {
     po_value: p.po_value,
     project_progress: p.project_progress,
     status: p.status,
-    client_name: p.client?.name || p.quotation?.client?.name || "-",
+    client_name: getClientName(p),
     project_finish_date: formatDate(p.project_finish_date),
   }));
 

@@ -24,6 +24,7 @@ import QuotationFormModal from "./QuotationFormModal";
 import QuotationDetailModal from "./QuotationDetailModal";
 import { formatDate } from "../../utils/FormatDate";
 import { filterBySearch } from "../../utils/filter"; // gunakan util filter yang sama dengan ProjectTable
+import { getClientName } from "../../utils/getClientName";
 import Handsontable from "handsontable";
 import LoadingOverlay from "../../components/loading/LoadingOverlay";
 
@@ -63,7 +64,7 @@ export default function QuotationTable() {
         res.data.map((q) => ({
           ...q,
           id: q.quotation_number,
-          client_name: q.client?.name || "-",
+          client_name: getClientName(q),
           quotation_value: Number(q.quotation_value) || null,
         }))
       );

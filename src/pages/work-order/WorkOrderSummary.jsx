@@ -21,6 +21,7 @@ import FilterBar from "../../components/filter/FilterBar";
 import DashboardCard from "../../components/card/DashboardCard";
 import { filterBySearch } from "../../utils/filter";
 import { formatDate } from "../../utils/FormatDate";
+import { getClientName } from "../../utils/getClientName";
 
 export default function WorkOrderSummary() {
   const navigate = useNavigate();
@@ -215,7 +216,7 @@ export default function WorkOrderSummary() {
     wo_code: wo.wo_code,
     project_number: wo.project_number,
     project_name: wo.project_name,
-    client_name: wo.client?.name || wo.quotation?.client?.name || "-",
+    client_name: getClientName(wo),
     total_mandays: wo.total_mandays,
     status: wo.status,
     actual_end_working_date: wo.actual_end_working_date,

@@ -26,6 +26,7 @@ import LoadingOverlay from "../../components/loading/LoadingOverlay";
 import ColumnVisibilityModal from "../../components/ColumnVisibilityModal";
 import FilterBar from "../../components/filter/FilterBar";
 import { filterBySearch } from "../../utils/filter";
+import { getClientName } from "../../utils/getClientName";
 
 export default function SalesReport() {
   const hotTableRef = useRef(null);
@@ -194,7 +195,7 @@ export default function SalesReport() {
         id: idx + 1,
         project_number: p.pn_number || p.project_number,
         project_name: p.project_name,
-        client_name: p.client?.name || p.quotation?.client?.name || "-",
+        client_name: getClientName(p),
         category_name: p.category?.name || "-",
         quotation_number: p.quotation?.no_quotation || "-",
         po_date: p.po_date,

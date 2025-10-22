@@ -16,6 +16,7 @@ import api from "../../../api/api";
 import LoadingOverlay from "../../../components/loading/LoadingOverlay";
 import ColumnVisibilityModal from "../../../components/ColumnVisibilityModal";
 import { filterBySearch } from "../../../utils/filter";
+import { getClientName } from "../../../utils/getClientName";
 import ViewProjectsModalManPower from "../../../components/modal/ViewProjectsModalManPower";
 
 // ---------------- Utils ---------------- //
@@ -83,7 +84,7 @@ export default function ManPowerProjectTable() {
         project_number: p.project_number,
         project_name: p.project_name,
         categories_name: p.category?.name || "-",
-        client_name: p.client?.name || p.quotation?.client?.name || "-",
+        client_name: getClientName(p),
         phc_dates: p.phc_dates,
         target_dates: p.target_dates,
         dokumen_finish_date: p.dokumen_finish_date,

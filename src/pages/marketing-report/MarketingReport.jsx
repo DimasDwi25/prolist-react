@@ -26,6 +26,7 @@ import LoadingOverlay from "../../components/loading/LoadingOverlay";
 import ColumnVisibilityModal from "../../components/ColumnVisibilityModal";
 import FilterBar from "../../components/filter/FilterBar";
 import { filterBySearch } from "../../utils/filter";
+import { getClientName } from "../../utils/getClientName";
 
 export default function MarketingReport() {
   const hotTableRef = useRef(null);
@@ -252,7 +253,7 @@ export default function MarketingReport() {
         id: idx + 1,
         no_quotation: q.no_quotation,
         title_quotation: q.title_quotation,
-        client_name: q.client?.name || "-",
+        client_name: getClientName(q),
         client_pic: q.client_pic || "-",
         quotation_date: q.quotation_date,
         quotation_value: q.quotation_value,

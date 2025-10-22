@@ -17,6 +17,7 @@ import {
 } from "@mui/material";
 
 import api from "../../../api/api"; // Axios instance
+import { getClientName } from "../../../utils/getClientName";
 
 import { useNavigate } from "react-router-dom";
 
@@ -113,7 +114,7 @@ export default function ManPowerWorkOrderPage() {
           status_project: p.status_project || {
             id: Number(p.status_project_id),
           },
-          client_name: p.client?.name || p.quotation?.client?.name || "-",
+          client_name: getClientName(p),
           project_number: p.project_number,
           project_name: p.project_name,
           total_wo: p.total_wo,

@@ -28,6 +28,7 @@ import LoadingOverlay from "../../components/loading/LoadingOverlay";
 import ColumnVisibilityModal from "../../components/ColumnVisibilityModal";
 import { filterBySearch } from "../../utils/filter";
 import { formatDate } from "../../utils/FormatDate";
+import { getClientName } from "../../utils/getClientName";
 
 export default function ProjectTable() {
   const navigate = useNavigate();
@@ -314,7 +315,7 @@ export default function ProjectTable() {
         return {
           pn_number: p.pn_number,
           ...p,
-          client_name: p.client?.name || p.quotation?.client?.name || "-",
+          client_name: getClientName(p),
           no_quotation: p.quotation?.no_quotation || "-",
           categories_name: p.category?.name || "-",
           status_project: p.status_project || {
@@ -365,7 +366,7 @@ export default function ProjectTable() {
         return {
           pn_number: p.pn_number,
           ...p,
-          client_name: p.client?.name || p.quotation?.client?.name || "-",
+          client_name: getClientName(p),
           no_quotation: p.quotation?.no_quotation || "-",
           categories_name: p.category?.name || "-",
           status_project: p.status_project || {
