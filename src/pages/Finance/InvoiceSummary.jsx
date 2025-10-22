@@ -12,23 +12,19 @@ import {
 } from "@mui/material";
 import ReactDOM from "react-dom";
 
-import { useNavigate } from "react-router-dom";
 import api from "../../api/api";
-import ViewWorkOrderModal from "../../components/modal/ViewWorkOrderModal";
-import { getUser } from "../../utils/storage";
+import ViewInvoicesModal from "../../components/modal/ViewInvoicesModal";
+// import { getUser } from "../../utils/storage";
 import LoadingOverlay from "../../components/loading/LoadingOverlay";
 import FilterBar from "../../components/filter/FilterBar";
 import DashboardCard from "../../components/card/DashboardCard";
 import { filterBySearch } from "../../utils/filter";
-import { formatDate } from "../../utils/FormatDate";
+import { formatValue } from "../../utils/formatValue";
 
-export default function WorkOrderSummary() {
-  const navigate = useNavigate();
+export default function InvoiceSummary() {
   const hotTableRef = useRef(null);
-
   const [searchTerm, setSearchTerm] = useState("");
-  const [workOrders, setWorkOrders] = useState([]);
-  const [summary, setSummary] = useState({});
+  const [invoiceSummaries, setInvoiceSummaries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
@@ -39,50 +35,24 @@ export default function WorkOrderSummary() {
     severity: "success",
   });
   const [openViewModal, setOpenViewModal] = useState(false);
-  const [selectedWoId, setSelectedWoId] = useState(null);
+  const [selectedProjectId, setSelectedProjectId] = useState(null);
 
   const [filters, setFilters] = useState({
     year: new Date().getFullYear(),
     range_type: "monthly",
-    month: new Date().getMonth() + 1,
+    month: null,
     from_date: "",
     to_date: "",
   });
 
   const [stats, setStats] = useState({
-    availableYears: [],
+    availableYears: [new Date().getFullYear(), new Date().getFullYear() + 1],
   });
 
-  const user = getUser();
-  const userRole = user?.role?.name?.toLowerCase();
-  const marketingRoles = [
-    "marketing_admin",
-    "manager_marketing",
-    "sales_supervisor",
-    "super_admin",
-    "marketing_director",
-    "supervisor marketing",
-    "sales_supervisor",
-    "marketing_estimator",
-    "engineering_director",
-  ].includes(userRole);
-  const engineerRoles = [
-    "project controller",
-    "project manager",
-    "engineering_admin",
-  ].includes(userRole);
-  const suc = ["warehouse"].includes(userRole);
+  // const user = getUser();
+  // const userRole = user?.role?.name?.toLowerCase();
 
-  const dateRenderer = (instance, td, row, col, prop, value) => {
-    td.innerText = formatDate(value);
-    return td;
-  };
-
-  const statusRenderer = (instance, td, row, col, prop, value) => {
-    td.innerText = value || "-";
-    return td;
-  };
-
+  // Definisi kolom
   const allColumns = useMemo(
     () => [
       {
@@ -92,11 +62,14 @@ export default function WorkOrderSummary() {
         width: 60,
         renderer: (instance, td, row) => {
           td.innerHTML = "";
+
+          // wrapper flex
           const wrapper = document.createElement("div");
           wrapper.style.display = "flex";
-          wrapper.alignItems = "center";
-          wrapper.style.gap = "6px";
+          wrapper.style.alignItems = "center";
+          wrapper.style.gap = "6px"; // jarak antar tombol
 
+          // 👁️ View button
           const viewBtn = document.createElement("button");
           viewBtn.style.cursor = "pointer";
           viewBtn.style.border = "none";
@@ -108,9 +81,9 @@ export default function WorkOrderSummary() {
           viewBtn.appendChild(icon);
 
           viewBtn.onclick = () => {
-            const wo = instance.getSourceDataAtRow(row);
-            if (wo?.wo_id) {
-              setSelectedWoId(wo.wo_id);
+            const project = instance.getSourceDataAtRow(row);
+            if (project?.pn_number) {
+              setSelectedProjectId(project.pn_number);
               setOpenViewModal(true);
             }
           };
@@ -120,72 +93,88 @@ export default function WorkOrderSummary() {
           return td;
         },
       },
-      { data: "wo_code", title: "WO Code" },
-      { data: "project_number", title: "Project Number" },
+      { data: "pn_number", title: "PN Number" },
       { data: "project_name", title: "Project Name" },
-      { data: "client_name", title: "Client" },
-      { data: "total_mandays", title: "Total Mandays" },
-      { data: "status", title: "Status", renderer: statusRenderer },
+      { data: "client", title: "Client" },
       {
-        data: "actual_end_working_date",
-        title: "Actual End Date",
-        renderer: dateRenderer,
+        data: "project_value",
+        title: "Project Value",
+        renderer: (instance, td, row, col, prop, value) => {
+          td.style.fontWeight = "600";
+          td.style.color = "green";
+          td.innerText = formatValue(value).formatted;
+          return td;
+        },
       },
+      {
+        data: "invoice_total",
+        title: "Invoice Total",
+        renderer: (instance, td, row, col, prop, value) => {
+          td.style.fontWeight = "600";
+          td.style.color = "green";
+          td.innerText = formatValue(value).formatted;
+          return td;
+        },
+      },
+      {
+        data: "payment_total",
+        title: "Payment Total",
+        renderer: (instance, td, row, col, prop, value) => {
+          td.style.fontWeight = "600";
+          td.style.color = "green";
+          td.innerText = formatValue(value).formatted;
+          return td;
+        },
+      },
+      {
+        data: "outstanding_invoice",
+        title: "Outstanding Invoice",
+        renderer: (instance, td, row, col, prop, value) => {
+          td.style.fontWeight = "600";
+          td.style.color = "green";
+          td.innerText = formatValue(value).formatted;
+          return td;
+        },
+      },
+      {
+        data: "outstanding_amount",
+        title: "Outstanding Amount",
+        renderer: (instance, td, row, col, prop, value) => {
+          td.style.fontWeight = "600";
+          td.style.color = "green";
+          td.innerText = formatValue(value).formatted;
+          return td;
+        },
+      },
+      { data: "remarks", title: "Remarks" },
     ],
-    [marketingRoles, engineerRoles, suc, navigate, workOrders]
+    []
   );
-
-  const roleGroupColumnMap = {
-    marketing: allColumns.map((c) => c.data),
-    engineer: allColumns.map((c) => c.data),
-    warehouse: allColumns.map((c) => c.data),
-    super_admin: allColumns.map((c) => c.data),
-  };
-
-  let roleGroup = null;
-  if (marketingRoles) roleGroup = "marketing";
-  else if (engineerRoles) roleGroup = "engineer";
-  else if (suc) roleGroup = "warehouse";
-  else if (userRole === "super_admin") roleGroup = "super_admin";
-
-  const allowedColumns = roleGroup ? roleGroupColumnMap[roleGroup] : [];
-  const filteredColumns = allColumns.filter((col) =>
-    allowedColumns.includes(col.data)
-  );
-
-  const handleChangePage = (event, newPage) => {
-    setPage(newPage);
-  };
-
-  const handleChangePageSize = (event) => {
-    setPageSize(parseInt(event.target.value, 10));
-    setPage(0);
-  };
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const response = await api.get("/work-order/work-order-summary", {
+      const response = await api.get("/finance/invoice-summary", {
         params: filters,
       });
-      setSummary(response.data.summary || {});
-      setWorkOrders(response.data.work_orders || []);
+      const data = response.data || {};
+      setInvoiceSummaries(data.projects || []);
+      // Summary stats can be calculated later if needed
       setStats((prev) => ({
         ...prev,
-        availableYears: response.data.availableYears || prev.availableYears,
+        availableYears: data.availableYears || [
+          new Date().getFullYear(),
+          new Date().getFullYear() + 1,
+        ],
       }));
     } catch (err) {
-      if (err.response?.status === 404) {
-        setSummary({});
-        setWorkOrders([]);
-      } else {
-        console.error(err.response?.data || err);
-        setSnackbar({
-          open: true,
-          message: "Failed to fetch data",
-          severity: "error",
-        });
-      }
+      console.error(err.response?.data || err);
+      setSnackbar({
+        open: true,
+        message: "Failed to fetch invoice summary data",
+        severity: "error",
+      });
+      setInvoiceSummaries([]);
     } finally {
       setLoading(false);
     }
@@ -209,18 +198,29 @@ export default function WorkOrderSummary() {
     setPage(0);
   };
 
-  const filteredData = filterBySearch(workOrders, searchTerm).map((wo) => ({
-    actions: "👁️",
-    wo_id: wo.wo_id,
-    wo_code: wo.wo_code,
-    project_number: wo.project_number,
-    project_name: wo.project_name,
-    client_name: wo.client?.name || wo.quotation?.client?.name || "-",
-    total_mandays: wo.total_mandays,
-    status: wo.status,
-    actual_end_working_date: wo.actual_end_working_date,
-  }));
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
 
+  const handleChangePageSize = (event) => {
+    setPageSize(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  const filteredData = filterBySearch(invoiceSummaries, searchTerm).map(
+    (item) => ({
+      actions: "👁️",
+      pn_number: item.pn_number || "",
+      project_name: item.project_name || "",
+      client: item.client || "",
+      project_value: item.project_value || 0,
+      invoice_total: item.invoice_total || 0,
+      payment_total: item.payment_total || 0,
+      outstanding_invoice: item.outstanding_invoice || 0,
+      outstanding_amount: item.outstanding_amount || 0,
+      remarks: item.remarks || "",
+    })
+  );
   const paginatedData = filteredData.slice(
     page * pageSize,
     page * pageSize + pageSize
@@ -232,55 +232,17 @@ export default function WorkOrderSummary() {
     <Box sx={{ position: "relative" }}>
       <LoadingOverlay loading={loading} />
 
-      <Box mb={2}>
-        <Typography
-          variant="h4"
-          sx={{
-            fontWeight: 700,
-            background: "linear-gradient(90deg, #1e3a8a, #3b82f6)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            letterSpacing: 0.5,
-          }}
-        >
-          Work Order Summary
-        </Typography>
-        <Typography variant="subtitle2" color="text.secondary">
-          Overview of completed work orders by year and month
-        </Typography>
-      </Box>
-
       <FilterBar
         stats={stats}
         onFilter={handleFilter}
         initialFilters={{
           year: new Date().getFullYear(),
           rangeType: "monthly",
-          month: new Date().getMonth() + 1,
+          month: null,
           from: "",
           to: "",
         }}
       />
-
-      <Box mt={3}>
-        <Stack direction="row" spacing={2} flexWrap="wrap">
-          <DashboardCard
-            title="Total Finished Work Orders"
-            value={summary.total_finished || 0}
-            color="blue"
-          />
-          <DashboardCard
-            title="Total Mandays"
-            value={summary.total_mandays || 0}
-            color="green"
-          />
-          <DashboardCard
-            title="Average Mandays"
-            value={summary.average_mandays || 0}
-            color="orange"
-          />
-        </Stack>
-      </Box>
 
       <Stack
         direction="row"
@@ -292,7 +254,7 @@ export default function WorkOrderSummary() {
       >
         <TextField
           size="small"
-          placeholder="Search work orders..."
+          placeholder="Search projects..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           sx={{
@@ -309,13 +271,14 @@ export default function WorkOrderSummary() {
         />
       </Stack>
 
+      {/* Handsontable */}
       <div className="table-wrapper">
         <div className="table-inner">
           <HotTable
             ref={hotTableRef}
             data={paginatedData}
-            colHeaders={filteredColumns.map((c) => c.title)}
-            columns={filteredColumns}
+            colHeaders={allColumns.map((c) => c.title)}
+            columns={allColumns}
             width="auto"
             height={tableHeight}
             manualColumnResize
@@ -346,15 +309,18 @@ export default function WorkOrderSummary() {
         </Alert>
       </Snackbar>
 
-      <ViewWorkOrderModal
+      <ViewInvoicesModal
         open={openViewModal}
         onClose={() => {
           setOpenViewModal(false);
-          setSelectedWoId(null);
+          setSelectedProjectId(null);
         }}
-        workOrderId={selectedWoId}
+        projectId={selectedProjectId}
+        year={filters.year}
+        onDataUpdated={fetchData}
       />
 
+      {/* Pagination */}
       <Box display="flex" justifyContent="flex-end" mt={2}>
         <TablePagination
           component="div"

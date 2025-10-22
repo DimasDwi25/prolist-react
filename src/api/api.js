@@ -57,11 +57,8 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const res = await axios.post(
-          "http://127.0.0.1:8000/api/refresh",
-          {},
-          { withCredentials: true }
-        );
+        const res = await api.post("/refresh");
+
         const newToken = res.data.token;
         setToken(newToken);
         api.defaults.headers.Authorization = "Bearer " + newToken;

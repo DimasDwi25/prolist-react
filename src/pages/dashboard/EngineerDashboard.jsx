@@ -10,7 +10,9 @@ import {
   FaChartPie,
   FaChartLine,
 } from "react-icons/fa";
+import toast from "react-hot-toast";
 import api from "../../api/api";
+import { clearAuth } from "../../utils/storage";
 import LoadingScreen from "../../components/loading/loadingScreen";
 import { FaUsersCog, FaCalendarAlt } from "react-icons/fa";
 import { formatDate } from "../../utils/FormatDate";
@@ -90,14 +92,24 @@ export default function EngineerDashboard() {
         labels: data.months,
         datasets: [
           {
-            label: "Completed Projects",
+            label: "On Time",
             font: {
               size: window.innerWidth > 2500 ? 18 : 12, // auto-scale
             },
-            data: data.completedProjects,
+            data: data.onTimeProjects,
             borderColor: "#10b981",
             fill: true,
             backgroundColor: "rgba(16,185,129,0.1)",
+          },
+          {
+            label: "Late",
+            font: {
+              size: window.innerWidth > 2500 ? 18 : 12, // auto-scale
+            },
+            data: data.lateProjects,
+            borderColor: "#ef4444",
+            fill: true,
+            backgroundColor: "rgba(239,68,68,0.1)",
           },
         ],
       },
@@ -123,14 +135,18 @@ export default function EngineerDashboard() {
     pieChartRef.current = new Chart(document.getElementById("statusPie"), {
       type: "pie",
       data: {
-        labels: data.statusLabels,
+        labels: [
+          "Overdue",
+          "Due This Month",
+          "Outstanding Projects (Not Overdue)",
+        ],
         font: {
           size: window.innerWidth > 2500 ? 18 : 12, // auto-scale
         },
         datasets: [
           {
             data: data.statusCounts,
-            backgroundColor: ["#3b82f6", "#f59e0b", "#10b981", "#ef4444"],
+            backgroundColor: ["#ef4444", "#fbbf24", "#10b981"],
           },
         ],
       },
@@ -160,6 +176,11 @@ export default function EngineerDashboard() {
       })
       .catch((err) => {
         console.error("❌ API error:", err.response?.data || err.message);
+        if (err.response?.status === 401) {
+          clearAuth();
+          toast.error("Session expired. Please log in again.");
+          window.location.href = "/login";
+        }
         setLoading(false);
       });
   }, []);
@@ -233,7 +254,7 @@ export default function EngineerDashboard() {
         },
         { data: "status", title: "Status" },
       ]);
-      setModalTitle("Overdue Projects");
+      setModalTitle("On Track Projects");
     } else if (type === "workOrders") {
       setModalData(workOrdersThisMonth.slice(0, 10));
       setModalColumns([
@@ -307,11 +328,17 @@ export default function EngineerDashboard() {
       onViewClick: () => handleViewClick("dueThisMonth"),
     },
     {
-      title: "On Track Projects (Not Overdue)",
+      title: "Project Outstanding (Not Overdue)",
       value: stats.projectOnTrack,
-      color: { bg: "bg-green-100", text: "text-green-600" },
+      color: { bg: "bg-purple-100", text: "text-purple-600" },
       icon: <FaCheckCircle size={22} />,
       onViewClick: () => handleViewClick("onTrack"),
+    },
+    {
+      title: "Total Outstanding Projects",
+      value: stats.totalOutstandingProjects,
+      color: { bg: "bg-orange-100", text: "text-orange-600" },
+      icon: <FaProjectDiagram size={22} />,
     },
     {
       title: "Work Orders (This Month)",
@@ -325,7 +352,7 @@ export default function EngineerDashboard() {
   return (
     <div className="w-full p-4 lg:p-6 space-y-16 bg-gray-50">
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8">
         {cards.map((c, i) => (
           <DashboardCard key={i} {...c} />
         ))}
@@ -344,7 +371,8 @@ export default function EngineerDashboard() {
         </div>
         <div className="bg-white shadow rounded-xl p-6 flex flex-col min-h-[250px] 2xl:min-h-[350px]">
           <h2 className="text-sm sm:text-base lg:text-lg xl:text-xl 2xl:text-2xl font-semibold">
-            <FaChartPie className="text-purple-500" /> Status Distribution
+            <FaChartPie className="text-purple-500" /> Outstanding Project
+            Status
           </h2>
           <canvas id="statusPie" className="flex-1"></canvas>
         </div>
@@ -395,6 +423,14 @@ export default function EngineerDashboard() {
                       type: "text",
                       editor: false,
                       width: 150,
+                      renderer: (instance, td, row) => {
+                        const form = modalData[row];
+                        td.innerText =
+                          form?.client?.name ||
+                          form?.quotation?.client?.name ||
+                          "-";
+                        return td;
+                      },
                     },
                     {
                       data: "created_by",
@@ -568,10 +604,7 @@ export default function EngineerDashboard() {
               Work Orders page for full details.
             </Typography>
           ) : (
-            <div
-              className="table-wrapper"
-              style={{ overflow: "auto", height: "100%" }}
-            >
+            <div className="table-wrapper" style={{ height: "100%" }}>
               <div className="table-inner">
                 <HotTable
                   data={modalData}

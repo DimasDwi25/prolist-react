@@ -6,89 +6,23 @@ import { formatDate } from "../../utils/FormatDate";
 import { Box, Typography, TablePagination } from "@mui/material";
 
 export default function OutstandingProjectsTable() {
-  const [data, setData] = useState([]);
-  const [mergeCells, setMergeCells] = useState([]);
   const [uploading, setUploading] = useState(false);
+  const [picData, setPicData] = useState([]);
 
   // Pagination state
   const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState(10);
+
+  const paginatedPicData = picData.slice(page, page + 1); // 1 PIC per halaman
 
   const currentYear = new Date().getFullYear();
 
   const handleChangePage = (event, newPage) => setPage(newPage);
-  const handleChangePageSize = (event) => {
-    setPageSize(parseInt(event.target.value, 10));
-    setPage(0);
-  };
-
-  const paginatedData = data.slice(page * pageSize, page * pageSize + pageSize);
-
-  const paginatedMergeCells = mergeCells
-    .map((m) => ({
-      ...m,
-      row: m.row - page * pageSize,
-    }))
-    .filter((m) => m.row >= 0 && m.row < pageSize);
 
   useEffect(() => {
     api
       .get("/outstanding-projects")
       .then((res) => {
-        const formatted = [];
-        const merges = [];
-        let rowIndex = 0;
-
-        res.data.forEach((item) => {
-          if (!item.projects || item.projects.length === 0) {
-            formatted.push([
-              item.pic,
-              "-",
-              "-",
-              "-",
-              "-",
-              "-",
-              item.user_id,
-              item.photo,
-            ]);
-            rowIndex++;
-          } else {
-            item.projects.forEach((proj, index) => {
-              formatted.push([
-                index === 0 ? item.pic : "",
-                proj.project_number,
-                proj.project_name,
-                proj.client ?? "-",
-                formatDate(proj.target_date),
-                (proj.logs ?? [])
-                  .slice(-3)
-                  .map((l) => l.log)
-                  .join("\n"),
-                index === 0 ? item.user_id : null, // kolom user_id tersembunyi, hanya di row pertama
-                index === 0 ? item.photo ?? null : null, // kolom photo untuk PIC
-              ]);
-            });
-
-            if (item.projects.length > 1) {
-              merges.push({
-                row: rowIndex,
-                col: 0,
-                rowspan: item.projects.length,
-                colspan: 1,
-              });
-              merges.push({
-                row: rowIndex,
-                col: 6,
-                rowspan: item.projects.length,
-                colspan: 1,
-              });
-            }
-            rowIndex += item.projects.length;
-          }
-        });
-        console.log(formatted);
-        setData(formatted);
-        setMergeCells(merges);
+        setPicData(res.data);
       })
       .catch((err) => console.error(err));
   }, []);
@@ -115,59 +49,7 @@ export default function OutstandingProjectsTable() {
         alert("Photo uploaded successfully!");
         // refresh data
         const res = await api.get("/outstanding-projects");
-        const formatted = [];
-        const merges = [];
-        let rowIndex = 0;
-
-        res.data.forEach((item) => {
-          if (!item.projects || item.projects.length === 0) {
-            formatted.push([
-              item.pic,
-              "-",
-              "-",
-              "-",
-              "-",
-              "-",
-              item.user_id,
-              item.photo,
-            ]);
-            rowIndex++;
-          } else {
-            item.projects.forEach((proj, index) => {
-              formatted.push([
-                index === 0 ? item.pic : "",
-                proj.project_number,
-                proj.project_name,
-                proj.client ?? "-",
-                formatDate(proj.target_date),
-                (proj.logs ?? [])
-                  .slice(-3)
-                  .map((l) => l.log)
-                  .join("\n"),
-                index === 0 ? item.user_id : null, // kolom user_id tersembunyi, hanya di row pertama
-                index === 0 ? item.photo ?? null : null, // kolom photo untuk PIC
-              ]);
-            });
-
-            if (item.projects.length > 1) {
-              merges.push({
-                row: rowIndex,
-                col: 0,
-                rowspan: item.projects.length,
-                colspan: 1,
-              });
-              merges.push({
-                row: rowIndex,
-                col: 6,
-                rowspan: item.projects.length,
-                colspan: 1,
-              });
-            }
-            rowIndex += item.projects.length;
-          }
-        });
-        setData(formatted);
-        setMergeCells(merges);
+        setPicData(res.data);
       } catch (err) {
         console.error(err);
         alert("Failed to upload photo");
@@ -185,40 +67,64 @@ export default function OutstandingProjectsTable() {
       title: "PIC",
       renderer: function (instance, td, row, col, prop, value) {
         const pic = value; // kolom nama PIC
-        const photo = instance.getDataAtRowProp(row, 7); //
-        const imgSrc = photo
-          ? photo.startsWith("http")
-            ? photo.replace("localhost", "127.0.0.1").includes(":8000")
-              ? photo.replace("localhost", "127.0.0.1")
-              : photo.replace("localhost", "127.0.0.1:8000") // tambahkan :8000 jika tidak ada
-            : `http://127.0.0.1:8000/storage/${photo}`
-          : `https://ui-avatars.com/api/?name=${encodeURIComponent(
-              pic || "User"
-            )}&background=random&bold=true`;
+        const photo = instance.getDataAtRowProp(row, 7); // kolom foto
 
-        // Create wrapper div
+        // Dapatkan domain utama React (bisa localhost, IP, atau virtualhost)
+        const BASE_URL = window.location.origin;
+
+        // Deteksi apakah sedang di development mode (localhost:5173 misalnya)
+        const isLocalDev =
+          BASE_URL.includes("localhost") || BASE_URL.includes("127.0.0.1");
+
+        // Base URL Laravel (untuk fallback)
+        const LARAVEL_DEV_URL = "http://192.168.0.90:8000";
+
+        // Tentukan sumber gambar
+        let imgSrc;
+
+        if (photo) {
+          if (photo.startsWith("http")) {
+            // Jika URL lengkap, ubah agar sesuai domain publik
+            imgSrc = photo
+              .replace("localhost", "prolist.citasys")
+              .replace("127.0.0.1", "prolist.citasys")
+              .replace("192.168.0.90", "prolist.citasys");
+          } else {
+            // Jika hanya path relatif
+            imgSrc = isLocalDev
+              ? `${LARAVEL_DEV_URL}/storage/${photo}` // saat dev
+              : `${BASE_URL}/storage/${photo}`; // saat production (via Apache proxy)
+          }
+        } else {
+          // Jika tidak ada foto, gunakan avatar
+          imgSrc = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+            pic || "User"
+          )}&background=random&bold=true`;
+        }
+
+        // Buat elemen wrapper
         const wrapper = document.createElement("div");
         wrapper.className = "flex flex-col items-center gap-1";
-        // wrapper.className = "flex items-center justify-start gap-2";
 
-        // Create span for name
+        // Nama PIC
         const span = document.createElement("span");
         span.className = "text-gray-800 font-medium";
-        span.textContent = pic;
+        span.textContent = pic || "-";
         wrapper.appendChild(span);
 
-        // Create img
+        // Gambar PIC
         const img = document.createElement("img");
         img.src = imgSrc;
-        img.alt = pic;
+        img.alt = pic || "User";
         img.className = "w-24 h-24 rounded object-cover border border-gray-300";
         img.onerror = function () {
           this.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
-            pic
+            pic || "User"
           )}&background=random&bold=true`;
         };
         wrapper.appendChild(img);
 
+        // Masukkan ke dalam cell
         td.innerHTML = "";
         td.appendChild(wrapper);
         return td;
@@ -249,7 +155,61 @@ export default function OutstandingProjectsTable() {
     },
   ];
 
-  const tableHeight = Math.min(pageSize * 40 + 50, window.innerHeight - 250);
+  const formatted = [];
+  const merges = [];
+  let rowIndex = 0;
+
+  paginatedPicData.forEach((item) => {
+    if (item.projects.length === 0) {
+      // Jika PIC tidak ada project, tetap tampilkan nama dan foto
+      formatted.push([
+        item.pic,
+        "",
+        "",
+        "",
+        "",
+        "",
+        item.user_id,
+        item.photo ?? null,
+      ]);
+      rowIndex += 1;
+    } else {
+      item.projects.forEach((proj, index) => {
+        formatted.push([
+          index === 0 ? item.pic : "",
+          proj.project_number,
+          proj.project_name,
+          proj.client ?? "-",
+          formatDate(proj.target_date),
+          (proj.logs ?? [])
+            .slice(-3)
+            .map((l) => l.log)
+            .join("\n"),
+          index === 0 ? item.user_id : null,
+          index === 0 ? item.photo ?? null : null,
+        ]);
+      });
+
+      if (item.projects.length > 1) {
+        merges.push({
+          row: rowIndex,
+          col: 0,
+          rowspan: item.projects.length,
+          colspan: 1,
+        });
+        merges.push({
+          row: rowIndex,
+          col: 6,
+          rowspan: item.projects.length,
+          colspan: 1,
+        });
+      }
+
+      rowIndex += item.projects.length;
+    }
+  });
+
+  const tableHeight = 600; // Tinggi table tetap untuk tampilan yang konsisten
 
   return (
     <Box p={4}>
@@ -258,7 +218,7 @@ export default function OutstandingProjectsTable() {
       </Typography>
 
       <HotTable
-        data={paginatedData}
+        data={formatted}
         colHeaders={columns.map((c) => c.title)}
         columns={columns}
         colWidths={[200, 150, 200, 200, 150, 400, 150]}
@@ -266,7 +226,7 @@ export default function OutstandingProjectsTable() {
         height={tableHeight}
         stretchH="all"
         wordWrap={true}
-        mergeCells={paginatedMergeCells}
+        mergeCells={merges}
         licenseKey="non-commercial-and-evaluation"
         className="ht-theme-horizon"
         cells={(row, col) => {
@@ -285,13 +245,11 @@ export default function OutstandingProjectsTable() {
 
       <Box display="flex" justifyContent="flex-end" mt={2}>
         <TablePagination
-          component="div"
-          count={data.length}
+          count={picData.length} // jumlah PIC
           page={page}
           onPageChange={handleChangePage}
-          rowsPerPage={pageSize}
-          onRowsPerPageChange={handleChangePageSize}
-          rowsPerPageOptions={[10, 25, 50]}
+          rowsPerPage={1} // 1 PIC per halaman
+          rowsPerPageOptions={[1]}
         />
       </Box>
     </Box>

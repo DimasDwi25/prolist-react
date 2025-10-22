@@ -311,19 +311,10 @@ export default function ProjectTable() {
       const resProjects = await api.get("/projects");
 
       const projectsData = resProjects.data?.data?.map((p) => {
-        let clientName = "-";
-        // prioritas: project.client_id → ambil client relasi
-        if (p.client_id && p.client?.name) {
-          clientName = p.client.name;
-        }
-        // fallback: ambil dari quotation.client
-        else if (p.quotation?.client?.name) {
-          clientName = p.quotation.client.name;
-        }
         return {
           pn_number: p.pn_number,
           ...p,
-          client_name: clientName,
+          client_name: p.client?.name || p.quotation?.client?.name || "-",
           no_quotation: p.quotation?.no_quotation || "-",
           categories_name: p.category?.name || "-",
           status_project: p.status_project || {
@@ -371,16 +362,10 @@ export default function ProjectTable() {
       // Refresh the table data after fetching
       const resProjects = await api.get("/projects");
       const projectsData = resProjects.data?.data?.map((p) => {
-        let clientName = "-";
-        if (p.client_id && p.client?.name) {
-          clientName = p.client.name;
-        } else if (p.quotation?.client?.name) {
-          clientName = p.quotation.client.name;
-        }
         return {
           pn_number: p.pn_number,
           ...p,
-          client_name: clientName,
+          client_name: p.client?.name || p.quotation?.client?.name || "-",
           no_quotation: p.quotation?.no_quotation || "-",
           categories_name: p.category?.name || "-",
           status_project: p.status_project || {

@@ -17,12 +17,15 @@ import { Close as CloseIcon } from "@mui/icons-material";
 import api from "../../api/api";
 import FormLogModal from "../modal/FormLogModal";
 import { formatDate } from "../../utils/FormatDate";
+import { getUser } from "../../utils/storage";
 
 export default function LogTable({ projectId }) {
   const hotTableRef = useRef(null);
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openModal, setOpenModal] = useState(false);
+
+  const user = getUser();
 
   // Konfirmasi modal
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -44,6 +47,7 @@ export default function LogTable({ projectId }) {
           status: log.status,
           categorie: log.category?.name || "-",
           user: log.user?.name || "-",
+          user_id: log.user?.id || null,
           responseUser: log.response_user ? log.response_user.name : "-",
           approvals: log.approvals || [],
         }))
@@ -102,8 +106,8 @@ export default function LogTable({ projectId }) {
 
           const log = instance.getSourceDataAtRow(row);
 
-          // Only show close button if status is not closed
-          if (log.status !== "closed") {
+          // Only show close button if status is not closed and user is the creator
+          if (log.status !== "closed" && log.user_id === user?.id) {
             const closeBtn = document.createElement("button");
             closeBtn.style.cursor = "pointer";
             closeBtn.style.border = "none";

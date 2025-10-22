@@ -244,7 +244,7 @@ export default function ProjectFinishedSummary() {
     po_value: p.po_value,
     project_progress: p.project_progress,
     status: p.status,
-    client_name: p.client_name,
+    client_name: p.client?.name || p.quotation?.client?.name || "-",
     project_finish_date: formatDate(p.project_finish_date),
   }));
 

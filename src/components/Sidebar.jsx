@@ -9,6 +9,7 @@ import {
   FaTasks,
   FaChevronRight,
   FaCheckCircle,
+  FaPaypal,
 } from "react-icons/fa";
 
 const roleMapping = {
@@ -29,7 +30,10 @@ const roleMapping = {
   drafter: "manPower",
   electrician_supervisor: "manPower",
   electrician: "manPower",
-  // tambahkan role engineer lainnya jika ada
+
+  acc_fin_manager: "finance",
+  acc_fin_supervisor: "finance",
+  finance_administration: "finance",
 };
 
 // Menu per role dengan icon
@@ -207,6 +211,12 @@ const menuByRole = {
     },
     { name: "Work Order", path: "/work-order", icon: <FaFileInvoice /> },
     { name: "Projects", path: "/projects", icon: <FaTools /> },
+
+    {
+      name: "Request Invoice",
+      path: "/finance/request-invoice-summary",
+      icon: <FaPaypal />,
+    },
     { name: "Approvall", path: "/approvall", icon: <FaCheckCircle /> },
   ],
   suc: [
@@ -231,8 +241,31 @@ const menuByRole = {
       path: "/man-power",
       icon: <FaTachometerAlt />,
     },
-    { name: "Work Order", path: "/work-order", icon: <FaFileInvoice /> },
+    {
+      name: "Work Order",
+      path: "/man-power/work-order",
+      icon: <FaFileInvoice />,
+    },
     { name: "Projects", path: "/man-power/project", icon: <FaTools /> },
+  ],
+
+  finance: [
+    { name: "Dashboard", path: "/finance", icon: <FaTachometerAlt /> },
+    {
+      name: "Master Data",
+      icon: <FaTools />,
+      submenu: [
+        {
+          name: "Type Invoices",
+          path: "/finance/invoice-types",
+          icon: <FaTasks />,
+        },
+      ],
+    },
+
+    { name: "Payments", path: "/finance/invoice-summary", icon: <FaPaypal /> },
+    { name: "Projects", path: "/projects", icon: <FaTools /> },
+    { name: "Approvall", path: "/approvall", icon: <FaCheckCircle /> },
   ],
 };
 

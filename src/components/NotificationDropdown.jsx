@@ -5,7 +5,6 @@ import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { AnimatePresence, motion } from "framer-motion";
 
-// eslint-disable-next-line no-unused-vars
 const _ = motion; // suppress unused var warning
 
 export default function NotificationDropdown({ notifications, onRead }) {
@@ -126,7 +125,9 @@ export default function NotificationDropdown({ notifications, onRead }) {
                               "New notification"}
                           </p>
                           <p className="text-xs text-gray-400 mt-2">
-                            {new Date(notif.created_at).toLocaleString()}
+                            {notif.created_at
+                              ? new Date(notif.created_at).toLocaleString()
+                              : "Just now"}
                           </p>
                         </div>
                         {!notif.read_at && (

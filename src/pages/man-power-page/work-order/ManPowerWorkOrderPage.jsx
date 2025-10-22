@@ -20,9 +20,9 @@ import api from "../../../api/api"; // Axios instance
 
 import { useNavigate } from "react-router-dom";
 
-export default function WorkOrderPage() {
+export default function ManPowerWorkOrderPage() {
   const navigate = useNavigate();
-  const [projects, setProjects] = useState([]);
+  const [workOrders, setWorkOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [paginationModel, setPaginationModel] = useState({
     page: 0,
@@ -41,8 +41,8 @@ export default function WorkOrderPage() {
           icon={<Typography color="primary">👁️</Typography>}
           label="View"
           onClick={() => {
-            // Navigasi ke halaman Material Request dengan PN number
-            navigate(`/work-order/${params.row.pn_number}`);
+            // Navigasi ke halaman detail work order dengan id
+            navigate(`/man-power/work-order/${params.row.id}`);
           }}
         />,
       ],
@@ -101,11 +101,11 @@ export default function WorkOrderPage() {
     },
   ];
 
-  const fetchProjects = async () => {
+  const fetchWorkOrders = async () => {
     try {
-      const res = await api.get("/wo-summary");
+      const res = await api.get("/man-power/work-orders-summary");
 
-      const projectsData = res.data?.data?.map((p) => {
+      const workOrdersData = res.data?.data?.map((p) => {
         return {
           id: p.pn_number,
           ...p,
@@ -120,20 +120,19 @@ export default function WorkOrderPage() {
         };
       });
 
-      console.log(projectsData);
+      console.log(workOrdersData);
 
-      setProjects(projectsData);
+      setWorkOrders(workOrdersData);
     } catch (err) {
       console.error(err.response?.data || err);
     }
   };
 
-  // --- Fetch clients & projects sekaligus ---
+  // --- Fetch data ---
   const loadData = async () => {
     setLoading(true);
     try {
-      // --- Projects ---
-      await fetchProjects();
+      await fetchWorkOrders();
     } catch (err) {
       console.error(err.response?.data || err);
     } finally {
@@ -151,8 +150,7 @@ export default function WorkOrderPage() {
       <div className="table-wrapper">
         <div className="table-inner">
           <DataGrid
-            rows={projects}
-            getRowId={(row) => row.pn_number}
+            rows={workOrders}
             columns={columns.map((col) => ({
               ...col,
               minWidth: col.minWidth || 150, // kasih default minWidth
@@ -166,7 +164,7 @@ export default function WorkOrderPage() {
             pageSizeOptions={[10, 20, 50]}
             disableSelectionOnClick
             onRowClick={(params) => {
-              navigate(`/work-order/${params.row.pn_number}`);
+              navigate(`/man-power/work-order/${params.row.id}`);
             }}
             sx={{
               borderRadius: 2,

@@ -47,6 +47,12 @@ import ProfilePage from "../pages/profile/ProfilePage";
 import UpdatePasswordPage from "../pages/profile/UpdatePasswordPage";
 import UpdatePinPage from "../pages/profile/UpdatePinPage";
 import ManPowerProjectTable from "../pages/man-power-page/project/ManPowerProjectTable";
+import ManPowerWorkOrderPage from "../pages/man-power-page/work-order/ManPowerWorkOrderPage";
+import ManPowerWorkOrderTable from "../pages/man-power-page/work-order/ManPowerWorkOrderTable";
+import FinanceDashboard from "../pages/dashboard/FinanceDashboard";
+import InvoiceTypeTable from "../pages/Finance/InvoiceTypeTable";
+import InvoiceSummary from "../pages/Finance/InvoiceSummary";
+import RequestInvoiceSummary from "../pages/Finance/RequestInvoiceSummary";
 
 function AppRoutes() {
   return (
@@ -774,6 +780,69 @@ function AppRoutes() {
           }
         />
 
+        <Route
+          path="/man-power/work-order"
+          element={
+            <ProtectedRoute>
+              <MainLayout>
+                <ManPowerWorkOrderPage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/man-power/work-order/:pn_number"
+          element={
+            <ProtectedRoute>
+              <MainLayout>
+                <ManPowerWorkOrderTable />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Finance */}
+        <Route
+          path="/finance"
+          element={
+            <ProtectedRoute>
+              <MainLayout>
+                <FinanceDashboard />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/finance/invoice-types"
+          element={
+            <ProtectedRoute>
+              <MainLayout>
+                <InvoiceTypeTable />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/finance/invoice-summary"
+          element={
+            <ProtectedRoute>
+              <MainLayout>
+                <InvoiceSummary />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/finance/request-invoice-summary"
+          element={
+            <ProtectedRoute>
+              <MainLayout>
+                <RequestInvoiceSummary />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
         {/* Default */}
         <Route path="/" element={<Navigate to="/login" replace />} />
         {/* 404 */}

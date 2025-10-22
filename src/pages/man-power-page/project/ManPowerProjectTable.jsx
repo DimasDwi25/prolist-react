@@ -16,6 +16,7 @@ import api from "../../../api/api";
 import LoadingOverlay from "../../../components/loading/LoadingOverlay";
 import ColumnVisibilityModal from "../../../components/ColumnVisibilityModal";
 import { filterBySearch } from "../../../utils/filter";
+import ViewProjectsModalManPower from "../../../components/modal/ViewProjectsModalManPower";
 
 // ---------------- Utils ---------------- //
 const formatDate = (val) => {
@@ -70,6 +71,8 @@ export default function ManPowerProjectTable() {
     severity: "success",
   });
   const [openCreateModal, setOpenCreateModal] = useState(false);
+  const [openViewModal, setOpenViewModal] = useState(false);
+  const [selectedProject, setSelectedProject] = useState(null);
 
   // Fetch Projects
   const fetchProjects = async () => {
@@ -80,7 +83,7 @@ export default function ManPowerProjectTable() {
         project_number: p.project_number,
         project_name: p.project_name,
         categories_name: p.category?.name || "-",
-        client_name: p.client?.name || "-",
+        client_name: p.client?.name || p.quotation?.client?.name || "-",
         phc_dates: p.phc_dates,
         target_dates: p.target_dates,
         dokumen_finish_date: p.dokumen_finish_date,
@@ -122,7 +125,10 @@ export default function ManPowerProjectTable() {
 
           button.onclick = () => {
             const project = instance.getSourceDataAtRow(row);
-            if (project?.id) navigate(`/engineer/projects/${project.id}`);
+            if (project?.id) {
+              setSelectedProject(project);
+              setOpenViewModal(true);
+            }
           };
 
           td.appendChild(button);
@@ -270,6 +276,18 @@ export default function ManPowerProjectTable() {
           categories={categories}
           token=""
           onSave={fetchProjects}
+        />
+      )}
+
+      {/* Modal View */}
+      {openViewModal && selectedProject && (
+        <ViewProjectsModalManPower
+          open={openViewModal}
+          onClose={() => {
+            setOpenViewModal(false);
+            setSelectedProject(null);
+          }}
+          pn_number={selectedProject.id}
         />
       )}
 

@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
 import AppRoutes from "./routes/AppRoutes";
-import "./echo";
+import "./handsontable.config"; // Import Handsontable config for styling
 import LoadingScreen from "../src/components/loading/loadingScreen";
+import "handsontable/styles/handsontable.min.css";
+import "handsontable/styles/ht-theme-main.min.css";
 
 function App() {
   const [loading, setLoading] = useState(true);

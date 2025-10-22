@@ -17,6 +17,15 @@ const formatDate = (value) => {
   ).padStart(2, "0")}-${date.getFullYear()}`;
 };
 
+const formatTime = (value) => {
+  if (!value) return "—";
+  const date = new Date(value);
+  return date.toLocaleTimeString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
 const display = (value) =>
   value !== undefined && value !== null && value !== "" ? value : "—";
 
@@ -196,9 +205,9 @@ export default function ViewWorkOrderModal({ open, onClose, workOrderId }) {
               },
               {
                 label: "Daily Work Time",
-                value: `${workOrder?.start_work_time || "—"} – ${
-                  workOrder?.stop_work_time || "—"
-                }`,
+                value: `${formatTime(
+                  workOrder?.start_work_time
+                )} – ${formatTime(workOrder?.stop_work_time)}`,
               },
               {
                 label: "Continuation",

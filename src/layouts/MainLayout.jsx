@@ -5,6 +5,8 @@ import Sidebar from "../components/Sidebar";
 import Header from "../components/Header";
 import { getUser, getToken } from "../utils/storage";
 import api from "../api/api";
+import Echo from "laravel-echo";
+import Pusher from "pusher-js";
 
 export default function MainLayout({ children }) {
   const user = getUser();
@@ -35,45 +37,66 @@ export default function MainLayout({ children }) {
       });
 
     // Listen realtime notifikasi baru
-    if (window.Echo) {
-      console.log("🔄 Setting up realtime notifications for user:", user.id);
+    if (user && getToken()) {
+      const token = getToken();
 
-      // Listen untuk broadcast notification (database + broadcast)
-      const notificationChannel = window.Echo.private(
+      window.Pusher = Pusher;
+      window.Echo = new Echo({
+        broadcaster: "pusher",
+        key: import.meta.env.VITE_PUSHER_APP_KEY,
+        cluster: import.meta.env.VITE_PUSHER_APP_CLUSTER,
+        forceTLS: true,
+        authEndpoint: "http://127.0.0.1:8000/api/broadcasting/auth",
+        auth: {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+        },
+      });
+
+      console.log("✅ Echo initialized for user:", user.id);
+
+      const phcChannel = window.Echo.channel("phc.created")
+        .listen(".phc.created", (e) => {
+          console.log("🔥 PHC baru dibuat:", e);
+          if (e.user_ids.includes(user.id)) {
+            setNotifications((prev) => [e, ...prev]);
+            toast.success(e.message, { duration: 5000 });
+          }
+        })
+        .error((err) => console.error("❌ Echo channel error:", err));
+
+      const requestInvoiceChannel = window.Echo.channel(
+        "request.invoice.created"
+      )
+        .listen(".request.invoice.created", (e) => {
+          console.log("🔥 Request Invoice baru dibuat:", e);
+          if (e.user_ids.includes(user.id)) {
+            const notification = {
+              ...e,
+              created_at: new Date().toISOString(),
+              id: Date.now(), // temporary ID for real-time notifications
+            };
+            setNotifications((prev) => [notification, ...prev]);
+            toast.success(e.message, { duration: 5000 });
+          }
+        })
+        .error((err) => console.error("❌ Echo channel error:", err));
+
+      const notifChannel = window.Echo.channel(
         `App.Models.User.${user.id}`
       ).notification((notif) => {
         console.log("🔔 Notifikasi baru via notification:", notif);
         setNotifications((prev) => [notif, ...prev]);
-
-        // Tampilkan toast notification
-        toast.success(notif.message || "Notifikasi baru!", {
-          duration: 5000,
-          position: "top-right",
-        });
+        toast.success(notif.message || "Notifikasi baru!", { duration: 5000 });
       });
 
-      // Listen untuk custom event PHC created
-      const phcChannel = window.Echo.private(
-        `phc.notifications.${user.id}`
-      ).listen(".phc.created", (e) => {
-        console.log("🔔 PHC baru dibuat:", e);
-        // Update state notifikasi tanpa reload
-        setNotifications((prev) => [e, ...prev]);
-
-        // Tampilkan toast notification untuk PHC
-        toast.success("PHC baru telah dibuat!", {
-          duration: 5000,
-          position: "top-right",
-        });
-      });
-
-      // Cleanup function untuk useEffect
       return () => {
-        notificationChannel.stopListening("notification");
         phcChannel.stopListening(".phc.created");
+        requestInvoiceChannel.stopListening(".request.invoice.created");
+        notifChannel.stopListening("notification");
       };
-    } else {
-      console.warn("⚠️ Echo tidak tersedia, realtime notifications disabled");
     }
   }, []); // kosong, supaya hanya jalan sekali
 

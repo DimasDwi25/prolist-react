@@ -26,6 +26,7 @@ import {
 } from "@mui/material";
 
 import api from "../../../api/api";
+import { getUser } from "../../../utils/storage";
 
 import { sortOptions } from "../../../helper/SortOptions";
 
@@ -35,6 +36,18 @@ export default function ManPowerAllocationTable({
   pn_number,
   embedded = false,
 }) {
+  const user = getUser();
+  const userRole = user?.role?.name;
+  const restrictedRoles = [
+    "manPower",
+    "engineer_supervisor",
+    "drafter",
+    "electrician_supervisor",
+    "electrician",
+    "site_engineer",
+  ];
+  const canAddManPower = !restrictedRoles.includes(userRole);
+
   const [allocations, setAllocations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [paginationModel, setPaginationModel] = useState({
@@ -61,62 +74,101 @@ export default function ManPowerAllocationTable({
     severity: "success",
   });
 
-  const columns = [
-    {
-      field: "actions",
-      type: "actions",
-      headerName: "Actions",
-      flex: 1,
-      getActions: (params) => [
-        <GridActionsCellItem
-          key="edit"
-          icon={<EditIcon />}
-          label="Edit Row"
-          onClick={() => handleEditRowClick(params.row)}
-        />,
-        <GridActionsCellItem
-          key="delete"
-          icon={<Typography color="error">🗑️</Typography>}
-          label="Delete"
-          onClick={() => handleDelete(params.row.id)}
-        />,
-      ],
-    },
-    {
-      field: "user_id",
-      headerName: "User",
-      flex: 2,
-      editable: true,
-      type: "singleSelect",
-      valueOptions: users.map((u) => ({ value: u.id, label: u.name })),
-      renderCell: (params) => {
-        const user = users.find((u) => u.id === params.value);
-        return user ? user.name : "—";
-      },
-    },
-    {
-      field: "role_id",
-      headerName: "Role",
-      flex: 2,
-      editable: true,
-      type: "singleSelect",
-      valueOptions: roles.map((r) => ({ value: String(r.id), label: r.name })), // pastikan string
-      renderCell: (params) => {
-        const role = roles.find((r) => String(r.id) === String(params.value));
-        return role ? role.name : params.row.role_name; // fallback ke API role_name
-      },
-    },
+  const columns = embedded
+    ? [
+        {
+          field: "user_id",
+          headerName: "User",
+          flex: 2,
+          editable: false,
+          renderCell: (params) => {
+            const user = users.find((u) => u.id === params.value);
+            return user ? user.name : "—";
+          },
+        },
+        {
+          field: "role_id",
+          headerName: "Role",
+          flex: 2,
+          editable: false,
+          renderCell: (params) => {
+            const role = roles.find(
+              (r) => String(r.id) === String(params.value)
+            );
+            return role ? role.name : params.row.role_name; // fallback ke API role_name
+          },
+        },
+        {
+          field: "project_id",
+          headerName: "Project PN",
+          flex: 2,
+          editable: false,
+          renderCell: (params) => {
+            return params.row.project?.project_number || "—";
+          },
+        },
+      ]
+    : [
+        {
+          field: "actions",
+          type: "actions",
+          headerName: "Actions",
+          flex: 1,
+          getActions: (params) => [
+            <GridActionsCellItem
+              key="edit"
+              icon={<EditIcon />}
+              label="Edit Row"
+              onClick={() => handleEditRowClick(params.row)}
+            />,
+            <GridActionsCellItem
+              key="delete"
+              icon={<Typography color="error">🗑️</Typography>}
+              label="Delete"
+              onClick={() => handleDelete(params.row.id)}
+            />,
+          ],
+        },
+        {
+          field: "user_id",
+          headerName: "User",
+          flex: 2,
+          editable: true,
+          type: "singleSelect",
+          valueOptions: users.map((u) => ({ value: u.id, label: u.name })),
+          renderCell: (params) => {
+            const user = users.find((u) => u.id === params.value);
+            return user ? user.name : "—";
+          },
+        },
+        {
+          field: "role_id",
+          headerName: "Role",
+          flex: 2,
+          editable: true,
+          type: "singleSelect",
+          valueOptions: roles.map((r) => ({
+            value: String(r.id),
+            label: r.name,
+          })), // pastikan string
+          renderCell: (params) => {
+            const role = roles.find(
+              (r) => String(r.id) === String(params.value)
+            );
+            return role ? role.name : params.row.role_name; // fallback ke API role_name
+          },
+        },
 
-    {
-      field: "project_id",
-      headerName: "Project PN",
-      flex: 2,
-      editable: false,
-      renderCell: (params) => {
-        return params.row.project?.project_number || "—";
-      },
-    },
-  ];
+        {
+          field: "project_id",
+          headerName: "Project PN",
+          flex: 2,
+          editable: false,
+          renderCell: (params) => {
+            return params.row.project?.project_number || "—";
+          },
+        },
+      ];
 
   useEffect(() => {
     if (!pn_number) {
@@ -347,23 +399,24 @@ export default function ManPowerAllocationTable({
 
   const content = (
     <>
-      <div className="flex justify-end mb-2">
-        {/* Tombol Add Allocation Compact */}
-        <Tooltip title="Add Allocation">
-          <IconButton
-            color="primary"
-            onClick={() => setOpenCreateModal(true)}
-            sx={{
-              backgroundColor: "primary.main",
-              color: "white",
-              "&:hover": { backgroundColor: "primary.dark" },
-            }}
-          >
-            <Plus size={20} />
-          </IconButton>
-        </Tooltip>
-      </div>
-
+      {canAddManPower && (
+        <div className="flex justify-end mb-2">
+          {/* Tombol Add Allocation Compact */}
+          <Tooltip title="Add Allocation">
+            <IconButton
+              color="primary"
+              onClick={() => setOpenCreateModal(true)}
+              sx={{
+                backgroundColor: "primary.main",
+                color: "white",
+                "&:hover": { backgroundColor: "primary.dark" },
+              }}
+            >
+              <Plus size={20} />
+            </IconButton>
+          </Tooltip>
+        </div>
+      )}
       <DataGrid
         rows={allocations}
         columns={columns}
@@ -374,7 +427,7 @@ export default function ManPowerAllocationTable({
         rowsPerPageOptions={[10, 20, 50]}
         disableSelectionOnClick
         experimentalFeatures={{ newEditingApi: true }}
-        processRowUpdate={processRowUpdate}
+        processRowUpdate={embedded ? undefined : processRowUpdate}
         onProcessRowUpdateError={(error) => {
           console.error("Update error:", error);
           setSnackbar({
@@ -387,7 +440,6 @@ export default function ManPowerAllocationTable({
           row.id ?? `${row.project_id}-${row.user_id}-${row.role_id}`
         }
       />
-
       {/* Snackbar */}
       <Snackbar
         open={snackbar.open}
@@ -403,7 +455,6 @@ export default function ManPowerAllocationTable({
           {snackbar.message}
         </Alert>
       </Snackbar>
-
       {/* Confirm Cell Update */}
       <Dialog
         open={openCellConfirm}
@@ -482,7 +533,6 @@ export default function ManPowerAllocationTable({
           </Button>
         </DialogActions>
       </Dialog>
-
       <Dialog
         open={openRowModal || openCreateModal}
         onClose={() => {

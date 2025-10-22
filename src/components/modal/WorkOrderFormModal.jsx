@@ -502,75 +502,74 @@ export default function WorkOrderFormModal({
         {/* === SECTION: Schedule === */}
         <SectionCard title="Schedule & Work Time" icon={<EventIcon />}>
           <Grid container spacing={3}>
-            {/* === Planned Schedule === */}
+            {/* === Schedule Fields === */}
             <Grid item xs={12}>
-              <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                Planned Schedule
-              </Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    label="Planned Start Date"
-                    type="date"
-                    name="scheduled_start_working_date"
-                    value={form.scheduled_start_working_date}
-                    onChange={handleChange}
-                    InputLabelProps={{ shrink: true }}
-                    fullWidth
-                    helperText="The date when the work is planned to start"
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    label="Planned End Date"
-                    type="date"
-                    name="scheduled_end_working_date"
-                    value={form.scheduled_end_working_date}
-                    onChange={handleChange}
-                    InputLabelProps={{ shrink: true }}
-                    fullWidth
-                    helperText="The date when the work is planned to be completed"
-                  />
-                </Grid>
-              </Grid>
-            </Grid>
-
-            {/* === Actual Work Period === */}
-            <Grid item xs={12}>
-              <Typography
-                variant="subtitle1"
-                fontWeight="bold"
-                gutterBottom
-                mt={2}
+              <Box
+                sx={{ display: "flex", flexDirection: "row", gap: 2, mb: 2 }}
               >
-                Actual Work Period
-              </Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    label="Actual Start Date"
-                    type="date"
-                    name="actual_start_working_date"
-                    value={form.actual_start_working_date}
-                    onChange={handleChange}
-                    InputLabelProps={{ shrink: true }}
-                    fullWidth
-                    helperText="The actual date when the work started"
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    label="Actual End Date"
-                    type="date"
-                    name="actual_end_working_date"
-                    value={form.actual_end_working_date}
-                    onChange={handleChange}
-                    InputLabelProps={{ shrink: true }}
-                    fullWidth
-                    helperText="The actual date when the work was completed"
-                  />
-                </Grid>
-              </Grid>
+                <Box sx={{ flex: 1 }}>
+                  <Typography
+                    variant="subtitle1"
+                    fontWeight="bold"
+                    gutterBottom
+                  >
+                    Planned Schedule
+                  </Typography>
+                  <Box sx={{ display: "flex", gap: 2 }}>
+                    <TextField
+                      label="Start Date"
+                      type="date"
+                      name="scheduled_start_working_date"
+                      value={form.scheduled_start_working_date}
+                      onChange={handleChange}
+                      InputLabelProps={{ shrink: true }}
+                      fullWidth
+                      helperText="The date when the work is planned to start"
+                    />
+                    <TextField
+                      label="End Date"
+                      type="date"
+                      name="scheduled_end_working_date"
+                      value={form.scheduled_end_working_date}
+                      onChange={handleChange}
+                      InputLabelProps={{ shrink: true }}
+                      fullWidth
+                      helperText="The date when the work is planned to be completed"
+                    />
+                  </Box>
+                </Box>
+                <Box sx={{ flex: 1 }}>
+                  <Typography
+                    variant="subtitle1"
+                    fontWeight="bold"
+                    gutterBottom
+                  >
+                    Actual Work Period
+                  </Typography>
+                  <Box sx={{ display: "flex", gap: 2 }}>
+                    <TextField
+                      label="Start Date"
+                      type="date"
+                      name="actual_start_working_date"
+                      value={form.actual_start_working_date}
+                      onChange={handleChange}
+                      InputLabelProps={{ shrink: true }}
+                      fullWidth
+                      helperText="The actual date when the work started"
+                    />
+                    <TextField
+                      label="End Date"
+                      type="date"
+                      name="actual_end_working_date"
+                      value={form.actual_end_working_date}
+                      onChange={handleChange}
+                      InputLabelProps={{ shrink: true }}
+                      fullWidth
+                      helperText="The actual date when the work was completed"
+                    />
+                  </Box>
+                </Box>
+              </Box>
             </Grid>
 
             {/* === Daily Work Hours === */}
