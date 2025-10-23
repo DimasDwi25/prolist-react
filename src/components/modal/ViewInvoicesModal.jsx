@@ -47,7 +47,13 @@ const ViewInvoicesModal = ({
       const response = await api.get("/finance/invoices", {
         params: { project_id: projectId, year },
       });
-      setInvoices(response.data || []);
+      const invoicesData = response.data.invoices || [];
+      const invoicesWithOutstanding = invoicesData.map((invoice) => ({
+        ...invoice,
+        outstanding_payment:
+          invoice.invoice_value - (invoice.total_payment_amount || 0),
+      }));
+      setInvoices(invoicesWithOutstanding);
     } catch (error) {
       console.error("Failed to fetch invoices:", error);
       setInvoices([]);
@@ -190,6 +196,12 @@ const ViewInvoicesModal = ({
   };
 
   const columns = [
+    {
+      data: "actions",
+      title: "Actions",
+      renderer: actionsRenderer,
+      readOnly: true,
+    },
     { data: "invoice_id", title: "Invoice ID" },
     { data: "no_faktur", title: "No Faktur" },
     { data: "invoice_date", title: "Invoice Date", renderer: dateRenderer },
@@ -199,6 +211,16 @@ const ViewInvoicesModal = ({
       title: "Invoice Value",
       renderer: currencyRenderer,
     },
+    {
+      data: "total_payment_amount",
+      title: "Total Payment",
+      renderer: currencyRenderer,
+    },
+    {
+      data: "outstanding_payment",
+      title: "Outstanding Payment",
+      renderer: currencyRenderer,
+    },
     { data: "invoice_due_date", title: "Due Date", renderer: dateRenderer },
     {
       data: "payment_status",
@@ -206,12 +228,6 @@ const ViewInvoicesModal = ({
       renderer: statusRenderer,
     },
     { data: "remarks", title: "Remarks" },
-    {
-      data: "actions",
-      title: "Actions",
-      renderer: actionsRenderer,
-      readOnly: true,
-    },
   ];
 
   const filteredData = filterBySearch(invoices, searchTerm);

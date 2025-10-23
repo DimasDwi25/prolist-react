@@ -14,7 +14,10 @@ import {
   CircularProgress,
   Snackbar,
   Alert,
+  IconButton,
+  TextField,
 } from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
 import {
   Receipt,
   Building2,
@@ -25,16 +28,30 @@ import {
   XCircle,
   Clock,
 } from "lucide-react";
+import { Document, Page, pdfjs } from "react-pdf";
+import "react-pdf/dist/Page/AnnotationLayer.css";
+import "react-pdf/dist/Page/TextLayer.css";
 import api from "../../api/api";
 import { formatDate } from "../../utils/FormatDate";
+import { getUser } from "../../utils/storage";
+import ViewInvoicesModal from "./ViewInvoicesModal";
 
-export default function ViewRequestInvoiceModal({
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  "pdfjs-dist/build/pdf.worker.mjs",
+  import.meta.url
+).toString();
+
+export default function RequestInvoiceDetailModal({
   open,
   onClose,
   invoiceId,
-  invoiceData,
-  onDataUpdated,
 }) {
+  const user = getUser();
+  const isFinanceRole =
+    user?.role?.name === "acc_fin_manager" ||
+    user?.role?.name === "acc_fin_supervisor" ||
+    user?.role?.name === "finance_administration";
+
   const [invoice, setInvoice] = useState(null);
   const [loading, setLoading] = useState(false);
   const [snackbar, setSnackbar] = useState({
@@ -42,6 +59,16 @@ export default function ViewRequestInvoiceModal({
     message: "",
     severity: "success",
   });
+  const [openPdfModal, setOpenPdfModal] = useState(false);
+  const [selectedDoc, setSelectedDoc] = useState(null);
+  const [pdfUrl, setPdfUrl] = useState("");
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [pdfError, setPdfError] = useState(false);
+  const [openInvoicesModal, setOpenInvoicesModal] = useState(false);
+  const [openPinModal, setOpenPinModal] = useState(false);
+  const [pin, setPin] = useState("");
+  const [pinError, setPinError] = useState("");
+  const [approving, setApproving] = useState(false);
 
   useEffect(() => {
     if (open && invoiceId) {
@@ -49,10 +76,35 @@ export default function ViewRequestInvoiceModal({
     }
   }, [open, invoiceId]);
 
+  useEffect(() => {
+    if (selectedDoc) {
+      const fetchPdf = async () => {
+        setPdfLoading(true);
+        setPdfError(false);
+        try {
+          const res = await api.get(
+            `/document-preparations/${selectedDoc.document_preparation_id}/attachment`,
+            {
+              responseType: "blob",
+            }
+          );
+          const url = URL.createObjectURL(res.data);
+          setPdfUrl(url);
+        } catch (err) {
+          console.error("Error fetching PDF:", err);
+          setPdfError(true);
+        } finally {
+          setPdfLoading(false);
+        }
+      };
+      fetchPdf();
+    }
+  }, [selectedDoc]);
+
   const fetchInvoiceDetails = async () => {
     setLoading(true);
     try {
-      const response = await api.get(`/request-invoices/${invoiceId}`);
+      const response = await api.get(`/request-invoices-list/${invoiceId}`);
       setInvoice(response.data?.data || null);
     } catch (error) {
       console.error("Failed to fetch request invoice details:", error);
@@ -64,6 +116,47 @@ export default function ViewRequestInvoiceModal({
       setInvoice(null);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleApprove = async () => {
+    if (!pin.trim()) {
+      setPinError("PIN is required");
+      return;
+    }
+    setApproving(true);
+    setPinError("");
+    try {
+      const response = await api.post(
+        `/request-invoices-list/${invoiceId}/approve`,
+        {
+          pin: pin,
+        }
+      );
+      setSnackbar({
+        open: true,
+        message:
+          response.data.message || "Request invoice approved successfully",
+        severity: "success",
+      });
+      setOpenPinModal(false);
+      setPin("");
+      // Refresh the invoice details to update status
+      fetchInvoiceDetails();
+    } catch (error) {
+      console.error("Failed to approve request invoice:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to approve request invoice";
+      setSnackbar({
+        open: true,
+        message: errorMessage,
+        severity: "error",
+      });
+      if (errorMessage.includes("PIN")) {
+        setPinError(errorMessage);
+      }
+    } finally {
+      setApproving(false);
     }
   };
 
@@ -135,6 +228,9 @@ export default function ViewRequestInvoiceModal({
             borderColor: "divider",
             pb: 2,
             background: "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
           }}
         >
           <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
@@ -154,6 +250,15 @@ export default function ViewRequestInvoiceModal({
               </Typography>
             </Box>
           </Box>
+          <IconButton
+            aria-label="close"
+            onClick={onClose}
+            sx={{
+              color: (theme) => theme.palette.grey[500],
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
         </DialogTitle>
 
         <DialogContent dividers sx={{ py: 4, px: 4 }}>
@@ -381,23 +486,18 @@ export default function ViewRequestInvoiceModal({
                       sx={{ fontWeight: 600, color: "primary.main", mb: 1 }}
                     >
                       Document {index + 1}:{" "}
-                      {doc.document_preparation?.name || "Unknown"}
+                      {doc.document_preparation?.name ||
+                        `${doc.document_preparation.document.name}`}
                     </Typography>
                     <Grid container spacing={2}>
                       <Grid size={{ xs: 12, md: 4 }}>
                         <Typography variant="caption" color="text.secondary">
-                          Attached:
+                          Attached File:
                         </Typography>
                         <Typography variant="body2">
-                          {doc.is_attached ? "Yes" : "No"}
-                        </Typography>
-                      </Grid>
-                      <Grid size={{ xs: 12, md: 4 }}>
-                        <Typography variant="caption" color="text.secondary">
-                          Attachment Path:
-                        </Typography>
-                        <Typography variant="body2">
-                          {doc.attachment_path || "Not specified"}
+                          {doc.document_preparation?.attachment_path
+                            ? "Yes"
+                            : "No"}
                         </Typography>
                       </Grid>
                       <Grid size={{ xs: 12, md: 4 }}>
@@ -409,6 +509,57 @@ export default function ViewRequestInvoiceModal({
                         </Typography>
                       </Grid>
                     </Grid>
+                    {doc.document_preparation?.attachment_path && (
+                      <Box sx={{ mt: 2, display: "flex", gap: 1 }}>
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          onClick={() => {
+                            setSelectedDoc(doc);
+                            setOpenPdfModal(true);
+                          }}
+                          sx={{
+                            textTransform: "none",
+                            borderRadius: 2,
+                          }}
+                        >
+                          👁️ View Document
+                        </Button>
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          onClick={async () => {
+                            try {
+                              const res = await api.get(
+                                `/document-preparations/${doc.document_preparation_id}/attachment`,
+                                {
+                                  responseType: "blob",
+                                }
+                              );
+                              const url = URL.createObjectURL(res.data);
+                              const link = document.createElement("a");
+                              link.href = url;
+                              link.download = `${
+                                doc.document_preparation?.name ||
+                                `Document Preparation ID: ${doc.document_preparation_id}`
+                              }.pdf`;
+                              document.body.appendChild(link);
+                              link.click();
+                              document.body.removeChild(link);
+                              URL.revokeObjectURL(url);
+                            } catch (err) {
+                              console.error("Error downloading PDF:", err);
+                            }
+                          }}
+                          sx={{
+                            textTransform: "none",
+                            borderRadius: 2,
+                          }}
+                        >
+                          📥 Download Document
+                        </Button>
+                      </Box>
+                    )}
                   </Paper>
                 ))}
               </Box>
@@ -429,8 +580,42 @@ export default function ViewRequestInvoiceModal({
             borderColor: "divider",
             gap: 2,
             bgcolor: "grey.50",
+            justifyContent: isFinanceRole ? "space-between" : "flex-end",
           }}
         >
+          {isFinanceRole && (
+            <Box sx={{ display: "flex", gap: 2 }}>
+              <Button
+                variant="contained"
+                color="success"
+                sx={{
+                  px: 3,
+                  fontWeight: 600,
+                  textTransform: "none",
+                  borderRadius: 2,
+                }}
+                onClick={() => setOpenPinModal(true)}
+                disabled={invoice.status !== "pending"}
+              >
+                Accept
+              </Button>
+              <Button
+                variant="contained"
+                color="primary"
+                sx={{
+                  px: 3,
+                  fontWeight: 600,
+                  textTransform: "none",
+                  borderRadius: 2,
+                }}
+                onClick={() => {
+                  setOpenInvoicesModal(true);
+                }}
+              >
+                Create Invoice
+              </Button>
+            </Box>
+          )}
           <Button
             onClick={onClose}
             color="inherit"
@@ -447,6 +632,14 @@ export default function ViewRequestInvoiceModal({
         </DialogActions>
       </Dialog>
 
+      {/* View Invoices Modal */}
+      <ViewInvoicesModal
+        open={openInvoicesModal}
+        onClose={() => setOpenInvoicesModal(false)}
+        projectId={invoice?.project?.pn_number}
+        year={new Date().getFullYear()}
+      />
+
       {/* Snackbar */}
       <Snackbar
         open={snackbar.open}
@@ -462,6 +655,188 @@ export default function ViewRequestInvoiceModal({
           {snackbar.message}
         </Alert>
       </Snackbar>
+
+      {/* PIN Modal */}
+      <Dialog
+        open={openPinModal}
+        onClose={() => {
+          setOpenPinModal(false);
+          setPin("");
+          setPinError("");
+        }}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle
+          sx={{
+            fontSize: "1.5rem",
+            fontWeight: 700,
+            color: "text.primary",
+            borderBottom: 1,
+            borderColor: "divider",
+            pb: 2,
+          }}
+        >
+          Enter PIN to Approve
+        </DialogTitle>
+        <DialogContent sx={{ py: 3 }}>
+          <Typography variant="body1" sx={{ mb: 2 }}>
+            Please enter your PIN to approve this request invoice.
+          </Typography>
+          <TextField
+            label="PIN"
+            type="password"
+            fullWidth
+            value={pin}
+            onChange={(e) => setPin(e.target.value)}
+            error={!!pinError}
+            helperText={pinError}
+            sx={{ mt: 1 }}
+          />
+        </DialogContent>
+        <DialogActions
+          sx={{
+            p: 3,
+            borderTop: 1,
+            borderColor: "divider",
+            gap: 2,
+            bgcolor: "grey.50",
+          }}
+        >
+          <Button
+            onClick={() => {
+              setOpenPinModal(false);
+              setPin("");
+              setPinError("");
+            }}
+            color="inherit"
+            variant="outlined"
+            sx={{
+              px: 3,
+              fontWeight: 600,
+              textTransform: "none",
+              borderRadius: 2,
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleApprove}
+            variant="contained"
+            color="success"
+            disabled={approving}
+            sx={{
+              px: 3,
+              fontWeight: 600,
+              textTransform: "none",
+              borderRadius: 2,
+            }}
+          >
+            {approving ? <CircularProgress size={20} /> : "Approve"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* PDF Modal */}
+      <Dialog
+        open={openPdfModal}
+        onClose={() => {
+          setOpenPdfModal(false);
+          setSelectedDoc(null);
+          setPdfUrl("");
+          setPdfError(false);
+        }}
+        fullWidth
+        maxWidth="lg"
+      >
+        <DialogTitle
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          📄 View Document: {selectedDoc?.document_preparation?.name}
+          <IconButton
+            aria-label="close"
+            onClick={() => {
+              setOpenPdfModal(false);
+              setSelectedDoc(null);
+              setPdfUrl("");
+              setPdfError(false);
+            }}
+            sx={{
+              color: (theme) => theme.palette.grey[500],
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers>
+          {pdfLoading && (
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                height: 400,
+              }}
+            >
+              <CircularProgress />
+            </Box>
+          )}
+          {pdfError && (
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+                alignItems: "center",
+                height: 400,
+              }}
+            >
+              <Typography variant="h6" color="error">
+                Error loading PDF
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Unable to load the document. Please try again later.
+              </Typography>
+            </Box>
+          )}
+          {!pdfLoading && !pdfError && pdfUrl && (
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                flexDirection: "column",
+              }}
+            >
+              <Document
+                file={pdfUrl}
+                onLoadSuccess={() => setPdfLoading(false)}
+                onLoadError={() => setPdfError(true)}
+                loading={<CircularProgress />}
+              >
+                <Page pageNumber={1} />
+              </Document>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => {
+              setOpenPdfModal(false);
+              setSelectedDoc(null);
+              setPdfUrl("");
+              setPdfError(false);
+            }}
+            variant="outlined"
+          >
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }

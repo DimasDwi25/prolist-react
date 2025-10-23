@@ -28,25 +28,27 @@ const DashboardCard = ({ title, value, color, icon, onViewClick }) => {
   const displayValue = value === 0 ? "No data" : value || "No data available";
   return (
     <div
-      className={`bg-white shadow rounded-xl p-3 sm:p-4 lg:p-6 xl:p-8 2xl:p-10 flex flex-col justify-center kpi-card relative`}
+      className={`bg-white shadow rounded-xl p-6 lg:p-8 xl:p-10 2xl:p-12 3xl:p-16 flex flex-col justify-center kpi-card relative`}
     >
       {/* Value + Icon */}
       <div className="flex items-center justify-between">
         <div
-          className={`font-bold ${color.text} kpi-value text-lg lg:text-xl xl:text-2xl 2xl:text-3xl`}
+          className={`font-bold ${color.text} kpi-value text-2xl lg:text-3xl xl:text-4xl 2xl:text-5xl 3xl:text-6xl`}
         >
           {displayValue}
         </div>
-        <div className={`${color.bg} p-2 sm:p-3 lg:p-4 2xl:p-5 rounded-lg`}>
+        <div
+          className={`${color.bg} p-4 lg:p-6 xl:p-8 2xl:p-10 3xl:p-12 rounded-lg`}
+        >
           {React.cloneElement(icon, {
-            size: window.innerWidth > 2500 ? 36 : 28,
+            size: 48,
             className: "icon-size",
           })}
         </div>
       </div>
 
       {/* Title */}
-      <p className="mt-3 text-gray-600 kpi-title text-sm lg:text-base xl:text-lg 2xl:text-xl">
+      <p className="mt-6 text-gray-600 kpi-title text-lg lg:text-xl xl:text-2xl 2xl:text-3xl 3xl:text-4xl">
         {title}
       </p>
 
@@ -56,20 +58,20 @@ const DashboardCard = ({ title, value, color, icon, onViewClick }) => {
           onClick={onViewClick}
           sx={{
             position: "absolute",
-            top: 8,
-            right: 8,
+            top: 16,
+            right: 16,
             color: "#6b7280",
             "&:hover": { color: "#374151" },
           }}
         >
-          <Visibility fontSize="small" />
+          <Visibility fontSize="large" />
         </IconButton>
       )}
     </div>
   );
 };
 
-export default function EngineerDashboard() {
+export default function EngineerDashboard4K() {
   const [stats, setStats] = useState(null);
   const [workOrdersThisMonth, setWorkOrdersThisMonth] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -94,7 +96,7 @@ export default function EngineerDashboard() {
           {
             label: "On Time",
             font: {
-              size: window.innerWidth > 2500 ? 18 : 12, // auto-scale
+              size: 24,
             },
             data: data.onTimeProjects,
             borderColor: "#10b981",
@@ -104,7 +106,7 @@ export default function EngineerDashboard() {
           {
             label: "Late",
             font: {
-              size: window.innerWidth > 2500 ? 18 : 12, // auto-scale
+              size: 24,
             },
             data: data.lateProjects,
             borderColor: "#ef4444",
@@ -120,12 +122,12 @@ export default function EngineerDashboard() {
       scales: {
         x: {
           ticks: {
-            font: { size: window.innerWidth > 2500 ? 16 : 12 },
+            font: { size: 20 },
           },
         },
         y: {
           ticks: {
-            font: { size: window.innerWidth > 2500 ? 16 : 12 },
+            font: { size: 20 },
           },
         },
       },
@@ -141,7 +143,7 @@ export default function EngineerDashboard() {
           "Outstanding Projects (Not Overdue)",
         ],
         font: {
-          size: window.innerWidth > 2500 ? 18 : 12, // auto-scale
+          size: 24,
         },
         datasets: [
           {
@@ -154,12 +156,12 @@ export default function EngineerDashboard() {
       scales: {
         x: {
           ticks: {
-            font: { size: window.innerWidth > 2500 ? 16 : 12 },
+            font: { size: 20 },
           },
         },
         y: {
           ticks: {
-            font: { size: window.innerWidth > 2500 ? 16 : 12 },
+            font: { size: 20 },
           },
         },
       },
@@ -196,8 +198,8 @@ export default function EngineerDashboard() {
 
   if (loading || !stats) return <LoadingScreen />;
 
-  const tableHeight = window.innerWidth > 2500 ? 400 : 200;
-  const largeTableHeight = window.innerWidth > 2500 ? 500 : 300;
+  const tableHeight = 600;
+  const largeTableHeight = 800;
 
   const handleViewClick = (type) => {
     if (type === "overdue") {
@@ -263,7 +265,7 @@ export default function EngineerDashboard() {
           title: "WO Code",
           type: "text",
           editor: false,
-          width: 120,
+          width: 160,
         },
         {
           data: "wo_date",
@@ -271,7 +273,7 @@ export default function EngineerDashboard() {
           type: "date",
           dateFormat: "YYYY-MM-DD",
           editor: false,
-          width: 100,
+          width: 140,
           renderer: dateRenderer,
         },
         {
@@ -279,28 +281,28 @@ export default function EngineerDashboard() {
           title: "Project Name",
           type: "text",
           editor: false,
-          width: 150,
+          width: 200,
         },
         {
           data: "client_name",
           title: "Client Name",
           type: "text",
           editor: false,
-          width: 150,
+          width: 200,
         },
         {
           data: "created_by",
           title: "Created By",
           type: "text",
           editor: false,
-          width: 100,
+          width: 140,
         },
         {
           data: "pic_names",
           title: "PIC Names",
           type: "text",
           editor: false,
-          width: 120,
+          width: 160,
         },
       ]);
       setModalTitle("Work Orders This Month");
@@ -317,42 +319,42 @@ export default function EngineerDashboard() {
       title: "Project Outstanding (Overdue)",
       value: stats.projectOverdue,
       color: { bg: "bg-red-100", text: "text-red-600" },
-      icon: <FaExclamationTriangle size={22} />,
+      icon: <FaExclamationTriangle size={32} />,
       onViewClick: () => handleViewClick("overdue"),
     },
     {
       title: "Due This Month",
       value: stats.projectDueThisMonth,
       color: { bg: "bg-yellow-100", text: "text-yellow-600" },
-      icon: <FaClock size={22} />,
+      icon: <FaClock size={32} />,
       onViewClick: () => handleViewClick("dueThisMonth"),
     },
     {
       title: "Project Outstanding (Not Overdue)",
       value: stats.projectOnTrack,
       color: { bg: "bg-purple-100", text: "text-purple-600" },
-      icon: <FaCheckCircle size={22} />,
+      icon: <FaCheckCircle size={32} />,
       onViewClick: () => handleViewClick("onTrack"),
     },
     {
       title: "Total Outstanding Projects",
       value: stats.totalOutstandingProjects,
       color: { bg: "bg-orange-100", text: "text-orange-600" },
-      icon: <FaProjectDiagram size={22} />,
+      icon: <FaProjectDiagram size={32} />,
     },
     {
       title: "Work Orders (This Month)",
       value: stats.totalWorkOrders,
       color: { bg: "bg-blue-100", text: "text-blue-600" },
-      icon: <FaUsersCog size={22} />,
+      icon: <FaUsersCog size={32} />,
       onViewClick: () => handleViewClick("workOrders"),
     },
   ];
 
   return (
-    <div className="w-full p-4 lg:p-6 space-y-16 bg-gray-50">
+    <div className="w-full p-2 lg:p-4 xl:p-6 space-y-4 bg-gray-50 min-h-screen">
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {cards.map((c, i) => (
           <DashboardCard key={i} {...c} />
         ))}
@@ -360,17 +362,17 @@ export default function EngineerDashboard() {
 
       {/* Chart */}
       <div
-        className="grid grid-cols-1 lg:grid-cols-2 gap-8
-                    h-auto lg:h-[30vh] 2xl:h-[40vh]"
+        className="grid grid-cols-1 lg:grid-cols-2 gap-4
+                    h-auto lg:h-[25vh] 2xl:h-[30vh] 3xl:h-[35vh]"
       >
-        <div className="bg-white shadow rounded-xl p-6 flex flex-col min-h-[250px] 2xl:min-h-[350px]">
-          <h2 className="text-sm sm:text-base lg:text-lg xl:text-xl 2xl:text-2xl font-semibold">
-            <FaChartLine className="text-green-500" /> Project Finish Recap
+        <div className="bg-white shadow rounded-xl p-2 lg:p-4 flex flex-col min-h-[200px] 2xl:min-h-[250px] 3xl:min-h-[300px]">
+          <h2 className="text-xl lg:text-2xl xl:text-3xl 2xl:text-4xl 3xl:text-5xl font-semibold">
+            <FaChartLine className="text-green-500" /> Completion Trend
           </h2>
           <canvas id="lineChart" className="flex-1"></canvas>
         </div>
-        <div className="bg-white shadow rounded-xl p-6 flex flex-col min-h-[250px] 2xl:min-h-[350px]">
-          <h2 className="text-sm sm:text-base lg:text-lg xl:text-xl 2xl:text-2xl font-semibold">
+        <div className="bg-white shadow rounded-xl p-2 lg:p-4 flex flex-col min-h-[200px] 2xl:min-h-[250px] 3xl:min-h-[300px]">
+          <h2 className="text-xl lg:text-2xl xl:text-3xl 2xl:text-4xl 3xl:text-5xl font-semibold">
             <FaChartPie className="text-purple-500" /> Outstanding Project
             Status
           </h2>
@@ -378,13 +380,13 @@ export default function EngineerDashboard() {
         </div>
       </div>
       {/* Utilization + Top 5 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="bg-white shadow rounded-xl p-6 flex flex-col min-h-[300px] gap-4">
-          <h2 className="text-base lg:text-lg font-semibold flex items-center gap-2">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="bg-white shadow rounded-xl p-2 lg:p-4 flex flex-col min-h-[400px] gap-2">
+          <h2 className="text-xl lg:text-2xl xl:text-3xl 3xl:text-4xl font-semibold flex items-center gap-4">
             <FaUsersCog className="text-blue-500" /> Work Orders This Month
           </h2>
           {workOrdersThisMonth.length === 0 ? (
-            <p className="text-center text-gray-500 mt-4">
+            <p className="text-center text-gray-500 mt-2">
               No work orders this month.
             </p>
           ) : (
@@ -406,7 +408,7 @@ export default function EngineerDashboard() {
                       title: "WO Code",
                       type: "text",
                       editor: false,
-                      width: 120,
+                      width: 200,
                     },
                     {
                       data: "wo_date",
@@ -414,7 +416,7 @@ export default function EngineerDashboard() {
                       type: "date",
                       dateFormat: "YYYY-MM-DD",
                       editor: false,
-                      width: 100,
+                      width: 180,
                       renderer: dateRenderer,
                     },
                     {
@@ -422,14 +424,14 @@ export default function EngineerDashboard() {
                       title: "Project Name",
                       type: "text",
                       editor: false,
-                      width: 150,
+                      width: 250,
                     },
                     {
                       data: "client_name",
                       title: "Client Name",
                       type: "text",
                       editor: false,
-                      width: 150,
+                      width: 250,
                       renderer: (instance, td, row, col, prop, value) => {
                         td.innerText = value || "-";
                         return td;
@@ -440,14 +442,14 @@ export default function EngineerDashboard() {
                       title: "Created By",
                       type: "text",
                       editor: false,
-                      width: 100,
+                      width: 180,
                     },
                     {
                       data: "pic_names",
                       title: "PIC Names",
                       type: "text",
                       editor: false,
-                      width: 120,
+                      width: 200,
                     },
                   ]}
                   stretchH="all"
@@ -461,13 +463,13 @@ export default function EngineerDashboard() {
           )}
         </div>
 
-        <div className="bg-white shadow rounded-xl p-6 flex flex-col min-h-[300px]">
-          <h2 className="text-base lg:text-lg font-semibold flex items-center gap-2">
-            <FaProjectDiagram className="text-blue-500" /> Overdue Projects
-            Recap
+        <div className="bg-white shadow rounded-xl p-2 lg:p-4 flex flex-col min-h-[400px]">
+          <h2 className="text-xl lg:text-2xl xl:text-3xl 3xl:text-4xl font-semibold flex items-center gap-4">
+            <FaProjectDiagram className="text-blue-500" /> Top 5 Overdue
+            Projects
           </h2>
           {stats.top5Overdue.length === 0 ? (
-            <p className="text-center text-gray-500 mt-4">
+            <p className="text-center text-gray-500 mt-2">
               No overdue projects.
             </p>
           ) : (
@@ -485,32 +487,49 @@ export default function EngineerDashboard() {
                     "Status",
                   ]}
                   columns={[
-                    { data: "pn_number", type: "text", editor: false },
-                    { data: "project_name", type: "text", editor: false },
+                    {
+                      data: "pn_number",
+                      type: "text",
+                      editor: false,
+                      width: 150,
+                    },
+                    {
+                      data: "project_name",
+                      type: "text",
+                      editor: false,
+                      width: 200,
+                    },
                     {
                       data: "client_name",
                       title: "Client Name",
                       type: "text",
                       editor: false,
+                      width: 200,
                       renderer: (instance, td, row, col, prop, value) => {
                         td.innerText = value || "-";
                         return td;
                       },
                     },
-                    { data: "pic", type: "text", editor: false },
+                    { data: "pic", type: "text", editor: false, width: 150 },
                     {
                       data: "target_dates",
                       type: "date",
                       dateFormat: "YYYY-MM-DD",
                       editor: false,
+                      width: 180,
                       renderer: (instance, td, row, col, prop, value) => {
                         const displayValue = value ? formatDate(value) : "";
                         td.innerHTML = displayValue;
                         return td;
                       },
                     },
-                    { data: "delay_days", type: "numeric", editor: false },
-                    { data: "status", type: "text", editor: false },
+                    {
+                      data: "delay_days",
+                      type: "numeric",
+                      editor: false,
+                      width: 120,
+                    },
+                    { data: "status", type: "text", editor: false, width: 120 },
                   ]}
                   stretchH="all"
                   height={largeTableHeight}
@@ -523,21 +542,21 @@ export default function EngineerDashboard() {
         </div>
       </div>
       {/* Upcoming Projects */}
-      <div className="bg-white shadow rounded-xl p-6 flex flex-col min-h-[200px]">
-        <h2 className="text-base lg:text-lg font-semibold flex items-center gap-2">
-          <FaCalendarAlt className="text-indigo-500" /> Upcoming Projects Next
-          Month
+      <div className="bg-white shadow rounded-xl p-2 lg:p-4 flex flex-col min-h-[200px]">
+        <h2 className="text-xl lg:text-2xl xl:text-3xl 3xl:text-4xl font-semibold flex items-center gap-4">
+          <FaCalendarAlt className="text-indigo-500" /> Upcoming Projects (Next
+          30 days)
         </h2>
-        <div className="flex-1 mt-4">
+        <div className="flex-1 mt-2">
           {stats.upcomingProjects.length === 0 ? (
-            <p className="text-center text-gray-500 mt-4">
+            <p className="text-center text-gray-500 mt-2">
               No upcoming projects in the next 30 days.
             </p>
           ) : (
             <div className="table-wrapper">
               <div className="table-inner">
                 <HotTable
-                  data={stats.upcomingProjects}
+                  data={stats.upcomingProjects.slice(0, 5)}
                   colHeaders={[
                     "PN Number",
                     "Project Name",
@@ -546,13 +565,14 @@ export default function EngineerDashboard() {
                     "Status",
                   ]}
                   columns={[
-                    { data: "pn_number", type: "text" },
-                    { data: "project_name", type: "text" },
+                    { data: "pn_number", type: "text", width: 150 },
+                    { data: "project_name", type: "text", width: 200 },
                     {
                       data: "client_name",
                       title: "Client Name",
                       type: "text",
                       editor: false,
+                      width: 200,
                       renderer: (instance, td, row, col, prop, value) => {
                         td.innerText = value || "-";
                         return td;
@@ -562,13 +582,14 @@ export default function EngineerDashboard() {
                       data: "target_dates",
                       type: "date",
                       dateFormat: "YYYY-MM-DD",
+                      width: 180,
                       renderer: (instance, td, row, col, prop, value) => {
                         const displayValue = value ? formatDate(value) : "";
                         td.innerHTML = displayValue;
                         return td;
                       },
                     },
-                    { data: "status", type: "text" },
+                    { data: "status", type: "text", width: 120 },
                   ]}
                   stretchH="all"
                   height={tableHeight}
@@ -594,12 +615,12 @@ export default function EngineerDashboard() {
             top: "50%",
             left: "50%",
             transform: "translate(-50%, -50%)",
-            width: "90%",
-            maxWidth: 1200,
-            maxHeight: "80%",
+            width: "95%",
+            maxWidth: 1600,
+            maxHeight: "85%",
             bgcolor: "background.paper",
             boxShadow: 24,
-            p: 4,
+            p: 6,
             borderRadius: 2,
             overflow: "hidden",
           }}
@@ -609,10 +630,10 @@ export default function EngineerDashboard() {
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
-              mb: 2,
+              mb: 4,
             }}
           >
-            <Typography id="modal-title" variant="h6" component="h2">
+            <Typography id="modal-title" variant="h5" component="h2">
               {modalTitle}
             </Typography>
             <IconButton onClick={() => setModalOpen(false)}>
@@ -635,7 +656,7 @@ export default function EngineerDashboard() {
                   data={modalData}
                   colHeaders={modalColumns.map((c) => c.title)}
                   columns={modalColumns}
-                  height={500}
+                  height={700}
                   stretchH="all"
                   manualColumnResize={true}
                   licenseKey="non-commercial-and-evaluation"

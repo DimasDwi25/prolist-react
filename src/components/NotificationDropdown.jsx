@@ -72,6 +72,7 @@ export default function NotificationDropdown({ notifications, onRead }) {
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
             transition={{ duration: 0.2 }}
             className="absolute right-0 mt-3 w-96 bg-white border border-gray-200 rounded-xl shadow-2xl z-50 overflow-hidden"
+            style={{ zIndex: 9999 }}
           >
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-gradient-to-r from-primary-50 to-primary-100">

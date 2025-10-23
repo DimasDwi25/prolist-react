@@ -4,15 +4,14 @@ import { getClientName } from "../../utils/getClientName";
 
 export default function FinanceDashboard() {
   const [data, setData] = useState(null);
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const fetchDashboardData = async (year) => {
+  const fetchDashboardData = async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await api.get(`/finance/dashboard?year=${year}`);
+      const response = await api.get(`/finance/dashboard`);
       setData(response.data);
     } catch (err) {
       setError("Failed to fetch dashboard data");
@@ -23,8 +22,8 @@ export default function FinanceDashboard() {
   };
 
   useEffect(() => {
-    fetchDashboardData(selectedYear);
-  }, [selectedYear]);
+    fetchDashboardData();
+  }, []);
 
   const formatCurrency = (value) => {
     return new Intl.NumberFormat("id-ID", {
@@ -33,12 +32,6 @@ export default function FinanceDashboard() {
       minimumFractionDigits: 0,
     }).format(value);
   };
-
-  const yearOptions = [];
-  const currentYear = new Date().getFullYear();
-  for (let year = currentYear; year >= currentYear - 5; year--) {
-    yearOptions.push(year);
-  }
 
   if (loading) {
     return (
@@ -72,26 +65,6 @@ export default function FinanceDashboard() {
             <p className="text-gray-600 mt-1">
               Overview of financial metrics and project status
             </p>
-          </div>
-          <div className="flex items-center space-x-4">
-            <label
-              htmlFor="year-select"
-              className="text-sm font-medium text-gray-700"
-            >
-              Select Year:
-            </label>
-            <select
-              id="year-select"
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-              className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {yearOptions.map((year) => (
-                <option key={year} value={year}>
-                  {year}
-                </option>
-              ))}
-            </select>
           </div>
         </div>
       </div>
@@ -309,7 +282,7 @@ export default function FinanceDashboard() {
           </div>
         ) : (
           <p className="text-gray-500 text-center py-4">
-            No incomplete payments found for the selected year.
+            No incomplete payments found.
           </p>
         )}
       </div>

@@ -13,19 +13,17 @@ import {
 import ReactDOM from "react-dom";
 
 import api from "../../api/api";
-import ViewInvoicesModal from "../../components/modal/ViewInvoicesModal";
-// import { getUser } from "../../utils/storage";
+import RequestInvoiceDetailModal from "../../components/modal/RequestInvoiceDetailModal";
 import LoadingOverlay from "../../components/loading/LoadingOverlay";
 import FilterBar from "../../components/filter/FilterBar";
-import DashboardCard from "../../components/card/DashboardCard";
+import ColumnVisibilityModal from "../../components/ColumnVisibilityModal";
 import { filterBySearch } from "../../utils/filter";
-import { formatValue } from "../../utils/formatValue";
-import { getClientName } from "../../utils/getClientName";
+import { formatDate } from "../../utils/FormatDate";
 
-export default function InvoiceSummary() {
+export default function RequestInvoiceTable() {
   const hotTableRef = useRef(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [invoiceSummaries, setInvoiceSummaries] = useState([]);
+  const [requestInvoices, setRequestInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
@@ -36,7 +34,8 @@ export default function InvoiceSummary() {
     severity: "success",
   });
   const [openViewModal, setOpenViewModal] = useState(false);
-  const [selectedProjectId, setSelectedProjectId] = useState(null);
+  const [selectedRequestInvoiceId, setSelectedRequestInvoiceId] =
+    useState(null);
 
   const [filters, setFilters] = useState({
     year: new Date().getFullYear(),
@@ -47,11 +46,8 @@ export default function InvoiceSummary() {
   });
 
   const [stats, setStats] = useState({
-    availableYears: [new Date().getFullYear(), new Date().getFullYear() + 1],
+    availableYears: [new Date().getFullYear()],
   });
-
-  // const user = getUser();
-  // const userRole = user?.role?.name?.toLowerCase();
 
   // Definisi kolom
   const allColumns = useMemo(
@@ -70,31 +66,21 @@ export default function InvoiceSummary() {
           wrapper.style.alignItems = "center";
           wrapper.style.gap = "6px"; // jarak antar tombol
 
-          // Invoice button
+          // 👁️ View button
           const viewBtn = document.createElement("button");
           viewBtn.style.cursor = "pointer";
-          viewBtn.style.border = "1px solid #1976d2";
-          viewBtn.style.background = "#1976d2";
-          viewBtn.style.color = "white";
-          viewBtn.style.padding = "2px 6px";
-          viewBtn.style.borderRadius = "4px";
-          viewBtn.style.fontSize = "11px";
-          viewBtn.style.fontWeight = "500";
-          viewBtn.title = "Invoice";
-          viewBtn.innerText = "invoice";
+          viewBtn.style.border = "none";
+          viewBtn.style.background = "transparent";
+          viewBtn.title = "View";
 
-          // Hover effect
-          viewBtn.onmouseover = () => {
-            viewBtn.style.background = "#1565c0";
-          };
-          viewBtn.onmouseout = () => {
-            viewBtn.style.background = "#1976d2";
-          };
+          const icon = document.createElement("span");
+          icon.innerHTML = "👁️";
+          viewBtn.appendChild(icon);
 
           viewBtn.onclick = () => {
-            const project = instance.getSourceDataAtRow(row);
-            if (project?.pn_number) {
-              setSelectedProjectId(project.pn_number);
+            const requestInvoice = instance.getSourceDataAtRow(row);
+            if (requestInvoice?.id) {
+              setSelectedRequestInvoiceId(requestInvoice.id);
               setOpenViewModal(true);
             }
           };
@@ -104,98 +90,57 @@ export default function InvoiceSummary() {
           return td;
         },
       },
-      { data: "pn_number", title: "PN Number" },
+      { data: "request_invoice_number", title: "Request Invoice Number" },
       { data: "project_name", title: "Project Name" },
-      { data: "client", title: "Client" },
+      { data: "client_name", title: "Client" },
+      { data: "requested_by_name", title: "Requested By" },
+      { data: "approved_by_name", title: "Approved By" },
       {
-        data: "project_value",
-        title: "Project Value",
+        data: "created_at",
+        title: "Created At",
         renderer: (instance, td, row, col, prop, value) => {
-          td.style.fontWeight = "600";
-          td.style.color = "green";
-          td.innerText = formatValue(value).formatted;
+          td.innerText = formatDate(value);
           return td;
         },
       },
-      {
-        data: "invoice_total",
-        title: "Invoice Total",
-        renderer: (instance, td, row, col, prop, value) => {
-          td.style.fontWeight = "600";
-          td.style.color = "green";
-          td.innerText = formatValue(value).formatted;
-          return td;
-        },
-      },
-      {
-        data: "payment_total",
-        title: "Payment Total",
-        renderer: (instance, td, row, col, prop, value) => {
-          td.style.fontWeight = "600";
-          td.style.color = "green";
-          td.innerText = formatValue(value).formatted;
-          return td;
-        },
-      },
-      {
-        data: "outstanding_invoice",
-        title: "Outstanding Invoice",
-        renderer: (instance, td, row, col, prop, value) => {
-          td.style.fontWeight = "600";
-          td.style.color = "green";
-          td.innerText = formatValue(value).formatted;
-          return td;
-        },
-      },
-      {
-        data: "outstanding_amount",
-        title: "Outstanding Amount",
-        renderer: (instance, td, row, col, prop, value) => {
-          td.style.fontWeight = "600";
-          td.style.color = "green";
-          td.innerText = formatValue(value).formatted;
-          return td;
-        },
-      },
-      {
-        data: "invoice_progress",
-        title: "Invoice Progress (%)",
-        renderer: (instance, td, row, col, prop, value) => {
-          td.style.fontWeight = "600";
-          td.style.color = "blue";
-          td.innerText = `${value}%`;
-          return td;
-        },
-      },
-      { data: "remarks", title: "Remarks" },
+      { data: "status", title: "Status" },
     ],
     []
   );
 
+  const initialVisibility = {};
+  allColumns.forEach((col) => {
+    initialVisibility[col.data] = true; // semua kolom default visible
+  });
+  const [columnVisibility, setColumnVisibility] = useState(initialVisibility);
+
+  const handleToggleColumn = (field) => {
+    setColumnVisibility((prev) => ({
+      ...prev,
+      [field]: !prev[field],
+    }));
+  };
+
   const fetchData = async () => {
     setLoading(true);
     try {
-      const response = await api.get("/finance/invoice-summary", {
+      const response = await api.get("/request-invoices-list", {
         params: filters,
       });
       const data = response.data || {};
-      setInvoiceSummaries(data.projects || []);
-      // Summary stats can be calculated later if needed
+      setRequestInvoices(data.data || []);
       setStats((prev) => ({
         ...prev,
-        availableYears: data.availableYears || [
-          new Date().getFullYear(),
-          new Date().getFullYear() + 1,
-        ],
+        availableYears: data.availableYears || [new Date().getFullYear()],
       }));
     } catch (err) {
       console.error(err.response?.data || err);
       setSnackbar({
         open: true,
-        message: "Failed to fetch invoice summary data",
+        message: "Failed to fetch request invoices data",
         severity: "error",
       });
-      setInvoiceSummaries([]);
+      setRequestInvoices([]);
     } finally {
       setLoading(false);
     }
@@ -228,19 +173,17 @@ export default function InvoiceSummary() {
     setPage(0);
   };
 
-  const filteredData = filterBySearch(invoiceSummaries, searchTerm).map(
+  const filteredData = filterBySearch(requestInvoices, searchTerm).map(
     (item) => ({
       actions: "👁️",
-      pn_number: item.pn_number || "",
-      project_name: item.project_name || "",
-      client: getClientName(item),
-      project_value: item.project_value || 0,
-      invoice_total: item.invoice_total || 0,
-      payment_total: item.payment_total || 0,
-      outstanding_invoice: item.outstanding_invoice || 0,
-      outstanding_amount: item.outstanding_amount || 0,
-      invoice_progress: item.invoice_progress || 0,
-      remarks: item.remarks || "",
+      id: item.id,
+      request_invoice_number: item.request_number || "",
+      project_name: item.project?.project_name || "",
+      client_name: item.project?.client_name || "-",
+      requested_by_name: item.requested_by?.name || "",
+      approved_by_name: item.approved_by?.name || "",
+      created_at: item.created_at,
+      status: item.status || "",
     })
   );
   const paginatedData = filteredData.slice(
@@ -276,7 +219,7 @@ export default function InvoiceSummary() {
       >
         <TextField
           size="small"
-          placeholder="Search projects..."
+          placeholder="Search request invoices..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           sx={{
@@ -290,6 +233,12 @@ export default function InvoiceSummary() {
               fontSize: "0.875rem",
             },
           }}
+        />
+
+        <ColumnVisibilityModal
+          columns={allColumns}
+          columnVisibility={columnVisibility}
+          handleToggleColumn={handleToggleColumn}
         />
       </Stack>
 
@@ -312,6 +261,12 @@ export default function InvoiceSummary() {
             dropdownMenu
             className="ht-theme-horizon"
             manualColumnMove
+            hiddenColumns={{
+              columns: allColumns
+                .map((col, i) => (columnVisibility[col.data] ? null : i))
+                .filter((i) => i !== null),
+              indicators: true,
+            }}
           />
         </div>
       </div>
@@ -331,15 +286,13 @@ export default function InvoiceSummary() {
         </Alert>
       </Snackbar>
 
-      <ViewInvoicesModal
+      <RequestInvoiceDetailModal
         open={openViewModal}
         onClose={() => {
           setOpenViewModal(false);
-          setSelectedProjectId(null);
+          setSelectedRequestInvoiceId(null);
         }}
-        projectId={selectedProjectId}
-        year={filters.year}
-        onDataUpdated={fetchData}
+        invoiceId={selectedRequestInvoiceId}
       />
 
       {/* Pagination */}

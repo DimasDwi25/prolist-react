@@ -3,20 +3,28 @@ import { HotTable } from "@handsontable/react";
 import "handsontable/dist/handsontable.full.min.css";
 import api from "../../api/api";
 import { formatDate } from "../../utils/FormatDate";
-import { Box, Typography, TablePagination } from "@mui/material";
+import { Box, Typography, TextField, Stack } from "@mui/material";
+import { filterBySearch } from "../../utils/filter";
+import { getClientName } from "../../utils/getClientName";
 
 export default function OutstandingProjectsTable() {
   const [uploading, setUploading] = useState(false);
   const [picData, setPicData] = useState([]);
-
-  // Pagination state
-  const [page, setPage] = useState(0);
-
-  const paginatedPicData = picData.slice(page, page + 1); // 1 PIC per halaman
+  const [search, setSearch] = useState("");
 
   const currentYear = new Date().getFullYear();
 
-  const handleChangePage = (event, newPage) => setPage(newPage);
+  const filteredPicData = picData.filter((item) => {
+    // Check if the PIC item itself matches the search term
+    const picMatches = filterBySearch([item], search).length > 0;
+
+    // Check if any project in the projects array matches the search term
+    const projectMatches = item.projects.some(
+      (proj) => filterBySearch([proj], search).length > 0
+    );
+
+    return picMatches || projectMatches;
+  });
 
   useEffect(() => {
     api
@@ -88,7 +96,8 @@ export default function OutstandingProjectsTable() {
             imgSrc = photo
               .replace("localhost", "prolist.citasys")
               .replace("127.0.0.1", "prolist.citasys")
-              .replace("192.168.0.90", "prolist.citasys");
+              .replace("192.168.0.90", "prolist.citasys")
+              .replace("prolist.citasys", "192.168.0.90");
           } else {
             // Jika hanya path relatif
             imgSrc = isLocalDev
@@ -116,7 +125,7 @@ export default function OutstandingProjectsTable() {
         const img = document.createElement("img");
         img.src = imgSrc;
         img.alt = pic || "User";
-        img.className = "w-24 h-24 rounded object-cover border border-gray-300";
+        img.className = "w-60 h-60 rounded object-cover border border-gray-300";
         img.onerror = function () {
           this.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
             pic || "User"
@@ -159,7 +168,7 @@ export default function OutstandingProjectsTable() {
   const merges = [];
   let rowIndex = 0;
 
-  paginatedPicData.forEach((item) => {
+  filteredPicData.forEach((item) => {
     if (item.projects.length === 0) {
       // Jika PIC tidak ada project, tetap tampilkan nama dan foto
       formatted.push([
@@ -179,9 +188,9 @@ export default function OutstandingProjectsTable() {
           index === 0 ? item.pic : "",
           proj.project_number,
           proj.project_name,
-          proj.client ?? "-",
+          getClientName(proj),
           formatDate(proj.target_date),
-          (proj.logs ?? [])
+          (Array.isArray(proj.logs) ? proj.logs : [])
             .slice(-3)
             .map((l) => l.log)
             .join("\n"),
@@ -213,9 +222,35 @@ export default function OutstandingProjectsTable() {
 
   return (
     <Box p={4}>
-      <Typography variant="h5" gutterBottom>
-        List Project Outstanding Tahun {currentYear}
-      </Typography>
+      <Stack
+        direction="row"
+        spacing={1}
+        justifyContent="space-between"
+        alignItems="center"
+        mb={2}
+      >
+        <Typography variant="h5">
+          List Project Outstanding Tahun {currentYear}
+        </Typography>
+
+        <TextField
+          size="small"
+          placeholder="Search PIC or projects..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          sx={{
+            width: 240,
+            "& .MuiOutlinedInput-root": {
+              borderRadius: "8px",
+              paddingRight: 0,
+            },
+            "& .MuiInputBase-input": {
+              padding: "6px 10px",
+              fontSize: "0.875rem",
+            },
+          }}
+        />
+      </Stack>
 
       <HotTable
         data={formatted}
@@ -242,16 +277,6 @@ export default function OutstandingProjectsTable() {
           Uploading photo...
         </Typography>
       )}
-
-      <Box display="flex" justifyContent="flex-end" mt={2}>
-        <TablePagination
-          count={picData.length} // jumlah PIC
-          page={page}
-          onPageChange={handleChangePage}
-          rowsPerPage={1} // 1 PIC per halaman
-          rowsPerPageOptions={[1]}
-        />
-      </Box>
     </Box>
   );
 }

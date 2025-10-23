@@ -53,6 +53,8 @@ import FinanceDashboard from "../pages/dashboard/FinanceDashboard";
 import InvoiceTypeTable from "../pages/Finance/InvoiceTypeTable";
 import InvoiceSummary from "../pages/Finance/InvoiceSummary";
 import RequestInvoiceSummary from "../pages/Finance/RequestInvoiceSummary";
+import RequestInvoiceTable from "../pages/Finance/RequestInvoiceTable";
+import EngineerDashboard4K from "../pages/dashboard/EngineerDashboard4K";
 
 function AppRoutes() {
   return (
@@ -403,6 +405,17 @@ function AppRoutes() {
             >
               <MainLayout>
                 <EngineerDashboard />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/engineer4k"
+          element={
+            <ProtectedRoute roles={["super_admin"]}>
+              <MainLayout>
+                <EngineerDashboard4K />
               </MainLayout>
             </ProtectedRoute>
           }
@@ -839,6 +852,16 @@ function AppRoutes() {
             <ProtectedRoute>
               <MainLayout>
                 <RequestInvoiceSummary />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/finance/request-invoice-list"
+          element={
+            <ProtectedRoute>
+              <MainLayout>
+                <RequestInvoiceTable />
               </MainLayout>
             </ProtectedRoute>
           }

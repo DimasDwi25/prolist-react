@@ -49,9 +49,15 @@ const menuByRole = {
           path: "/marketing",
           icon: <FaTachometerAlt />,
         },
+
         {
           name: "Engineer Dashboard",
           path: "/engineer",
+          icon: <FaTachometerAlt />,
+        },
+        {
+          name: "Engineer Dashboard",
+          path: "/engineer4k",
           icon: <FaTachometerAlt />,
         },
         { name: "SUC Dashboard", path: "/suc", icon: <FaTachometerAlt /> },
@@ -98,6 +104,11 @@ const menuByRole = {
     { name: "Quotation", path: "/quotation", icon: <FaFileInvoice /> },
     { name: "Projects", path: "/projects", icon: <FaTools /> },
     { name: "Work Order", path: "/work-order", icon: <FaFileInvoice /> },
+    {
+      name: "List Project Outstanding",
+      path: "/outstanding-project",
+      icon: <FaTasks />,
+    },
     {
       name: "Material Request",
       icon: <FaTools />,
@@ -264,6 +275,11 @@ const menuByRole = {
     },
 
     { name: "Payments", path: "/finance/invoice-summary", icon: <FaPaypal /> },
+    {
+      name: "Request Invoices List",
+      path: "/finance/request-invoice-list",
+      icon: <FaPaypal />,
+    },
     { name: "Projects", path: "/projects", icon: <FaTools /> },
     { name: "Approvall", path: "/approvall", icon: <FaCheckCircle /> },
   ],

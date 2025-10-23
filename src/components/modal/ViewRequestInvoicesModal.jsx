@@ -17,7 +17,7 @@ import LoadingOverlay from "../loading/LoadingOverlay";
 import { filterBySearch } from "../../utils/filter";
 import { formatDate } from "../../utils/FormatDate";
 import FormRequestInvoicesModal from "./FormRequestInvoicesModal";
-import ViewRequestInvoiceModal from "./ViewRequestInvoiceModal";
+import RequestInvoiceDetailModal from "./RequestInvoiceDetailModal";
 
 const ViewRequestInvoicesModal = ({
   open,
@@ -323,7 +323,7 @@ const ViewRequestInvoicesModal = ({
       />
 
       {/* View Modal */}
-      <ViewRequestInvoiceModal
+      <RequestInvoiceDetailModal
         open={openViewModal}
         onClose={() => {
           setOpenViewModal(false);
@@ -331,13 +331,6 @@ const ViewRequestInvoicesModal = ({
           setSelectedInvoiceData(null);
         }}
         invoiceId={selectedInvoice}
-        invoiceData={selectedInvoiceData}
-        onDataUpdated={() => {
-          fetchRequestInvoices();
-          if (onDataUpdated) {
-            onDataUpdated();
-          }
-        }}
       />
     </Dialog>
   );
