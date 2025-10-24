@@ -31,6 +31,7 @@ export default function FormInvoicesModal({
 }) {
   const [formData, setFormData] = useState({
     invoice_type_id: null,
+    invoice_sequence: "",
     no_faktur: "",
     invoice_date: "",
     invoice_description: "",
@@ -40,6 +41,10 @@ export default function FormInvoicesModal({
     currency: "IDR",
   });
 
+  const [nextSequence, setNextSequence] = useState("");
+  const [sequenceError, setSequenceError] = useState("");
+  const [validatingSequence, setValidatingSequence] = useState(false);
+
   const [projectInfo, setProjectInfo] = useState(null);
   const [invoiceTypes, setInvoiceTypes] = useState([]);
   const [loadingTypes, setLoadingTypes] = useState(false);
@@ -48,7 +53,7 @@ export default function FormInvoicesModal({
   const [showPreview, setShowPreview] = useState(false);
   const [previewData, setPreviewData] = useState(null);
   const [previewInvoiceId, setPreviewInvoiceId] = useState(null);
-  const [loadingPreviewId, setLoadingPreviewId] = useState(false);
+
   const [originalInvoiceTypeId, setOriginalInvoiceTypeId] = useState(null);
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -66,7 +71,7 @@ export default function FormInvoicesModal({
 
   const isEditMode = Boolean(invoiceData);
 
-  // Fetch invoice types and project info
+  // Fetch invoice types, project info, and next sequence
   useEffect(() => {
     if (!open) return;
 
@@ -97,9 +102,43 @@ export default function FormInvoicesModal({
       }
     };
 
+    const fetchNextSequence = async () => {
+      if (!projectId) return;
+      try {
+        const response = await api.get("/finance/invoices/next-id", {
+          params: { project_id: projectId },
+        });
+        const nextInvoiceId = response.data?.next_invoice_id;
+        if (nextInvoiceId) {
+          // Extract the last 3 digits as sequence
+          const nextSeq = parseInt(nextInvoiceId.slice(-3));
+          setNextSequence(nextSeq.toString().padStart(3, "0"));
+          // Set default sequence to next available
+          if (!isEditMode) {
+            setFormData((prev) => ({
+              ...prev,
+              invoice_sequence: nextSeq.toString().padStart(3, "0"),
+            }));
+          }
+        } else {
+          setNextSequence("001");
+          if (!isEditMode) {
+            setFormData((prev) => ({ ...prev, invoice_sequence: "001" }));
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch next sequence:", error);
+        setNextSequence("001");
+        if (!isEditMode) {
+          setFormData((prev) => ({ ...prev, invoice_sequence: "001" }));
+        }
+      }
+    };
+
     fetchInvoiceTypes();
     fetchProjectInfo();
-  }, [open, projectId]);
+    fetchNextSequence();
+  }, [open, projectId, isEditMode]);
 
   // Fetch full invoice data for edit mode
   useEffect(() => {
@@ -132,8 +171,11 @@ export default function FormInvoicesModal({
         const invoiceTypeId = data.invoice_type_id
           ? parseInt(data.invoice_type_id)
           : null;
+        // Extract sequence from invoice_id (last 3 characters)
+        const sequence = data.invoice_id ? data.invoice_id.slice(-3) : "";
         setFormData({
           invoice_type_id: invoiceTypeId,
+          invoice_sequence: sequence,
           no_faktur: data.no_faktur || "",
           invoice_date: data.invoice_date ? data.invoice_date.slice(0, 10) : "",
           invoice_description: data.invoice_description || "",
@@ -148,6 +190,7 @@ export default function FormInvoicesModal({
       } else {
         setFormData({
           invoice_type_id: null,
+          invoice_sequence: "",
           no_faktur: "",
           invoice_date: "",
           invoice_description: "",
@@ -161,7 +204,6 @@ export default function FormInvoicesModal({
       setShowPreview(false);
       setPreviewData(null);
       setPreviewInvoiceId(null);
-      setLoadingPreviewId(false);
     }
   }, [open, isEditMode, invoiceData, fullInvoiceData]);
 
@@ -169,49 +211,143 @@ export default function FormInvoicesModal({
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  const handleSequenceChange = async (value) => {
+    const numericValue = value.replace(/[^0-9]/g, "").slice(0, 3);
+    setFormData((prev) => ({ ...prev, invoice_sequence: numericValue }));
+
+    // Clear previous error
+    setSequenceError("");
+
+    // Clear error if sequence is empty
+    if (!numericValue) {
+      return;
+    }
+
+    // Validate sequence uniqueness only if sequence has value
+    if (numericValue && formData.invoice_type_id && projectId) {
+      setValidatingSequence(true);
+      try {
+        const response = await api.get("/finance/invoices/validate-sequence", {
+          params: {
+            project_id: projectId,
+            invoice_type_id: formData.invoice_type_id,
+            invoice_sequence: parseInt(numericValue),
+            ...(isEditMode &&
+              invoiceData?.invoice_id && {
+                exclude_invoice_id: invoiceData.invoice_id,
+              }),
+          },
+        });
+
+        if (response.data && !response.data.available) {
+          // Sequence already exists - provide specific error message
+          const selectedType = invoiceTypes.find(
+            (type) => type.id === formData.invoice_type_id
+          );
+          const typeName = selectedType
+            ? selectedType.code_type
+            : "selected type";
+          const paddedSequence = numericValue.padStart(3, "0");
+
+          setSequenceError(
+            `Sequence ${paddedSequence} already exists for ${typeName} invoices in this project. Please choose a different sequence number.`
+          );
+        } else {
+          setSequenceError("");
+        }
+      } catch (error) {
+        console.error("Failed to validate sequence:", error);
+
+        // Provide more specific error messages based on error type
+        if (error.response) {
+          // Server responded with error status
+          if (error.response.status === 400) {
+            setSequenceError(
+              "Invalid sequence format. Please enter a valid number."
+            );
+          } else if (error.response.status === 500) {
+            setSequenceError("Server error occurred. Please try again later.");
+          }
+        } else if (error.request) {
+          // Network error
+          setSequenceError(
+            "Network error. Please check your internet connection."
+          );
+        } else {
+          // Other error
+          setSequenceError("An unexpected error occurred. Please try again.");
+        }
+      } finally {
+        setValidatingSequence(false);
+      }
+    } else {
+      setSequenceError("");
+    }
+  };
+
   const generateInvoiceId = useCallback(async () => {
     if (!formData.invoice_type_id) return null;
 
     try {
-      const response = await api.get("/finance/invoices/next-id", {
-        params: {
-          project_id: projectId,
-          invoice_type_id: formData.invoice_type_id,
-          ...(isEditMode &&
-            originalInvoiceTypeId &&
-            originalInvoiceTypeId !== formData.invoice_type_id && {
-              original_invoice_type_id: originalInvoiceTypeId,
-            }),
-        },
-      });
+      const params = {
+        project_id: projectId,
+        invoice_type_id: formData.invoice_type_id,
+      };
+
+      // Add invoice_sequence if provided
+      if (formData.invoice_sequence) {
+        params.invoice_sequence = parseInt(formData.invoice_sequence);
+      }
+
+      // For edit mode with type change
+      if (
+        isEditMode &&
+        originalInvoiceTypeId &&
+        originalInvoiceTypeId !== formData.invoice_type_id
+      ) {
+        params.original_invoice_type_id = originalInvoiceTypeId;
+      }
+
+      // Add project_id for backend to use full pn_number
+      params.project_id = projectId;
+
+      const response = await api.get("/finance/invoices/next-id", { params });
       console.log("Generated invoice ID:", response.data.next_invoice_id);
       return response.data.next_invoice_id;
     } catch (error) {
       console.error("Failed to generate invoice ID:", error);
       return null;
     }
-  }, [formData.invoice_type_id, projectId, isEditMode, originalInvoiceTypeId]);
+  }, [
+    formData.invoice_type_id,
+    formData.invoice_sequence,
+    projectId,
+    isEditMode,
+    originalInvoiceTypeId,
+  ]);
 
-  // Generate preview invoice ID when invoice type is selected
+  // Generate preview invoice ID when invoice type or sequence is changed
   useEffect(() => {
-    if (formData.invoice_type_id && projectId) {
+    if (formData.invoice_type_id && formData.invoice_sequence && projectId) {
       (async () => {
-        setLoadingPreviewId(true);
         try {
           const id = await generateInvoiceId();
           setPreviewInvoiceId(id);
         } catch (error) {
           console.error("Failed to generate preview invoice ID:", error);
           setPreviewInvoiceId(null);
-        } finally {
-          setLoadingPreviewId(false);
         }
       })();
     } else {
       setPreviewInvoiceId(null);
     }
-    // ⚠️ hilangkan generateInvoiceId dari dependency
-  }, [formData.invoice_type_id, projectId, originalInvoiceTypeId]);
+  }, [
+    formData.invoice_type_id,
+    formData.invoice_sequence,
+    projectId,
+    originalInvoiceTypeId,
+    generateInvoiceId,
+  ]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -278,8 +414,8 @@ export default function FormInvoicesModal({
 
     const preview = {
       invoice_id: isEditMode
-        ? invoiceData?.invoice_id || "N/A"
-        : generatedId || previewInvoiceId || "IP000000",
+        ? generatedId || invoiceData?.invoice_id || "N/A"
+        : generatedId || previewInvoiceId || "IP0000000",
       project_id: projectId,
       invoice_type: selectedType
         ? `${selectedType.code_type} - ${selectedType.description}`
@@ -309,6 +445,9 @@ export default function FormInvoicesModal({
       const payload = {
         project_id: projectId,
         invoice_type_id: formData.invoice_type_id,
+        invoice_sequence: formData.invoice_sequence
+          ? parseInt(formData.invoice_sequence)
+          : null,
         no_faktur: formData.no_faktur || null,
         invoice_date: formData.invoice_date || null,
         invoice_description: formData.invoice_description || null,
@@ -990,6 +1129,8 @@ export default function FormInvoicesModal({
                   borderRadius: 3,
                   border: "1px solid",
                   borderColor: "divider",
+                  background:
+                    "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)",
                 }}
               >
                 <Typography
@@ -1007,85 +1148,401 @@ export default function FormInvoicesModal({
                   Invoice Details
                 </Typography>
                 <Grid container spacing={3}>
-                  {/* Invoice Type - Full Width for Better Visibility */}
+                  {/* Invoice Configuration Section */}
                   <Grid size={{ xs: 12 }}>
-                    <Box sx={{ mb: 2 }}>
+                    <Box sx={{ mb: 3 }}>
                       <Typography
-                        variant="subtitle2"
+                        variant="h6"
                         sx={{
-                          mb: 1.5,
-                          fontWeight: 600,
-                          color: "text.primary",
+                          mb: 3,
+                          fontWeight: 700,
+                          color: "primary.main",
                           display: "flex",
                           alignItems: "center",
-                          gap: 1,
+                          fontSize: "1.1rem",
                         }}
                       >
-                        <Receipt sx={{ fontSize: 18, color: "primary.main" }} />
-                        Invoice Type *
-                        <Typography
-                          component="span"
-                          variant="caption"
-                          sx={{ color: "error.main", fontWeight: 500 }}
-                        >
-                          (Required)
-                        </Typography>
+                        <Receipt sx={{ mr: 1.5, fontSize: 22 }} />
+                        Invoice Configuration
                       </Typography>
 
-                      {/* Preview Invoice ID */}
-                      {!isEditMode && formData.invoice_type_id && (
-                        <Box
+                      {/* Invoice Type Selection */}
+                      <Box sx={{ mb: 3 }}>
+                        <Typography
+                          variant="subtitle2"
                           sx={{
-                            mt: 2,
-                            p: 2,
-                            borderRadius: 2,
-                            bgcolor: "primary.light",
-                            border: "1px solid",
-                            borderColor: "primary.main",
+                            mb: 2,
+                            fontWeight: 600,
+                            color: "text.primary",
                             display: "flex",
                             alignItems: "center",
-                            gap: 2,
+                            gap: 1,
                           }}
                         >
+                          <Receipt
+                            sx={{ fontSize: 18, color: "primary.main" }}
+                          />
+                          Invoice Type *
                           <Typography
-                            variant="body2"
-                            sx={{
-                              fontWeight: 600,
-                              color: "primary.contrastText",
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 1,
-                            }}
+                            component="span"
+                            variant="caption"
+                            sx={{ color: "error.main", fontWeight: 500 }}
                           >
-                            <FileText sx={{ fontSize: 16 }} />
-                            Preview Invoice ID:
+                            (Required)
                           </Typography>
-                          {loadingPreviewId ? (
-                            <CircularProgress
-                              size={16}
-                              sx={{ color: "primary.contrastText" }}
-                            />
-                          ) : (
-                            <Typography
-                              variant="body1"
+                        </Typography>
+
+                        <Autocomplete
+                          fullWidth
+                          options={invoiceTypes}
+                          getOptionLabel={(option) =>
+                            `${option.code_type} - ${option.description}`
+                          }
+                          value={
+                            invoiceTypes.find(
+                              (type) => type.id === formData.invoice_type_id
+                            ) || null
+                          }
+                          onChange={(e, newValue) => {
+                            console.log("Selected invoice type:", newValue);
+                            handleChange(
+                              "invoice_type_id",
+                              newValue ? newValue.id : null
+                            );
+                          }}
+                          loading={loadingTypes}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              placeholder="Select invoice type..."
+                              InputProps={{
+                                ...params.InputProps,
+                                startAdornment: (
+                                  <Receipt
+                                    sx={{
+                                      mr: 1,
+                                      color: "action.active",
+                                      fontSize: 20,
+                                    }}
+                                  />
+                                ),
+                                endAdornment: (
+                                  <>
+                                    {loadingTypes ? (
+                                      <CircularProgress
+                                        color="inherit"
+                                        size={20}
+                                      />
+                                    ) : null}
+                                    {params.InputProps.endAdornment}
+                                  </>
+                                ),
+                              }}
                               sx={{
-                                fontWeight: 700,
-                                color: "primary.contrastText",
-                                fontFamily: "monospace",
-                                fontSize: "1.1rem",
+                                "& .MuiOutlinedInput-root": {
+                                  borderRadius: 2,
+                                  backgroundColor: "background.paper",
+                                  "&:hover": {
+                                    "& .MuiOutlinedInput-notchedOutline": {
+                                      borderColor: "primary.main",
+                                      borderWidth: 2,
+                                    },
+                                  },
+                                  "&.Mui-focused": {
+                                    "& .MuiOutlinedInput-notchedOutline": {
+                                      borderColor: "primary.main",
+                                      borderWidth: 2,
+                                    },
+                                    boxShadow:
+                                      "0 0 0 3px rgba(37, 99, 235, 0.1)",
+                                  },
+                                },
+                              }}
+                            />
+                          )}
+                          renderOption={(props, option) => {
+                            const { key, ...otherProps } = props;
+                            return (
+                              <Box
+                                component="li"
+                                key={key}
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 2,
+                                  py: 1.5,
+                                  px: 2,
+                                  borderRadius: 1,
+                                  backgroundColor: "background.paper",
+                                }}
+                                {...otherProps}
+                              >
+                                <Receipt
+                                  sx={{ fontSize: 18, color: "primary.main" }}
+                                />
+                                <Box>
+                                  <Typography
+                                    variant="body2"
+                                    sx={{
+                                      fontWeight: 600,
+                                      fontFamily: "monospace",
+                                      color: "text.primary",
+                                    }}
+                                  >
+                                    {option.code_type}
+                                  </Typography>
+                                  <Typography
+                                    variant="caption"
+                                    sx={{ color: "text.secondary" }}
+                                  >
+                                    {option.description}
+                                  </Typography>
+                                </Box>
+                              </Box>
+                            );
+                          }}
+                        />
+                      </Box>
+
+                      {/* Invoice Sequence Configuration */}
+                      <Box sx={{ mb: 3 }}>
+                        <Typography
+                          variant="subtitle2"
+                          sx={{
+                            mb: 2,
+                            fontWeight: 600,
+                            color: "text.primary",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 1,
+                          }}
+                        >
+                          <FileText
+                            sx={{ fontSize: 16, color: "primary.main" }}
+                          />
+                          Invoice Sequence *
+                          <Typography
+                            component="span"
+                            variant="caption"
+                            sx={{ color: "error.main", fontWeight: 500 }}
+                          >
+                            (Required - Auto-generated)
+                          </Typography>
+                        </Typography>
+
+                        <Grid container spacing={2}>
+                          <Grid size={{ xs: 12, md: 6 }}>
+                            <Paper
+                              elevation={0}
+                              sx={{
+                                p: 2,
+                                borderRadius: 2,
+                                border: "1px solid",
+                                borderColor: "divider",
+                                backgroundColor: "grey.50",
                               }}
                             >
-                              {previewInvoiceId || "IP000000"}
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  color: "text.secondary",
+                                  fontWeight: 600,
+                                  display: "block",
+                                  mb: 1,
+                                }}
+                              >
+                                Auto-Generated Sequence
+                              </Typography>
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 1,
+                                }}
+                              >
+                                <Typography
+                                  variant="h6"
+                                  sx={{
+                                    fontWeight: 700,
+                                    color: "primary.main",
+                                    fontFamily: "monospace",
+                                    minWidth: 60,
+                                    textAlign: "center",
+                                  }}
+                                >
+                                  {nextSequence || "001"}
+                                </Typography>
+                                <Typography
+                                  variant="body2"
+                                  sx={{ color: "text.secondary" }}
+                                >
+                                  Next available
+                                </Typography>
+                              </Box>
+                            </Paper>
+                          </Grid>
+
+                          <Grid size={{ xs: 12, md: 6 }}>
+                            <TextField
+                              fullWidth
+                              label="Custom Sequence (Optional)"
+                              placeholder="Enter custom sequence or leave empty for auto"
+                              value={formData.invoice_sequence}
+                              onChange={(e) =>
+                                handleSequenceChange(e.target.value)
+                              }
+                              error={!!sequenceError}
+                              helperText={sequenceError}
+                              InputProps={{
+                                startAdornment: (
+                                  <FileText
+                                    sx={{
+                                      mr: 1,
+                                      color: "action.active",
+                                      fontSize: 18,
+                                    }}
+                                  />
+                                ),
+                              }}
+                              sx={{
+                                "& .MuiOutlinedInput-root": {
+                                  borderRadius: 2,
+                                  backgroundColor: "background.paper",
+                                  "&:hover .MuiOutlinedInput-notchedOutline": {
+                                    borderColor: "primary.main",
+                                  },
+                                  "&.Mui-focused .MuiOutlinedInput-notchedOutline":
+                                    {
+                                      borderColor: "primary.main",
+                                      borderWidth: 2,
+                                    },
+                                },
+                              }}
+                              inputProps={{
+                                maxLength: 3,
+                                pattern: "\\d{1,3}",
+                              }}
+                            />
+                          </Grid>
+                        </Grid>
+                      </Box>
+
+                      {/* Invoice ID Preview */}
+                      <Box sx={{ mb: 3 }}>
+                        <Typography
+                          variant="subtitle2"
+                          sx={{
+                            mb: 2,
+                            fontWeight: 600,
+                            color: "text.primary",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 1,
+                          }}
+                        >
+                          <FileText
+                            sx={{ fontSize: 16, color: "primary.main" }}
+                          />
+                          Invoice ID Preview
+                        </Typography>
+
+                        <Paper
+                          elevation={0}
+                          sx={{
+                            p: 3,
+                            borderRadius: 2,
+                            background:
+                              "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)",
+                            border: "2px solid",
+                            borderColor:
+                              formData.invoice_type_id &&
+                              formData.invoice_sequence
+                                ? "success.light"
+                                : "grey.200",
+                          }}
+                        >
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              gap: 2,
+                            }}
+                          >
+                            <Typography
+                              variant="h4"
+                              sx={{
+                                fontWeight: 700,
+                                fontFamily: "monospace",
+                                color:
+                                  formData.invoice_type_id &&
+                                  formData.invoice_sequence
+                                    ? "success.main"
+                                    : "text.secondary",
+                                letterSpacing: 1,
+                              }}
+                            >
+                              {(() => {
+                                const selectedType = invoiceTypes.find(
+                                  (type) => type.id === formData.invoice_type_id
+                                );
+                                if (
+                                  selectedType &&
+                                  formData.invoice_sequence &&
+                                  projectInfo?.pn_number
+                                ) {
+                                  return (
+                                    selectedType.code_type +
+                                    projectInfo.pn_number +
+                                    formData.invoice_sequence.padStart(3, "0")
+                                  );
+                                }
+                                return "IP25020001";
+                              })()}
                             </Typography>
-                          )}
-                        </Box>
-                      )}
+                            {formData.invoice_type_id &&
+                              formData.invoice_sequence && (
+                                <Chip
+                                  label={
+                                    validatingSequence
+                                      ? "Validating..."
+                                      : sequenceError
+                                      ? "Invalid"
+                                      : "Valid"
+                                  }
+                                  color={
+                                    validatingSequence
+                                      ? "default"
+                                      : sequenceError
+                                      ? "error"
+                                      : "success"
+                                  }
+                                  size="small"
+                                  sx={{ fontWeight: 600 }}
+                                />
+                              )}
+                          </Box>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: "text.secondary",
+                              display: "block",
+                              textAlign: "center",
+                              mt: 1,
+                            }}
+                          >
+                            {formData.invoice_type_id &&
+                            formData.invoice_sequence
+                              ? "This will be your invoice ID"
+                              : "Select type and enter sequence to see preview"}
+                          </Typography>
+                        </Paper>
+                      </Box>
 
                       {/* Edit Invoice ID */}
                       {isEditMode && (
                         <Box
                           sx={{
-                            mt: 2,
                             p: 2,
                             borderRadius: 2,
                             bgcolor: "success.light",
@@ -1107,7 +1564,7 @@ export default function FormInvoicesModal({
                             }}
                           >
                             <FileText sx={{ fontSize: 16 }} />
-                            Invoice ID:
+                            Current Invoice ID:
                           </Typography>
                           <Typography
                             variant="body1"
@@ -1118,122 +1575,10 @@ export default function FormInvoicesModal({
                               fontSize: "1.1rem",
                             }}
                           >
-                            {previewInvoiceId ||
-                              invoiceData?.invoice_id ||
-                              "N/A"}
+                            {invoiceData?.invoice_id || "N/A"}
                           </Typography>
                         </Box>
                       )}
-
-                      <Autocomplete
-                        fullWidth
-                        options={invoiceTypes}
-                        getOptionLabel={(option) =>
-                          `${option.code_type} - ${option.description}`
-                        }
-                        value={
-                          invoiceTypes.find(
-                            (type) => type.id === formData.invoice_type_id
-                          ) || null
-                        }
-                        onChange={(e, newValue) => {
-                          console.log("Selected invoice type:", newValue);
-                          handleChange(
-                            "invoice_type_id",
-                            newValue ? newValue.id : null
-                          );
-                        }}
-                        loading={loadingTypes}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            placeholder="Choose invoice type from the list below"
-                            InputProps={{
-                              ...params.InputProps,
-                              startAdornment: (
-                                <Receipt
-                                  sx={{
-                                    mr: 1,
-                                    color: "action.active",
-                                    fontSize: 20,
-                                  }}
-                                />
-                              ),
-                              endAdornment: (
-                                <>
-                                  {loadingTypes ? (
-                                    <CircularProgress
-                                      color="inherit"
-                                      size={20}
-                                    />
-                                  ) : null}
-                                  {params.InputProps.endAdornment}
-                                </>
-                              ),
-                            }}
-                            sx={{
-                              "& .MuiOutlinedInput-root": {
-                                borderRadius: 2,
-                                backgroundColor: "background.paper",
-                                "&:hover": {
-                                  "& .MuiOutlinedInput-notchedOutline": {
-                                    borderColor: "primary.main",
-                                    borderWidth: 2,
-                                  },
-                                },
-                                "&.Mui-focused": {
-                                  "& .MuiOutlinedInput-notchedOutline": {
-                                    borderColor: "primary.main",
-                                    borderWidth: 2,
-                                  },
-                                  boxShadow: "0 0 0 3px rgba(37, 99, 235, 0.1)",
-                                },
-                              },
-                            }}
-                          />
-                        )}
-                        renderOption={(props, option) => {
-                          const { key, ...otherProps } = props;
-                          return (
-                            <Box
-                              component="li"
-                              key={key}
-                              sx={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 2,
-                                py: 1.5,
-                                px: 2,
-                                borderRadius: 1,
-                                backgroundColor: "background.paper",
-                              }}
-                              {...otherProps}
-                            >
-                              <Receipt
-                                sx={{ fontSize: 18, color: "primary.main" }}
-                              />
-                              <Box>
-                                <Typography
-                                  variant="body2"
-                                  sx={{
-                                    fontWeight: 600,
-                                    fontFamily: "monospace",
-                                    color: "text.primary",
-                                  }}
-                                >
-                                  {option.code_type}
-                                </Typography>
-                                <Typography
-                                  variant="caption"
-                                  sx={{ color: "text.secondary" }}
-                                >
-                                  {option.description}
-                                </Typography>
-                              </Box>
-                            </Box>
-                          );
-                        }}
-                      />
                     </Box>
                   </Grid>
 
@@ -1440,7 +1785,8 @@ export default function FormInvoicesModal({
                   borderRadius: 3,
                   border: "1px solid",
                   borderColor: "divider",
-                  backgroundColor: "background.paper",
+                  background:
+                    "linear-gradient(135deg, #fff7ed 0%, #fed7aa 100%)",
                 }}
               >
                 <Typography
@@ -1448,7 +1794,7 @@ export default function FormInvoicesModal({
                   sx={{
                     mb: 3,
                     fontWeight: 700,
-                    color: "primary.main",
+                    color: "warning.main",
                     display: "flex",
                     alignItems: "center",
                     fontSize: "1.1rem",

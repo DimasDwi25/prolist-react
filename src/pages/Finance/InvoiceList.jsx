@@ -9,23 +9,21 @@ import {
   Alert,
   TextField,
   TablePagination,
+  Card,
+  CardContent,
 } from "@mui/material";
 import ReactDOM from "react-dom";
 
 import api from "../../api/api";
-import ViewInvoicesModal from "../../components/modal/ViewInvoicesModal";
-// import { getUser } from "../../utils/storage";
 import LoadingOverlay from "../../components/loading/LoadingOverlay";
 import FilterBar from "../../components/filter/FilterBar";
-import DashboardCard from "../../components/card/DashboardCard";
 import { filterBySearch } from "../../utils/filter";
 import { formatValue } from "../../utils/formatValue";
-import { getClientName } from "../../utils/getClientName";
 
-export default function InvoiceSummary() {
+export default function InvoiceList() {
   const hotTableRef = useRef(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [invoiceSummaries, setInvoiceSummaries] = useState([]);
+  const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
@@ -35,8 +33,6 @@ export default function InvoiceSummary() {
     message: "",
     severity: "success",
   });
-  const [openViewModal, setOpenViewModal] = useState(false);
-  const [selectedProjectId, setSelectedProjectId] = useState(null);
 
   const [filters, setFilters] = useState({
     year: new Date().getFullYear(),
@@ -47,69 +43,36 @@ export default function InvoiceSummary() {
   });
 
   const [stats, setStats] = useState({
-    availableYears: [new Date().getFullYear(), new Date().getFullYear() + 1],
+    availableYears: [new Date().getFullYear()],
+    totalInvoices: 0,
+    totalInvoiceValue: 0,
   });
-
-  // const user = getUser();
-  // const userRole = user?.role?.name?.toLowerCase();
 
   // Definisi kolom
   const allColumns = useMemo(
     () => [
-      {
-        data: "actions",
-        title: "Actions",
-        readOnly: true,
-        width: 70,
-        renderer: (instance, td, row) => {
-          td.innerHTML = "";
-
-          // wrapper flex
-          const wrapper = document.createElement("div");
-          wrapper.style.display = "flex";
-          wrapper.style.alignItems = "center";
-          wrapper.style.gap = "6px"; // jarak antar tombol
-
-          // Invoice button
-          const viewBtn = document.createElement("button");
-          viewBtn.style.cursor = "pointer";
-          viewBtn.style.border = "1px solid #1976d2";
-          viewBtn.style.background = "#1976d2";
-          viewBtn.style.color = "white";
-          viewBtn.style.padding = "2px 6px";
-          viewBtn.style.borderRadius = "4px";
-          viewBtn.style.fontSize = "11px";
-          viewBtn.style.fontWeight = "500";
-          viewBtn.title = "Invoice";
-          viewBtn.innerText = "invoice";
-
-          // Hover effect
-          viewBtn.onmouseover = () => {
-            viewBtn.style.background = "#1565c0";
-          };
-          viewBtn.onmouseout = () => {
-            viewBtn.style.background = "#1976d2";
-          };
-
-          viewBtn.onclick = () => {
-            const project = instance.getSourceDataAtRow(row);
-            if (project?.pn_number) {
-              setSelectedProjectId(project.pn_number);
-              setOpenViewModal(true);
-            }
-          };
-
-          wrapper.appendChild(viewBtn);
-          td.appendChild(wrapper);
-          return td;
-        },
-      },
-      { data: "pn_number", title: "PN Number" },
+      { data: "invoice_id", title: "Invoice ID" },
       { data: "project_name", title: "Project Name" },
-      { data: "client", title: "Client" },
+      { data: "client_name", title: "Client Name" },
+      { data: "invoice_type", title: "Invoice Type" },
+      { data: "no_faktur", title: "No Faktur" },
+      { data: "invoice_date", title: "Invoice Date" },
+      { data: "invoice_description", title: "Description" },
       {
-        data: "project_value",
-        title: "Project Value",
+        data: "invoice_value",
+        title: "Invoice Value",
+        renderer: (instance, td, row, col, prop, value) => {
+          td.style.fontWeight = "600";
+          td.style.color = "green";
+          td.innerText = formatValue(value).formatted;
+          return td;
+        },
+      },
+      { data: "invoice_due_date", title: "Due Date" },
+      { data: "payment_status", title: "Payment Status" },
+      {
+        data: "total_payment_amount",
+        title: "Total Payment Amount",
         renderer: (instance, td, row, col, prop, value) => {
           td.style.fontWeight = "600";
           td.style.color = "green";
@@ -118,48 +81,8 @@ export default function InvoiceSummary() {
         },
       },
       {
-        data: "invoice_total",
-        title: "Invoice Total",
-        renderer: (instance, td, row, col, prop, value) => {
-          td.style.fontWeight = "600";
-          td.style.color = "green";
-          td.innerText = formatValue(value).formatted;
-          return td;
-        },
-      },
-      {
-        data: "payment_total",
-        title: "Payment Total",
-        renderer: (instance, td, row, col, prop, value) => {
-          td.style.fontWeight = "600";
-          td.style.color = "green";
-          td.innerText = formatValue(value).formatted;
-          return td;
-        },
-      },
-      {
-        data: "outstanding_invoice",
-        title: "Outstanding Invoice",
-        renderer: (instance, td, row, col, prop, value) => {
-          td.style.fontWeight = "600";
-          td.style.color = "green";
-          td.innerText = formatValue(value).formatted;
-          return td;
-        },
-      },
-      {
-        data: "outstanding_amount",
-        title: "Outstanding Amount",
-        renderer: (instance, td, row, col, prop, value) => {
-          td.style.fontWeight = "600";
-          td.style.color = "green";
-          td.innerText = formatValue(value).formatted;
-          return td;
-        },
-      },
-      {
-        data: "invoice_progress",
-        title: "Invoice Progress (%)",
+        data: "payment_percentage",
+        title: "Payment Percentage (%)",
         renderer: (instance, td, row, col, prop, value) => {
           td.style.fontWeight = "600";
           td.style.color = "blue";
@@ -168,6 +91,8 @@ export default function InvoiceSummary() {
         },
       },
       { data: "remarks", title: "Remarks" },
+      { data: "currency", title: "Currency" },
+      { data: "created_at", title: "Created At" },
     ],
     []
   );
@@ -175,27 +100,25 @@ export default function InvoiceSummary() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const response = await api.get("/finance/invoice-summary", {
+      const response = await api.get("/finance/invoice-list", {
         params: filters,
       });
       const data = response.data || {};
-      setInvoiceSummaries(data.projects || []);
-      // Summary stats can be calculated later if needed
+      setInvoices(data.data || []);
       setStats((prev) => ({
         ...prev,
-        availableYears: data.availableYears || [
-          new Date().getFullYear(),
-          new Date().getFullYear() + 1,
-        ],
+        availableYears: data.availableYears || [new Date().getFullYear()],
+        totalInvoices: data.total_invoices || 0,
+        totalInvoiceValue: data.total_invoice_value || 0,
       }));
     } catch (err) {
       console.error(err.response?.data || err);
       setSnackbar({
         open: true,
-        message: "Failed to fetch invoice summary data",
+        message: "Failed to fetch invoice list data",
         severity: "error",
       });
-      setInvoiceSummaries([]);
+      setInvoices([]);
     } finally {
       setLoading(false);
     }
@@ -228,21 +151,24 @@ export default function InvoiceSummary() {
     setPage(0);
   };
 
-  const filteredData = filterBySearch(invoiceSummaries, searchTerm).map(
-    (item) => ({
-      actions: "👁️",
-      pn_number: item.pn_number || "",
-      project_name: item.project_name || "",
-      client: getClientName(item),
-      project_value: item.project_value || 0,
-      invoice_total: item.invoice_total || 0,
-      payment_total: item.payment_total || 0,
-      outstanding_invoice: item.outstanding_invoice || 0,
-      outstanding_amount: item.outstanding_amount || 0,
-      invoice_progress: item.invoice_progress || 0,
-      remarks: item.remarks || "",
-    })
-  );
+  const filteredData = filterBySearch(invoices, searchTerm).map((item) => ({
+    invoice_id: item.invoice_id || "",
+    project_name: item.project_name || "",
+    client_name: item.client_name || "",
+    invoice_type: item.invoice_type || "",
+    no_faktur: item.no_faktur || "",
+    invoice_date: item.invoice_date || "",
+    invoice_description: item.invoice_description || "",
+    invoice_value: item.invoice_value || 0,
+    invoice_due_date: item.invoice_due_date || "",
+    payment_status: item.payment_status || "",
+    total_payment_amount: item.total_payment_amount || 0,
+    payment_percentage: item.payment_percentage || 0,
+    remarks: item.remarks || "",
+    currency: item.currency || "",
+    created_at: item.created_at || "",
+  }));
+
   const paginatedData = filteredData.slice(
     page * pageSize,
     page * pageSize + pageSize
@@ -266,6 +192,34 @@ export default function InvoiceSummary() {
         }}
       />
 
+      {/* Compact Cards for Totals */}
+      <Stack
+        direction="row"
+        spacing={2}
+        sx={{ mb: 2, mt: 2, justifyContent: "flex-start" }}
+      >
+        <Card sx={{ minWidth: 200, maxWidth: 250 }}>
+          <CardContent sx={{ textAlign: "center", py: 1 }}>
+            <Typography variant="body1" color="primary" fontWeight="medium">
+              Total Invoices
+            </Typography>
+            <Typography variant="h5" fontWeight="bold">
+              {stats.totalInvoices}
+            </Typography>
+          </CardContent>
+        </Card>
+        <Card sx={{ minWidth: 200, maxWidth: 250 }}>
+          <CardContent sx={{ textAlign: "center", py: 1 }}>
+            <Typography variant="body1" color="primary" fontWeight="medium">
+              Total Invoice Value
+            </Typography>
+            <Typography variant="h5" fontWeight="bold">
+              {formatValue(stats.totalInvoiceValue).formatted}
+            </Typography>
+          </CardContent>
+        </Card>
+      </Stack>
+
       <Stack
         direction="row"
         spacing={1}
@@ -276,7 +230,7 @@ export default function InvoiceSummary() {
       >
         <TextField
           size="small"
-          placeholder="Search projects..."
+          placeholder="Search invoices..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           sx={{
@@ -330,17 +284,6 @@ export default function InvoiceSummary() {
           {snackbar.message}
         </Alert>
       </Snackbar>
-
-      <ViewInvoicesModal
-        open={openViewModal}
-        onClose={() => {
-          setOpenViewModal(false);
-          setSelectedProjectId(null);
-        }}
-        projectId={selectedProjectId}
-        year={filters.year}
-        onDataUpdated={fetchData}
-      />
 
       {/* Pagination */}
       <Box display="flex" justifyContent="flex-end" mt={2}>

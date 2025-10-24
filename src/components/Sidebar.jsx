@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   FaTachometerAlt,
@@ -11,6 +11,8 @@ import {
   FaCheckCircle,
   FaPaypal,
 } from "react-icons/fa";
+import Badge from "@mui/material/Badge";
+import api from "../api/api";
 
 const roleMapping = {
   super_admin: "admin",
@@ -276,21 +278,48 @@ const menuByRole = {
 
     { name: "Payments", path: "/finance/invoice-summary", icon: <FaPaypal /> },
     {
+      name: "Invoices List",
+      path: "/finance/invoice-list",
+      icon: <FaPaypal />,
+    },
+    {
       name: "Request Invoices List",
       path: "/finance/request-invoice-list",
       icon: <FaPaypal />,
     },
-    { name: "Projects", path: "/projects", icon: <FaTools /> },
-    { name: "Approvall", path: "/approvall", icon: <FaCheckCircle /> },
+    // { name: "Projects", path: "/projects", icon: <FaTools /> },
+    // { name: "Approvall", path: "/approvall", icon: <FaCheckCircle /> },
   ],
 };
 
 export default function Sidebar({ role, sidebarOpen }) {
   const [openSubmenu, setOpenSubmenu] = useState({});
+  const [pendingRequestInvoices, setPendingRequestInvoices] = useState(0);
 
   // Mapping role dari props
   const mappedRole = roleMapping[role] || role;
   const menu = menuByRole[mappedRole] || [];
+
+  // Fetch pending request invoices count
+  useEffect(() => {
+    const fetchPendingCount = async () => {
+      try {
+        const response = await api.get("/request-invoices-list");
+        const data = response.data?.data || [];
+        const pendingCount = data.filter(
+          (item) => item.status === "pending"
+        ).length;
+        setPendingRequestInvoices(pendingCount);
+      } catch (error) {
+        console.error("Failed to fetch pending request invoices count:", error);
+        setPendingRequestInvoices(0);
+      }
+    };
+
+    if (mappedRole === "finance" || mappedRole === "engineer") {
+      fetchPendingCount();
+    }
+  }, [mappedRole]);
 
   return (
     <div
@@ -328,7 +357,25 @@ export default function Sidebar({ role, sidebarOpen }) {
                   to={item.path}
                   className="flex items-center gap-2 px-3 py-2 rounded hover:bg-[#005f87] transition"
                 >
-                  {item.icon} <span>{item.name}</span>
+                  {item.icon}
+                  <span>{item.name}</span>
+                  {item.name === "Request Invoices List" &&
+                    pendingRequestInvoices > 0 && (
+                      <Badge
+                        badgeContent={pendingRequestInvoices}
+                        color="error"
+                        sx={{
+                          "& .MuiBadge-badge": {
+                            fontSize: "0.7rem",
+                            height: "16px",
+                            minWidth: "16px",
+                            backgroundColor: "#ff4444",
+                            color: "white",
+                          },
+                          ml: 1,
+                        }}
+                      />
+                    )}
                 </Link>
               )}
 

@@ -52,6 +52,7 @@ import ManPowerWorkOrderTable from "../pages/man-power-page/work-order/ManPowerW
 import FinanceDashboard from "../pages/dashboard/FinanceDashboard";
 import InvoiceTypeTable from "../pages/Finance/InvoiceTypeTable";
 import InvoiceSummary from "../pages/Finance/InvoiceSummary";
+import InvoiceList from "../pages/Finance/InvoiceList";
 import RequestInvoiceSummary from "../pages/Finance/RequestInvoiceSummary";
 import RequestInvoiceTable from "../pages/Finance/RequestInvoiceTable";
 import EngineerDashboard4K from "../pages/dashboard/EngineerDashboard4K";
@@ -842,6 +843,16 @@ function AppRoutes() {
             <ProtectedRoute>
               <MainLayout>
                 <InvoiceSummary />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/finance/invoice-list"
+          element={
+            <ProtectedRoute>
+              <MainLayout>
+                <InvoiceList />
               </MainLayout>
             </ProtectedRoute>
           }

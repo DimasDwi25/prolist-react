@@ -190,7 +190,7 @@ export default function OutstandingProjectsTable() {
           proj.project_name,
           getClientName(proj),
           formatDate(proj.target_date),
-          (Array.isArray(proj.logs) ? proj.logs : [])
+          (proj.logs ?? [])
             .slice(-3)
             .map((l) => l.log)
             .join("\n"),
