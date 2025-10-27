@@ -16,13 +16,13 @@ import api from "../api/api";
 
 const roleMapping = {
   super_admin: "admin",
-  marketing_director: "marketing",
+  marketing_director: "admin",
+  engineering_director: "admin",
   "supervisor marketing": "marketing",
   manager_marketing: "marketing",
   sales_supervisor: "marketing",
   marketing_admin: "marketing",
   marketing_estimator: "marketing",
-  engineering_director: "engineer",
   engineer: "manPower",
   "project controller": "engineer",
   "project manager": "engineer",
@@ -58,11 +58,16 @@ const menuByRole = {
           icon: <FaTachometerAlt />,
         },
         {
-          name: "Engineer Dashboard",
-          path: "/engineer4k",
+          name: "Finance Dashboard",
+          path: "/finance",
           icon: <FaTachometerAlt />,
         },
         { name: "SUC Dashboard", path: "/suc", icon: <FaTachometerAlt /> },
+        {
+          name: "Engineer 4K Dashboard",
+          path: "/engineer4k",
+          icon: <FaTachometerAlt />,
+        },
       ],
     },
     {
@@ -89,41 +94,128 @@ const menuByRole = {
           icon: <FaTasks />,
         },
         { name: "Status Project", path: "/status-project", icon: <FaTasks /> },
+        {
+          name: "Document",
+          path: "/document",
+          icon: <FaTasks />,
+        },
+        {
+          name: "Purpose Work Order",
+          path: "/purpose-work-order",
+          icon: <FaTasks />,
+        },
+        {
+          name: "Category Log",
+          path: "/categorie-log",
+          icon: <FaTasks />,
+        },
+        {
+          name: "Type Invoices",
+          path: "/finance/invoice-types",
+          icon: <FaTasks />,
+        },
       ],
     },
     {
-      name: "Reports",
-      icon: <FaChartLine />,
+      name: "Marketing",
+      icon: <FaUsers />,
       submenu: [
         {
-          name: "Marketing Reports",
-          path: "/marketing-report",
+          name: "Reports",
           icon: <FaChartLine />,
+          submenu: [
+            {
+              name: "Marketing Reports",
+              path: "/marketing-report",
+              icon: <FaChartLine />,
+            },
+            {
+              name: "Sales Reports",
+              path: "/sales-report",
+              icon: <FaChartLine />,
+            },
+          ],
         },
-        { name: "Sales Reports", path: "/sales-report", icon: <FaChartLine /> },
+        { name: "Quotation", path: "/quotation", icon: <FaFileInvoice /> },
+        { name: "Projects", path: "/projects", icon: <FaTools /> },
       ],
     },
-    { name: "Quotation", path: "/quotation", icon: <FaFileInvoice /> },
-    { name: "Projects", path: "/projects", icon: <FaTools /> },
-    { name: "Work Order", path: "/work-order", icon: <FaFileInvoice /> },
     {
-      name: "List Project Outstanding",
-      path: "/outstanding-project",
-      icon: <FaTasks />,
+      name: "Engineering",
+      icon: <FaUsers />,
+      submenu: [
+        {
+          name: "Summary",
+          icon: <FaFileInvoice />,
+          submenu: [
+            {
+              name: "Project Finished Summary",
+              path: "/projects/finished-summary",
+              icon: <FaTasks />,
+            },
+            {
+              name: "Work Order Summary",
+              path: "/work-order/summary",
+              icon: <FaTasks />,
+            },
+          ],
+        },
+        {
+          name: "List Project Outstanding",
+          path: "/outstanding-project",
+          icon: <FaTasks />,
+        },
+        { name: "Work Order", path: "/work-order", icon: <FaFileInvoice /> },
+        { name: "Projects", path: "/projects", icon: <FaTools /> },
+
+        {
+          name: "Request Invoice",
+          path: "/finance/request-invoice-summary",
+          icon: <FaPaypal />,
+        },
+      ],
     },
     {
-      name: "Material Request",
-      icon: <FaTools />,
+      name: "SUC",
+      icon: <FaUsers />,
       submenu: [
         {
           name: "Material Request",
-          path: "/material-request",
-          icon: <FaTasks />,
+          icon: <FaTools />,
+          submenu: [
+            {
+              name: "Material Request",
+              path: "/material-request",
+              icon: <FaTasks />,
+            },
+            { name: "Packing List", path: "/packing-list", icon: <FaTasks /> },
+          ],
         },
-        { name: "Packing List", path: "/packing-list", icon: <FaTasks /> },
+      ],
+    },
+    {
+      name: "Finance",
+      icon: <FaUsers />,
+      submenu: [
+        {
+          name: "Payments",
+          path: "/finance/invoice-summary",
+          icon: <FaPaypal />,
+        },
+        {
+          name: "Invoices List",
+          path: "/finance/invoice-list",
+          icon: <FaPaypal />,
+        },
+        {
+          name: "Request Invoices List",
+          path: "/finance/request-invoice-list",
+          icon: <FaPaypal />,
+        },
       ],
     },
     { name: "Approvall", path: "/approvall", icon: <FaCheckCircle /> },
+    { name: "Activity Log", path: "/activity-logs", icon: <FaTasks /> },
   ],
   marketing: [
     { name: "Dashboard", path: "/marketing", icon: <FaTachometerAlt /> },
@@ -381,15 +473,53 @@ export default function Sidebar({ role, sidebarOpen }) {
 
               {hasSubmenu && isOpen && (
                 <div className="pl-6 mt-1 space-y-1 text-xs">
-                  {item.submenu.map((sub, sidx) => (
-                    <Link
-                      key={sidx}
-                      to={sub.path}
-                      className="flex items-center gap-2 px-3 py-2 rounded hover:bg-[#005f87]"
-                    >
-                      {sub.icon} <span>{sub.name}</span>
-                    </Link>
-                  ))}
+                  {item.submenu.map((sub, sidx) => {
+                    const subHasSubmenu = sub.submenu?.length > 0;
+                    const subIsOpen = openSubmenu[`${idx}-${sidx}`];
+                    return subHasSubmenu ? (
+                      <div key={sidx}>
+                        <button
+                          onClick={() =>
+                            setOpenSubmenu((prev) => ({
+                              ...prev,
+                              [`${idx}-${sidx}`]: !prev[`${idx}-${sidx}`],
+                            }))
+                          }
+                          className="flex items-center justify-between w-full px-3 py-2 rounded hover:bg-[#005f87] transition"
+                        >
+                          <div className="flex items-center gap-2">
+                            {sub.icon} <span>{sub.name}</span>
+                          </div>
+                          <FaChevronRight
+                            className={`transition-transform duration-300 ${
+                              subIsOpen ? "rotate-90" : ""
+                            }`}
+                          />
+                        </button>
+                        {subHasSubmenu && subIsOpen && (
+                          <div className="pl-6 mt-1 space-y-1 text-xs">
+                            {sub.submenu.map((subsub, ssidx) => (
+                              <Link
+                                key={ssidx}
+                                to={subsub.path}
+                                className="flex items-center gap-2 px-3 py-2 rounded hover:bg-[#005f87]"
+                              >
+                                {subsub.icon} <span>{subsub.name}</span>
+                              </Link>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <Link
+                        key={sidx}
+                        to={sub.path}
+                        className="flex items-center gap-2 px-3 py-2 rounded hover:bg-[#005f87]"
+                      >
+                        {sub.icon} <span>{sub.name}</span>
+                      </Link>
+                    );
+                  })}
                 </div>
               )}
             </div>

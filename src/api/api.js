@@ -33,4 +33,12 @@ api.interceptors.response.use(
   }
 );
 
+// Activity Logs API
+export const getActivityLogs = (params) =>
+  api.get("/activity-logs", { params });
+export const getActivityLog = (id) => api.get(`/activity-logs/${id}`);
+export const getActions = () => api.get("/activity-logs/actions/list");
+export const getModelTypes = () => api.get("/activity-logs/model-types/list");
+export const getUsers = () => api.get("/users");
+
 export default api;

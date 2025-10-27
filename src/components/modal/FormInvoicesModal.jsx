@@ -16,6 +16,13 @@ import {
   CircularProgress,
   Divider,
   Chip,
+  FormControl,
+  FormLabel,
+  FormControlLabel,
+  Checkbox,
+  Select,
+  MenuItem,
+  InputLabel,
 } from "@mui/material";
 import { Receipt, Building2, User, DollarSign, FileText } from "lucide-react";
 import api from "../../api/api";
@@ -39,6 +46,13 @@ export default function FormInvoicesModal({
     invoice_due_date: "",
     remarks: "",
     currency: "IDR",
+    rate_usd: "",
+    is_ppn: true,
+    is_pph23: false,
+    is_pph42: false,
+    nilai_ppn: "",
+    nilai_pph23: "",
+    nilai_pph42: "",
   });
 
   const [nextSequence, setNextSequence] = useState("");
@@ -53,6 +67,8 @@ export default function FormInvoicesModal({
   const [showPreview, setShowPreview] = useState(false);
   const [previewData, setPreviewData] = useState(null);
   const [previewInvoiceId, setPreviewInvoiceId] = useState(null);
+  const [taxPreview, setTaxPreview] = useState(null);
+  const [loadingTaxPreview, setLoadingTaxPreview] = useState(false);
 
   const [originalInvoiceTypeId, setOriginalInvoiceTypeId] = useState(null);
   const [snackbar, setSnackbar] = useState({
@@ -71,7 +87,7 @@ export default function FormInvoicesModal({
 
   const isEditMode = Boolean(invoiceData);
 
-  // Fetch invoice types, project info, and next sequence
+  // Fetch invoice types and project info
   useEffect(() => {
     if (!open) return;
 
@@ -102,43 +118,80 @@ export default function FormInvoicesModal({
       }
     };
 
-    const fetchNextSequence = async () => {
-      if (!projectId) return;
-      try {
-        const response = await api.get("/finance/invoices/next-id", {
-          params: { project_id: projectId },
-        });
-        const nextInvoiceId = response.data?.next_invoice_id;
-        if (nextInvoiceId) {
-          // Extract the last 3 digits as sequence
-          const nextSeq = parseInt(nextInvoiceId.slice(-3));
-          setNextSequence(nextSeq.toString().padStart(3, "0"));
-          // Set default sequence to next available
-          if (!isEditMode) {
+    fetchInvoiceTypes();
+    fetchProjectInfo();
+  }, [open, projectId]);
+
+  // Fetch next global sequence when invoice type is selected (for create mode)
+  useEffect(() => {
+    if (formData.invoice_type_id && !isEditMode && open) {
+      const fetchNextSequenceForType = async () => {
+        try {
+          const response = await api.get("/finance/invoices/next-id", {
+            params: { invoice_type_id: formData.invoice_type_id },
+          });
+          const nextInvoiceId = response.data?.next_invoice_id;
+          if (nextInvoiceId) {
+            // Extract the last 3 digits as sequence
+            const nextSeq = parseInt(nextInvoiceId.slice(-3));
+            const sequenceStr = nextSeq.toString().padStart(3, "0");
+            setNextSequence(sequenceStr);
             setFormData((prev) => ({
               ...prev,
-              invoice_sequence: nextSeq.toString().padStart(3, "0"),
+              invoice_sequence: sequenceStr,
             }));
           }
-        } else {
-          setNextSequence("001");
-          if (!isEditMode) {
+        } catch (error) {
+          console.error("Failed to fetch next sequence for type:", error);
+          // Fallback: try to get from existing invoices or use 001
+          try {
+            // Try to get the latest invoice for this type to calculate next sequence
+            const response = await api.get("/finance/invoices", {
+              params: { project_id: projectId, limit: 1000 },
+            });
+            const invoices = response.data?.invoices || [];
+            const typeInvoices = invoices.filter((inv) => {
+              const selectedType = invoiceTypes.find(
+                (type) => type.id === formData.invoice_type_id
+              );
+              return (
+                selectedType &&
+                inv.invoice_id.startsWith(selectedType.code_type)
+              );
+            });
+
+            if (typeInvoices.length > 0) {
+              // Find the highest sequence for this type
+              const sequences = typeInvoices.map((inv) =>
+                parseInt(inv.invoice_id.slice(-3))
+              );
+              const maxSeq = Math.max(...sequences);
+              const nextSeq = maxSeq + 1;
+              const sequenceStr = nextSeq.toString().padStart(3, "0");
+              setNextSequence(sequenceStr);
+              setFormData((prev) => ({
+                ...prev,
+                invoice_sequence: sequenceStr,
+              }));
+            } else {
+              setNextSequence("001");
+              setFormData((prev) => ({ ...prev, invoice_sequence: "001" }));
+            }
+          } catch (fallbackError) {
+            console.error("Fallback sequence fetch failed:", fallbackError);
+            setNextSequence("001");
             setFormData((prev) => ({ ...prev, invoice_sequence: "001" }));
           }
         }
-      } catch (error) {
-        console.error("Failed to fetch next sequence:", error);
-        setNextSequence("001");
-        if (!isEditMode) {
-          setFormData((prev) => ({ ...prev, invoice_sequence: "001" }));
-        }
-      }
-    };
+      };
 
-    fetchInvoiceTypes();
-    fetchProjectInfo();
-    fetchNextSequence();
-  }, [open, projectId, isEditMode]);
+      fetchNextSequenceForType();
+    } else if (!formData.invoice_type_id && !isEditMode) {
+      // Reset sequence when no type is selected
+      setNextSequence("");
+      setFormData((prev) => ({ ...prev, invoice_sequence: "" }));
+    }
+  }, [formData.invoice_type_id, isEditMode, open, projectId, invoiceTypes]);
 
   // Fetch full invoice data for edit mode
   useEffect(() => {
@@ -185,6 +238,13 @@ export default function FormInvoicesModal({
             : "",
           remarks: data.remarks || "",
           currency: data.currency || "IDR",
+          rate_usd: data.rate_usd || "",
+          is_ppn: data.is_ppn || false,
+          is_pph23: data.is_pph23 || false,
+          is_pph42: data.is_pph42 || false,
+          nilai_ppn: data.nilai_ppn || "",
+          nilai_pph23: data.nilai_pph23 || "",
+          nilai_pph42: data.nilai_pph42 || "",
         });
         setOriginalInvoiceTypeId(invoiceTypeId);
       } else {
@@ -198,6 +258,13 @@ export default function FormInvoicesModal({
           invoice_due_date: "",
           remarks: "",
           currency: "IDR",
+          rate_usd: "",
+          is_ppn: true,
+          is_pph23: false,
+          is_pph42: false,
+          nilai_ppn: "",
+          nilai_pph23: "",
+          nilai_pph42: "",
         });
         setOriginalInvoiceTypeId(null);
       }
@@ -211,6 +278,136 @@ export default function FormInvoicesModal({
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  // Function to calculate tax preview with manual overrides
+  const calculateTaxPreview = useCallback(() => {
+    if (
+      !formData.invoice_value ||
+      (!formData.is_ppn && !formData.is_pph23 && !formData.is_pph42)
+    ) {
+      setTaxPreview(null);
+      return;
+    }
+
+    // Validate required parameters before making API call
+    const invoiceValue = parseFloat(formData.invoice_value);
+    if (isNaN(invoiceValue) || invoiceValue <= 0) {
+      setTaxPreview(null);
+      return;
+    }
+
+    setLoadingTaxPreview(true);
+    try {
+      const params = {
+        invoice_value: invoiceValue,
+        currency: formData.currency,
+        is_ppn: formData.is_ppn ? 1 : 0,
+        is_pph23: formData.is_pph23 ? 1 : 0,
+        is_pph42: formData.is_pph42 ? 1 : 0,
+      };
+
+      // Only include rate_usd if currency is USD and rate is provided and valid
+      if (
+        formData.currency === "USD" &&
+        formData.rate_usd &&
+        formData.rate_usd.trim() !== ""
+      ) {
+        const rateUsd = parseFloat(formData.rate_usd);
+        if (!isNaN(rateUsd) && rateUsd > 0) {
+          params.rate_usd = rateUsd;
+        }
+      }
+
+      // Calculate manual tax values
+      const manualPpn = formData.nilai_ppn
+        ? parseFloat(formData.nilai_ppn)
+        : null;
+      const manualPph23 = formData.nilai_pph23
+        ? parseFloat(formData.nilai_pph23)
+        : null;
+      const manualPph42 = formData.nilai_pph42
+        ? parseFloat(formData.nilai_pph42)
+        : null;
+
+      // Use API for base calculation, then override with manual values
+      api
+        .get("/finance/invoices/preview-taxes", { params })
+        .then((response) => {
+          const basePreview = response.data;
+
+          // Override with manual values if provided
+          const finalPreview = {
+            ...basePreview,
+            nilai_ppn:
+              manualPpn !== null && !isNaN(manualPpn)
+                ? manualPpn
+                : basePreview.nilai_ppn,
+            nilai_pph23:
+              manualPph23 !== null && !isNaN(manualPph23)
+                ? manualPph23
+                : basePreview.nilai_pph23,
+            nilai_pph42:
+              manualPph42 !== null && !isNaN(manualPph42)
+                ? manualPph42
+                : basePreview.nilai_pph42,
+          };
+
+          // Recalculate totals based on manual values
+          const totalTax =
+            (finalPreview.nilai_ppn || 0) +
+            (finalPreview.nilai_pph23 || 0) +
+            (finalPreview.nilai_pph42 || 0);
+          finalPreview.total_invoice = invoiceValue + totalTax;
+          finalPreview.expected_payment =
+            invoiceValue +
+            (finalPreview.nilai_ppn || 0) -
+            (finalPreview.nilai_pph23 || 0) -
+            (finalPreview.nilai_pph42 || 0);
+
+          setTaxPreview(finalPreview);
+        })
+        .catch((error) => {
+          // Handle different error types gracefully
+          if (error.response?.status === 422) {
+            // Validation error from backend - don't log as error, just clear preview
+            console.warn("Tax preview validation failed:", error.response.data);
+          } else if (error.response?.status >= 500) {
+            // Server error - log but don't show to user
+            console.error("Server error fetching tax preview:", error);
+          } else {
+            // Other errors - log for debugging
+            console.error("Failed to fetch tax preview:", error);
+          }
+          setTaxPreview(null);
+        })
+        .finally(() => {
+          setLoadingTaxPreview(false);
+        });
+    } catch (error) {
+      console.error("Failed to calculate tax preview:", error);
+      setTaxPreview(null);
+      setLoadingTaxPreview(false);
+    }
+  }, [
+    formData.invoice_value,
+    formData.currency,
+    formData.rate_usd,
+    formData.is_ppn,
+    formData.is_pph23,
+    formData.is_pph42,
+    formData.nilai_ppn,
+    formData.nilai_pph23,
+    formData.nilai_pph42,
+  ]);
+
+  // Calculate tax preview when relevant fields change (debounced)
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      calculateTaxPreview();
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [calculateTaxPreview]);
+
   const handleSequenceChange = async (value) => {
     const numericValue = value.replace(/[^0-9]/g, "").slice(0, 3);
     setFormData((prev) => ({ ...prev, invoice_sequence: numericValue }));
@@ -223,13 +420,12 @@ export default function FormInvoicesModal({
       return;
     }
 
-    // Validate sequence uniqueness only if sequence has value
-    if (numericValue && formData.invoice_type_id && projectId) {
+    // Validate sequence uniqueness only if sequence has value and type is selected
+    if (numericValue && formData.invoice_type_id) {
       setValidatingSequence(true);
       try {
         const response = await api.get("/finance/invoices/validate-sequence", {
           params: {
-            project_id: projectId,
             invoice_type_id: formData.invoice_type_id,
             invoice_sequence: parseInt(numericValue),
             ...(isEditMode &&
@@ -265,6 +461,9 @@ export default function FormInvoicesModal({
             setSequenceError(
               "Invalid sequence format. Please enter a valid number."
             );
+          } else if (error.response.status === 422) {
+            // Handle 422 as validation error, don't show error
+            setSequenceError("");
           } else if (error.response.status === 500) {
             setSequenceError("Server error occurred. Please try again later.");
           }
@@ -290,7 +489,6 @@ export default function FormInvoicesModal({
 
     try {
       const params = {
-        project_id: projectId,
         invoice_type_id: formData.invoice_type_id,
       };
 
@@ -308,9 +506,6 @@ export default function FormInvoicesModal({
         params.original_invoice_type_id = originalInvoiceTypeId;
       }
 
-      // Add project_id for backend to use full pn_number
-      params.project_id = projectId;
-
       const response = await api.get("/finance/invoices/next-id", { params });
       console.log("Generated invoice ID:", response.data.next_invoice_id);
       return response.data.next_invoice_id;
@@ -321,14 +516,13 @@ export default function FormInvoicesModal({
   }, [
     formData.invoice_type_id,
     formData.invoice_sequence,
-    projectId,
     isEditMode,
     originalInvoiceTypeId,
   ]);
 
   // Generate preview invoice ID when invoice type or sequence is changed
   useEffect(() => {
-    if (formData.invoice_type_id && formData.invoice_sequence && projectId) {
+    if (formData.invoice_type_id) {
       (async () => {
         try {
           const id = await generateInvoiceId();
@@ -344,13 +538,22 @@ export default function FormInvoicesModal({
   }, [
     formData.invoice_type_id,
     formData.invoice_sequence,
-    projectId,
     originalInvoiceTypeId,
     generateInvoiceId,
   ]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Validation: Check if rate_usd is required for USD currency
+    if (formData.currency === "USD" && !formData.rate_usd) {
+      setSnackbar({
+        open: true,
+        message: "USD rate is required when currency is USD.",
+        severity: "error",
+      });
+      return;
+    }
 
     // Validation: Check if invoice value exceeds project value using API
     if (formData.invoice_value) {
@@ -406,8 +609,25 @@ export default function FormInvoicesModal({
 
   const proceedWithSubmit = async () => {
     // Generate preview data
-    const generatedId = await generateInvoiceId();
-    console.log("Preview generated ID:", generatedId);
+    let generatedId = null;
+    if (isEditMode) {
+      generatedId = await generateInvoiceId();
+      console.log("Preview generated ID for edit:", generatedId);
+    } else {
+      // For create mode, construct the ID locally based on form data
+      const selectedType = invoiceTypes.find(
+        (type) => type.id === formData.invoice_type_id
+      );
+      if (selectedType && formData.invoice_sequence) {
+        const year = new Date().getFullYear().toString().slice(-2);
+        generatedId =
+          selectedType.code_type +
+          year +
+          formData.invoice_sequence.padStart(3, "0");
+        console.log("Preview constructed ID for create:", generatedId);
+      }
+    }
+
     const selectedType = invoiceTypes.find(
       (type) => type.id === formData.invoice_type_id
     );
@@ -432,6 +652,27 @@ export default function FormInvoicesModal({
         ? formatDate(formData.invoice_due_date)
         : "Not specified",
       currency: formData.currency,
+      rate_usd: formData.rate_usd || "Not specified",
+      tax_flags:
+        [
+          formData.is_ppn && "PPN (11%)",
+          formData.is_pph23 && "PPh 23 (2.65%)",
+          formData.is_pph42 && "PPh 4(2) (2%)",
+        ]
+          .filter(Boolean)
+          .join(", ") || "None",
+      tax_details: taxPreview
+        ? {
+            ppn_rate: taxPreview.ppn_rate,
+            pph23_rate: taxPreview.pph23_rate,
+            pph42_rate: taxPreview.pph42_rate,
+            nilai_ppn: formData.nilai_ppn || taxPreview.nilai_ppn,
+            nilai_pph23: formData.nilai_pph23 || taxPreview.nilai_pph23,
+            nilai_pph42: formData.nilai_pph42 || taxPreview.nilai_pph42,
+            total_invoice: taxPreview.total_invoice,
+            expected_payment: taxPreview.expected_payment,
+          }
+        : null,
       remarks: formData.remarks || "Not specified",
     };
 
@@ -457,6 +698,17 @@ export default function FormInvoicesModal({
         invoice_due_date: formData.invoice_due_date || null,
         currency: formData.currency,
         remarks: formData.remarks || null,
+        rate_usd: formData.rate_usd ? parseFloat(formData.rate_usd) : null,
+        is_ppn: formData.is_ppn,
+        is_pph23: formData.is_pph23,
+        is_pph42: formData.is_pph42,
+        nilai_ppn: formData.nilai_ppn ? parseFloat(formData.nilai_ppn) : null,
+        nilai_pph23: formData.nilai_pph23
+          ? parseFloat(formData.nilai_pph23)
+          : null,
+        nilai_pph42: formData.nilai_pph42
+          ? parseFloat(formData.nilai_pph42)
+          : null,
       };
 
       if (isEditMode) {
@@ -795,6 +1047,49 @@ export default function FormInvoicesModal({
                       </Typography>
                     </Box>
                   </Box>
+
+                  {/* Tax Summary in Preview */}
+                  {previewData.tax_details && (
+                    <Box sx={{ mt: 2 }}>
+                      <Typography
+                        variant="subtitle2"
+                        sx={{
+                          color: "text.secondary",
+                          fontWeight: 600,
+                          mb: 1,
+                        }}
+                      >
+                        Tax Summary
+                      </Typography>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 1,
+                        }}
+                      >
+                        <Typography variant="body2">
+                          Total Invoice:{" "}
+                          <strong>
+                            {
+                              formatValue(previewData.tax_details.total_invoice)
+                                .formatted
+                            }
+                          </strong>
+                        </Typography>
+                        <Typography variant="body2">
+                          Expected Payment:{" "}
+                          <strong>
+                            {
+                              formatValue(
+                                previewData.tax_details.expected_payment
+                              ).formatted
+                            }
+                          </strong>
+                        </Typography>
+                      </Box>
+                    </Box>
+                  )}
                 </Box>
               </Paper>
             </Grid>
@@ -1364,19 +1659,25 @@ export default function FormInvoicesModal({
                                   variant="h6"
                                   sx={{
                                     fontWeight: 700,
-                                    color: "primary.main",
+                                    color: formData.invoice_type_id
+                                      ? "primary.main"
+                                      : "text.disabled",
                                     fontFamily: "monospace",
                                     minWidth: 60,
                                     textAlign: "center",
                                   }}
                                 >
-                                  {nextSequence || "001"}
+                                  {formData.invoice_type_id
+                                    ? nextSequence || "001"
+                                    : "---"}
                                 </Typography>
                                 <Typography
                                   variant="body2"
                                   sx={{ color: "text.secondary" }}
                                 >
-                                  Next available
+                                  {formData.invoice_type_id
+                                    ? "Next available"
+                                    : "Select type first"}
                                 </Typography>
                               </Box>
                             </Paper>
@@ -1486,18 +1787,18 @@ export default function FormInvoicesModal({
                                 const selectedType = invoiceTypes.find(
                                   (type) => type.id === formData.invoice_type_id
                                 );
-                                if (
-                                  selectedType &&
-                                  formData.invoice_sequence &&
-                                  projectInfo?.pn_number
-                                ) {
+                                if (selectedType && formData.invoice_sequence) {
+                                  const year = new Date()
+                                    .getFullYear()
+                                    .toString()
+                                    .slice(-2);
                                   return (
                                     selectedType.code_type +
-                                    projectInfo.pn_number +
+                                    year +
                                     formData.invoice_sequence.padStart(3, "0")
                                   );
                                 }
-                                return "IP25020001";
+                                return "IP25001";
                               })()}
                             </Typography>
                             {formData.invoice_type_id &&
@@ -2031,7 +2332,491 @@ export default function FormInvoicesModal({
                       />
                     </Box>
                   </Grid>
+
+                  {/* Rate USD - Conditional */}
+                  {formData.currency === "USD" && (
+                    <Grid size={{ xs: 12, md: 6 }}>
+                      <Box sx={{ mb: 2 }}>
+                        <Typography
+                          variant="subtitle2"
+                          sx={{
+                            mb: 1.5,
+                            fontWeight: 600,
+                            color: "text.primary",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 1,
+                          }}
+                        >
+                          <DollarSign
+                            sx={{ fontSize: 16, color: "primary.main" }}
+                          />
+                          USD Rate *
+                          <Typography
+                            component="span"
+                            variant="caption"
+                            sx={{ color: "error.main", fontWeight: 500 }}
+                          >
+                            (Required for USD)
+                          </Typography>
+                        </Typography>
+
+                        <TextField
+                          fullWidth
+                          placeholder="Enter USD to IDR exchange rate (e.g., 15000)"
+                          value={formData.rate_usd}
+                          onChange={(e) =>
+                            handleChange("rate_usd", e.target.value)
+                          }
+                          InputProps={{
+                            startAdornment: (
+                              <Typography
+                                sx={{
+                                  mr: 1,
+                                  fontWeight: 600,
+                                  color: "#2e7d32",
+                                  fontSize: 16,
+                                }}
+                              >
+                                Rp
+                              </Typography>
+                            ),
+                          }}
+                          sx={{
+                            "& .MuiOutlinedInput-root": {
+                              borderRadius: 2,
+                              backgroundColor: "background.paper",
+                              "&:hover .MuiOutlinedInput-notchedOutline": {
+                                borderColor: "primary.main",
+                              },
+                              "&.Mui-focused .MuiOutlinedInput-notchedOutline":
+                                {
+                                  borderColor: "primary.main",
+                                  borderWidth: 2,
+                                },
+                            },
+                          }}
+                        />
+                      </Box>
+                    </Grid>
+                  )}
                 </Grid>
+              </Paper>
+
+              {/* Payment Status and Tax Flags Section */}
+              <Paper
+                elevation={1}
+                sx={{
+                  p: 3,
+                  mb: 3,
+                  borderRadius: 3,
+                  border: "1px solid",
+                  borderColor: "divider",
+                  background:
+                    "linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)",
+                }}
+              >
+                <Typography
+                  variant="h6"
+                  sx={{
+                    mb: 3,
+                    fontWeight: 700,
+                    color: "info.main",
+                    display: "flex",
+                    alignItems: "center",
+                    fontSize: "1.1rem",
+                  }}
+                >
+                  <DollarSign sx={{ mr: 1.5, fontSize: 22 }} />
+                  Payment & Tax Settings
+                </Typography>
+
+                <Grid container spacing={3}>
+                  {/* Tax Flags */}
+                  <Grid size={{ xs: 12, md: 6 }}>
+                    <Typography
+                      variant="subtitle2"
+                      sx={{
+                        mb: 2,
+                        fontWeight: 600,
+                        color: "text.primary",
+                      }}
+                    >
+                      Tax Flags
+                    </Typography>
+                    <Box
+                      sx={{ display: "flex", flexDirection: "column", gap: 1 }}
+                    >
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={formData.is_ppn}
+                            onChange={(e) =>
+                              handleChange("is_ppn", e.target.checked)
+                            }
+                            sx={{
+                              color: "primary.main",
+                              "&.Mui-checked": {
+                                color: "primary.main",
+                              },
+                            }}
+                          />
+                        }
+                        label="PPN (11%)"
+                      />
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={formData.is_pph23}
+                            onChange={(e) =>
+                              handleChange("is_pph23", e.target.checked)
+                            }
+                            sx={{
+                              color: "primary.main",
+                              "&.Mui-checked": {
+                                color: "primary.main",
+                              },
+                            }}
+                          />
+                        }
+                        label="PPh 23 (2.65%)"
+                      />
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={formData.is_pph42}
+                            onChange={(e) =>
+                              handleChange("is_pph42", e.target.checked)
+                            }
+                            sx={{
+                              color: "primary.main",
+                              "&.Mui-checked": {
+                                color: "primary.main",
+                              },
+                            }}
+                          />
+                        }
+                        label="PPh 4(2) (2%)"
+                      />
+                    </Box>
+                  </Grid>
+                </Grid>
+
+                {/* Tax Preview Section */}
+                {taxPreview && (
+                  <Box sx={{ mt: 3 }}>
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        mb: 3,
+                        fontWeight: 700,
+                        color: "warning.main",
+                        display: "flex",
+                        alignItems: "center",
+                        fontSize: "1.1rem",
+                      }}
+                    >
+                      <DollarSign sx={{ mr: 1.5, fontSize: 22 }} />
+                      Tax Preview & Manual Override
+                    </Typography>
+
+                    {loadingTaxPreview ? (
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "center",
+                          py: 2,
+                        }}
+                      >
+                        <CircularProgress size={24} />
+                      </Box>
+                    ) : (
+                      <Grid container spacing={3}>
+                        {/* PPN Section */}
+                        {formData.is_ppn && (
+                          <Grid size={{ xs: 12, md: 4 }}>
+                            <Paper
+                              elevation={1}
+                              sx={{
+                                p: 2,
+                                borderRadius: 2,
+                                border: "1px solid",
+                                borderColor: "divider",
+                                backgroundColor: "background.paper",
+                              }}
+                            >
+                              <Typography
+                                variant="subtitle2"
+                                sx={{
+                                  mb: 2,
+                                  fontWeight: 600,
+                                  color: "text.primary",
+                                }}
+                              >
+                                PPN (11%)
+                              </Typography>
+                              <Box sx={{ mb: 2 }}>
+                                <Typography
+                                  variant="caption"
+                                  sx={{ color: "text.secondary" }}
+                                >
+                                  Rate: {taxPreview.ppn_rate * 100}%
+                                </Typography>
+                              </Box>
+                              <TextField
+                                fullWidth
+                                label="Manual PPN Value"
+                                placeholder="Auto: 0"
+                                value={
+                                  formData.nilai_ppn
+                                    ? Number(formData.nilai_ppn).toLocaleString(
+                                        "id-ID"
+                                      )
+                                    : ""
+                                }
+                                onChange={(e) =>
+                                  handleChange(
+                                    "nilai_ppn",
+                                    e.target.value.replace(/[^0-9]/g, "")
+                                  )
+                                }
+                                InputProps={{
+                                  startAdornment: (
+                                    <Typography
+                                      sx={{ mr: 1, color: "text.secondary" }}
+                                    >
+                                      Rp
+                                    </Typography>
+                                  ),
+                                }}
+                                helperText={`Auto calculated: ${
+                                  formatValue(taxPreview.nilai_ppn).formatted
+                                }`}
+                                sx={{
+                                  "& .MuiOutlinedInput-root": {
+                                    borderRadius: 1,
+                                  },
+                                }}
+                              />
+                            </Paper>
+                          </Grid>
+                        )}
+
+                        {/* PPh 23 Section */}
+                        {formData.is_pph23 && (
+                          <Grid size={{ xs: 12, md: 4 }}>
+                            <Paper
+                              elevation={1}
+                              sx={{
+                                p: 2,
+                                borderRadius: 2,
+                                border: "1px solid",
+                                borderColor: "divider",
+                                backgroundColor: "background.paper",
+                              }}
+                            >
+                              <Typography
+                                variant="subtitle2"
+                                sx={{
+                                  mb: 2,
+                                  fontWeight: 600,
+                                  color: "text.primary",
+                                }}
+                              >
+                                PPh 23 (2.65%)
+                              </Typography>
+                              <Box sx={{ mb: 2 }}>
+                                <Typography
+                                  variant="caption"
+                                  sx={{ color: "text.secondary" }}
+                                >
+                                  Rate: {taxPreview.pph23_rate * 100}%
+                                </Typography>
+                              </Box>
+                              <TextField
+                                fullWidth
+                                label="Manual PPh 23 Value"
+                                placeholder="Auto: 0"
+                                value={
+                                  formData.nilai_pph23
+                                    ? Number(
+                                        formData.nilai_pph23
+                                      ).toLocaleString("id-ID")
+                                    : ""
+                                }
+                                onChange={(e) =>
+                                  handleChange(
+                                    "nilai_pph23",
+                                    e.target.value.replace(/[^0-9]/g, "")
+                                  )
+                                }
+                                InputProps={{
+                                  startAdornment: (
+                                    <Typography
+                                      sx={{ mr: 1, color: "text.secondary" }}
+                                    >
+                                      Rp
+                                    </Typography>
+                                  ),
+                                }}
+                                helperText={`Auto calculated: ${
+                                  formatValue(taxPreview.nilai_pph23).formatted
+                                }`}
+                                sx={{
+                                  "& .MuiOutlinedInput-root": {
+                                    borderRadius: 1,
+                                  },
+                                }}
+                              />
+                            </Paper>
+                          </Grid>
+                        )}
+
+                        {/* PPh 4(2) Section */}
+                        {formData.is_pph42 && (
+                          <Grid size={{ xs: 12, md: 4 }}>
+                            <Paper
+                              elevation={1}
+                              sx={{
+                                p: 2,
+                                borderRadius: 2,
+                                border: "1px solid",
+                                borderColor: "divider",
+                                backgroundColor: "background.paper",
+                              }}
+                            >
+                              <Typography
+                                variant="subtitle2"
+                                sx={{
+                                  mb: 2,
+                                  fontWeight: 600,
+                                  color: "text.primary",
+                                }}
+                              >
+                                PPh 4(2) (2%)
+                              </Typography>
+                              <Box sx={{ mb: 2 }}>
+                                <Typography
+                                  variant="caption"
+                                  sx={{ color: "text.secondary" }}
+                                >
+                                  Rate: {taxPreview.pph42_rate * 100}%
+                                </Typography>
+                              </Box>
+                              <TextField
+                                fullWidth
+                                label="Manual PPh 4(2) Value"
+                                placeholder="Auto: 0"
+                                value={
+                                  formData.nilai_pph42
+                                    ? Number(
+                                        formData.nilai_pph42
+                                      ).toLocaleString("id-ID")
+                                    : ""
+                                }
+                                onChange={(e) =>
+                                  handleChange(
+                                    "nilai_pph42",
+                                    e.target.value.replace(/[^0-9]/g, "")
+                                  )
+                                }
+                                InputProps={{
+                                  startAdornment: (
+                                    <Typography
+                                      sx={{ mr: 1, color: "text.secondary" }}
+                                    >
+                                      Rp
+                                    </Typography>
+                                  ),
+                                }}
+                                helperText={`Auto calculated: ${
+                                  formatValue(taxPreview.nilai_pph42).formatted
+                                }`}
+                                sx={{
+                                  "& .MuiOutlinedInput-root": {
+                                    borderRadius: 1,
+                                  },
+                                }}
+                              />
+                            </Paper>
+                          </Grid>
+                        )}
+
+                        {/* Summary */}
+                        <Grid size={{ xs: 12 }}>
+                          <Paper
+                            elevation={2}
+                            sx={{
+                              p: 3,
+                              borderRadius: 2,
+                              background:
+                                "linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)",
+                              border: "1px solid",
+                              borderColor: "info.light",
+                            }}
+                          >
+                            <Typography
+                              variant="h6"
+                              sx={{
+                                mb: 2,
+                                fontWeight: 700,
+                                color: "info.main",
+                              }}
+                            >
+                              Tax Calculation Summary
+                            </Typography>
+                            <Grid container spacing={2}>
+                              <Grid size={{ xs: 12, md: 3 }}>
+                                <Box sx={{ textAlign: "center" }}>
+                                  <Typography
+                                    variant="caption"
+                                    sx={{ color: "text.secondary" }}
+                                  >
+                                    Total Invoice
+                                  </Typography>
+                                  <Typography
+                                    variant="h6"
+                                    sx={{
+                                      fontWeight: 700,
+                                      color: "success.main",
+                                    }}
+                                  >
+                                    {
+                                      formatValue(taxPreview.total_invoice)
+                                        .formatted
+                                    }
+                                  </Typography>
+                                </Box>
+                              </Grid>
+                              <Grid size={{ xs: 12, md: 3 }}>
+                                <Box sx={{ textAlign: "center" }}>
+                                  <Typography
+                                    variant="caption"
+                                    sx={{ color: "text.secondary" }}
+                                  >
+                                    Expected Payment
+                                  </Typography>
+                                  <Typography
+                                    variant="h6"
+                                    sx={{
+                                      fontWeight: 700,
+                                      color: "primary.main",
+                                    }}
+                                  >
+                                    {
+                                      formatValue(taxPreview.expected_payment)
+                                        .formatted
+                                    }
+                                  </Typography>
+                                </Box>
+                              </Grid>
+                            </Grid>
+                          </Paper>
+                        </Grid>
+                      </Grid>
+                    )}
+                  </Box>
+                )}
               </Paper>
 
               {/* Additional Information Section */}

@@ -56,6 +56,7 @@ import InvoiceList from "../pages/Finance/InvoiceList";
 import RequestInvoiceSummary from "../pages/Finance/RequestInvoiceSummary";
 import RequestInvoiceTable from "../pages/Finance/RequestInvoiceTable";
 import EngineerDashboard4K from "../pages/dashboard/EngineerDashboard4K";
+import ActivityLogPage from "../pages/activity-log/ActivityLogPage";
 
 function AppRoutes() {
   return (
@@ -258,6 +259,7 @@ function AppRoutes() {
                 "project controller",
                 "project manager",
                 "engineering_admin",
+                "marketing_director",
               ]}
             >
               <MainLayout>
@@ -402,6 +404,7 @@ function AppRoutes() {
                 "project manager",
                 "engineering_director",
                 "engineering_admin",
+                "marketing_director",
               ]}
             >
               <MainLayout>
@@ -414,7 +417,13 @@ function AppRoutes() {
         <Route
           path="/engineer4k"
           element={
-            <ProtectedRoute roles={["super_admin"]}>
+            <ProtectedRoute
+              roles={[
+                "super_admin",
+                "marketing_director",
+                "engineering_director",
+              ]}
+            >
               <MainLayout>
                 <EngineerDashboard4K />
               </MainLayout>
@@ -431,6 +440,7 @@ function AppRoutes() {
                 "project manager",
                 "engineering_director",
                 "engineering_admin",
+                "marketing_director",
               ]}
             >
               <MainLayout>
@@ -449,6 +459,7 @@ function AppRoutes() {
                 "project manager",
                 "engineering_director",
                 "engineering_admin",
+                "marketing_director",
               ]}
             >
               <MainLayout>
@@ -468,6 +479,7 @@ function AppRoutes() {
                 "engineering_director",
                 "engineer",
                 "engineering_admin",
+                "marketing_director",
               ]}
             >
               <MainLayout>
@@ -487,6 +499,7 @@ function AppRoutes() {
                 "engineering_director",
                 "engineer",
                 "engineering_admin",
+                "marketing_director",
               ]}
             >
               <MainLayout>
@@ -506,6 +519,7 @@ function AppRoutes() {
                 "project controller",
                 "project manager",
                 "engineering_admin",
+                "marketing_director",
               ]}
             >
               <MainLayout>
@@ -525,6 +539,7 @@ function AppRoutes() {
                 "project manager",
                 "engineering_director",
                 "engineering_admin",
+                "marketing_director",
               ]}
             >
               <MainLayout>
@@ -536,7 +551,14 @@ function AppRoutes() {
         <Route
           path="/suc"
           element={
-            <ProtectedRoute roles={["warehouse", "super_admin"]}>
+            <ProtectedRoute
+              roles={[
+                "warehouse",
+                "super_admin",
+                "marketing_director",
+                "engineering_director",
+              ]}
+            >
               <MainLayout>
                 <SucDashboard />
               </MainLayout>
@@ -554,6 +576,7 @@ function AppRoutes() {
                 "project manager",
                 "engineering_director",
                 "engineering_admin",
+                "marketing_director",
               ]}
             >
               <MainLayout>
@@ -573,6 +596,7 @@ function AppRoutes() {
                 "project manager",
                 "engineering_director",
                 "engineering_admin",
+                "marketing_director",
               ]}
             >
               <MainLayout>
@@ -592,6 +616,7 @@ function AppRoutes() {
                 "project manager",
                 "engineering_director",
                 "engineering_admin",
+                "marketing_director",
               ]}
             >
               <MainLayout>
@@ -621,7 +646,13 @@ function AppRoutes() {
         <Route
           path="/user"
           element={
-            <ProtectedRoute roles={["super_admin"]}>
+            <ProtectedRoute
+              roles={[
+                "super_admin",
+                "marketing_director",
+                "engineering_director",
+              ]}
+            >
               <MainLayout>
                 <UserTable />
               </MainLayout>
@@ -632,7 +663,13 @@ function AppRoutes() {
         <Route
           path="/role"
           element={
-            <ProtectedRoute roles={["super_admin"]}>
+            <ProtectedRoute
+              roles={[
+                "super_admin",
+                "marketing_director",
+                "engineering_director",
+              ]}
+            >
               <MainLayout>
                 <RoleTable />
               </MainLayout>
@@ -643,7 +680,13 @@ function AppRoutes() {
         <Route
           path="/department"
           element={
-            <ProtectedRoute roles={["super_admin"]}>
+            <ProtectedRoute
+              roles={[
+                "super_admin",
+                "marketing_director",
+                "engineering_director",
+              ]}
+            >
               <MainLayout>
                 <DepartmentTable />
               </MainLayout>
@@ -661,6 +704,8 @@ function AppRoutes() {
                 "engineering_director",
                 "engineering_admin",
                 "engineer",
+                "super_admin",
+                "marketing_director",
               ]}
             >
               <MainLayout>
@@ -679,6 +724,8 @@ function AppRoutes() {
                 "project manager",
                 "engineering_director",
                 "engineering_admin",
+                "super_admin",
+                "marketing_director",
               ]}
             >
               <MainLayout>
@@ -697,6 +744,8 @@ function AppRoutes() {
                 "project manager",
                 "engineering_director",
                 "engineering_admin",
+                "super_admin",
+                "marketing_director",
               ]}
             >
               <MainLayout>
@@ -715,6 +764,8 @@ function AppRoutes() {
                 "project manager",
                 "engineering_director",
                 "engineering_admin",
+                "super_admin",
+                "marketing_director",
               ]}
             >
               <MainLayout>
@@ -733,6 +784,8 @@ function AppRoutes() {
                 "project manager",
                 "engineering_director",
                 "engineering_admin",
+                "super_admin",
+                "marketing_director",
               ]}
             >
               <MainLayout>
@@ -752,6 +805,9 @@ function AppRoutes() {
                 "drafter",
                 "electrician_supervisor",
                 "electrician",
+                "super_admin",
+                "marketing_director",
+                "engineering_director",
               ]}
             >
               <MainLayout>
@@ -820,7 +876,16 @@ function AppRoutes() {
         <Route
           path="/finance"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute
+              roles={[
+                "acc_fin_manager",
+                "acc_fin_supervisor",
+                "finance_administration",
+                "super_admin",
+                "marketing_director",
+                "engineering_director",
+              ]}
+            >
               <MainLayout>
                 <FinanceDashboard />
               </MainLayout>
@@ -830,7 +895,16 @@ function AppRoutes() {
         <Route
           path="/finance/invoice-types"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute
+              roles={[
+                "acc_fin_manager",
+                "acc_fin_supervisor",
+                "finance_administration",
+                "super_admin",
+                "marketing_director",
+                "engineering_director",
+              ]}
+            >
               <MainLayout>
                 <InvoiceTypeTable />
               </MainLayout>
@@ -840,7 +914,16 @@ function AppRoutes() {
         <Route
           path="/finance/invoice-summary"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute
+              roles={[
+                "acc_fin_manager",
+                "acc_fin_supervisor",
+                "finance_administration",
+                "super_admin",
+                "marketing_director",
+                "engineering_director",
+              ]}
+            >
               <MainLayout>
                 <InvoiceSummary />
               </MainLayout>
@@ -850,7 +933,16 @@ function AppRoutes() {
         <Route
           path="/finance/invoice-list"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute
+              roles={[
+                "acc_fin_manager",
+                "acc_fin_supervisor",
+                "finance_administration",
+                "super_admin",
+                "marketing_director",
+                "engineering_director",
+              ]}
+            >
               <MainLayout>
                 <InvoiceList />
               </MainLayout>
@@ -860,7 +952,16 @@ function AppRoutes() {
         <Route
           path="/finance/request-invoice-summary"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute
+              roles={[
+                "acc_fin_manager",
+                "acc_fin_supervisor",
+                "finance_administration",
+                "super_admin",
+                "marketing_director",
+                "engineering_director",
+              ]}
+            >
               <MainLayout>
                 <RequestInvoiceSummary />
               </MainLayout>
@@ -870,9 +971,34 @@ function AppRoutes() {
         <Route
           path="/finance/request-invoice-list"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute
+              roles={[
+                "acc_fin_manager",
+                "acc_fin_supervisor",
+                "finance_administration",
+                "super_admin",
+                "marketing_director",
+                "engineering_director",
+              ]}
+            >
               <MainLayout>
                 <RequestInvoiceTable />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/activity-logs"
+          element={
+            <ProtectedRoute
+              roles={[
+                "super_admin",
+                "marketing_director",
+                "engineering_director",
+              ]}
+            >
+              <MainLayout>
+                <ActivityLogPage />
               </MainLayout>
             </ProtectedRoute>
           }
