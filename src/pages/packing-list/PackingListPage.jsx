@@ -1,19 +1,34 @@
-import React, { useEffect, useState } from "react";
-import { DataGrid, GridActionsCellItem } from "@mui/x-data-grid";
-import { Button, Stack, MenuItem, Select, Typography } from "@mui/material";
-import { Add, Delete } from "@mui/icons-material";
+import React, { useEffect, useState, useRef } from "react";
+import { HotTable } from "@handsontable/react";
+import Handsontable from "handsontable";
+import {
+  Button,
+  Stack,
+  Box,
+  TablePagination,
+  IconButton,
+  Tooltip,
+} from "@mui/material";
+import { Add, Edit, Delete } from "@mui/icons-material";
 import api from "../../api/api";
 import FormPackingListModal from "../../components/modal/FormPackingListModal";
+import { formatDate } from "../../utils/FormatDate";
 
 export default function PackingListPage() {
+  const hotTableRef = useRef(null);
   const [rows, setRows] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
+  const [openModal, setOpenModal] = useState(false); // <- state modal
+  const [mode, setMode] = useState("create"); // 'create' or 'edit'
+  const [projects, setProjects] = useState([]);
   const [users, setUsers] = useState([]);
-  const [paginationModel, setPaginationModel] = useState({
-    page: 0,
-    pageSize: 10,
-  });
-  const [openCreateModal, setOpenCreateModal] = useState(false); // <- state modal
+
+  const textRenderer = (instance, td, row, col, prop, value) => {
+    td.innerText = value || "-";
+    td.style.color = "black";
+    return td;
+  };
 
   const [formValues, setFormValues] = useState({
     pn_id: "",
@@ -33,18 +48,15 @@ export default function PackingListPage() {
 
   // Fetch packing lists
   const fetchPackingLists = async () => {
-    setLoading(true);
     try {
       const res = await api.get("/packing-lists");
       setRows(
         res.data.map((pl) => ({
-          id: pl.pl_id,
           pl_id: pl.pl_id,
           pl_number: pl.pl_number,
           pn_id: pl.project?.project_number,
           client_pic: pl.client_pic || null,
-          int_pic: pl.project?.int_pic_name || null,
-          int_pic_id: pl.project?.int_pic || null,
+          int_pic: pl.int_pic?.name || null,
           destination: pl.destination,
           expedition_name: pl.expedition_name,
           pl_date: pl.pl_date ? new Date(pl.pl_date) : null,
@@ -60,24 +72,32 @@ export default function PackingListPage() {
       );
     } catch (err) {
       console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchUsers = async () => {
-    try {
-      const res = await api.get("/users");
-      setUsers(res.data);
-    } catch (err) {
-      console.error(err);
     }
   };
 
   useEffect(() => {
     fetchPackingLists();
-    fetchUsers();
+    fetchProjectsAndUsers();
   }, []);
+
+  const fetchProjectsAndUsers = async () => {
+    try {
+      const [projectsRes, usersRes] = await Promise.all([
+        api.get("/projects"),
+        api.get("/users"),
+      ]);
+      setProjects(
+        Array.isArray(projectsRes.data)
+          ? projectsRes.data
+          : projectsRes.data?.data || []
+      );
+      setUsers(
+        Array.isArray(usersRes.data) ? usersRes.data : usersRes.data?.data || []
+      );
+    } catch (err) {
+      console.error("Failed to fetch projects and users", err);
+    }
+  };
 
   const handleDelete = async (id) => {
     if (!window.confirm("Delete this packing list?")) return;
@@ -89,37 +109,8 @@ export default function PackingListPage() {
     }
   };
 
-  const formatDate = (date) => {
-    if (!date) return null;
-    const d = new Date(date);
-    const day = String(d.getDate()).padStart(2, "0");
-    const month = String(d.getMonth() + 1).padStart(2, "0");
-    const year = d.getFullYear();
-    return `${year}-${month}-${day}`; // YYYY-MM-DD
-  };
-
-  const processRowUpdate = async (newRow) => {
-    try {
-      const payload = {
-        ...newRow,
-        pl_date: formatDate(newRow.pl_date),
-        ship_date: formatDate(newRow.ship_date),
-        receive_date: formatDate(newRow.receive_date),
-        pl_return_date: formatDate(newRow.pl_return_date),
-        int_pic: newRow.int_pic_id,
-      };
-      await api.put(`/packing-lists/${newRow.pl_id}`, payload);
-      setRows((prev) =>
-        prev.map((row) => (row.id === newRow.id ? { ...row, ...newRow } : row))
-      );
-      return newRow;
-    } catch (err) {
-      console.error(err);
-      return rows.find((r) => r.id === newRow.id);
-    }
-  };
-
   const handleOpenCreateModal = async () => {
+    setMode("create");
     try {
       const { data } = await api.get("/packing-lists/generate-number");
       setFormValues((prev) => ({
@@ -127,285 +118,307 @@ export default function PackingListPage() {
         pl_number: data.pl_number,
         pl_id: data.pl_id,
       }));
-      setOpenCreateModal(true);
+      setOpenModal(true);
     } catch (err) {
       console.error("Failed to generate PL number", err);
     }
   };
 
-  const handleCreateSuccess = (newItem) => {
-    setRows((prev) => [newItem, ...prev]);
-    setOpenCreateModal(false);
+  const handleEdit = async (pl_id) => {
+    setMode("edit");
+    try {
+      const res = await api.get(`/packing-lists/${pl_id}`);
+      const pl = res.data;
+      setFormValues({
+        pn_id: pl.project?.project_number || "",
+        destination: pl.destination || "",
+        expedition_name: pl.expedition_name || "",
+        pl_date: pl.pl_date
+          ? new Date(pl.pl_date).toISOString().split("T")[0]
+          : "",
+        ship_date: pl.ship_date
+          ? new Date(pl.ship_date).toISOString().split("T")[0]
+          : "",
+        pl_type: pl.pl_type || "internal",
+        client_pic: pl.client_pic || "",
+        int_pic: pl.int_pic || "",
+        receive_date: pl.receive_date
+          ? new Date(pl.receive_date).toISOString().split("T")[0]
+          : "",
+        pl_return_date: pl.pl_return_date
+          ? new Date(pl.pl_return_date).toISOString().split("T")[0]
+          : "",
+        remark: pl.remark || "",
+        pl_number: pl.pl_number || "",
+        pl_id: pl.pl_id || "",
+      });
+      setOpenModal(true);
+    } catch (err) {
+      console.error("Failed to fetch packing list for edit", err);
+    }
   };
 
+  const handleCreateSuccess = (newItem) => {
+    if (mode === "create") {
+      setRows((prev) => [newItem, ...prev]);
+    } else if (mode === "edit") {
+      setRows((prev) =>
+        prev.map((row) => (row.pl_id === newItem.pl_id ? newItem : row))
+      );
+    }
+    setOpenModal(false);
+  };
+
+  // Columns for Handsontable
   const columns = [
     {
-      field: "actions",
-      headerName: "Actions",
-      flex: 2,
-      type: "actions",
-      getActions: (params) => [
-        <GridActionsCellItem
-          icon={<Delete />}
-          label="Delete"
-          onClick={() => handleDelete(params.row.id)}
-          showInMenu
-        />,
-      ],
-    },
-    {
-      field: "pl_number",
-      headerName: "PL_NO",
-      flex: 3,
-      renderCell: (p) => p.value || "NA",
-      editable: true,
-    },
-    {
-      field: "pn_id",
-      headerName: "PNID",
-      flex: 4,
-      renderCell: (p) => p.value || "NA",
-      editable: true,
-    },
-    {
-      field: "destination",
-      headerName: "DESTINATION",
-      flex: 3,
-      renderCell: (p) => p.value || "NA",
-      editable: true,
-    },
-    {
-      field: "expedition_name",
-      headerName: "EXPEDITION",
-      flex: 2,
-      renderCell: (p) => p.value || "NA",
-      editable: true,
-    },
-    {
-      field: "pl_type",
-      headerName: "PL_TYPE",
-      flex: 2,
-      editable: true,
-      type: "singleSelect",
-      valueOptions: ["internal", "client", "expedition"],
-      renderCell: (p) => p.value || "NA",
-    },
-    {
-      field: "pl_date",
-      headerName: "PL_DATE",
-      flex: 2,
-      editable: true,
-      type: "date",
-      valueFormatter: (params) => {
-        if (!params || !params.value) return "-";
-        const date = new Date(params.value);
-        if (isNaN(date)) return "-";
-        const day = String(date.getDate()).padStart(2, "0");
-        const month = String(date.getMonth() + 1).padStart(2, "0");
-        const year = date.getFullYear();
-        return `${day}-${month}-${year}`;
-      },
-      renderCell: (params) => {
-        if (!params.value)
-          return <Typography color="text.secondary">-</Typography>;
-        const date = new Date(params.value);
-        const day = String(date.getDate()).padStart(2, "0");
-        const month = String(date.getMonth() + 1).padStart(2, "0");
-        const year = date.getFullYear();
-        return (
-          <Typography color="text.secondary" noWrap>
-            {`${day}-${month}-${year}`}
-          </Typography>
-        );
-      },
-    },
-    {
-      field: "ship_date",
-      headerName: "SHIP_DATE",
-      flex: 2,
-      editable: true,
-      type: "date",
-      valueFormatter: (params) => {
-        if (!params || !params.value) return "-";
-        const date = new Date(params.value);
-        if (isNaN(date)) return "-";
-        const day = String(date.getDate()).padStart(2, "0");
-        const month = String(date.getMonth() + 1).padStart(2, "0");
-        const year = date.getFullYear();
-        return `${day}-${month}-${year}`;
-      },
-      renderCell: (params) => {
-        if (!params.value)
-          return <Typography color="text.secondary">-</Typography>;
-        const date = new Date(params.value);
-        const day = String(date.getDate()).padStart(2, "0");
-        const month = String(date.getMonth() + 1).padStart(2, "0");
-        const year = date.getFullYear();
-        return (
-          <Typography color="text.secondary" noWrap>
-            {`${day}-${month}-${year}`}
-          </Typography>
-        );
+      data: "actions",
+      title: "Actions",
+      readOnly: true,
+      width: 60,
+      renderer: (instance, td, row) => {
+        td.innerHTML = "";
+
+        // wrapper flex
+        const wrapper = document.createElement("div");
+        wrapper.style.display = "flex";
+        wrapper.style.alignItems = "center";
+        wrapper.style.gap = "4px"; // very compact spacing
+
+        // Edit button - ultra compact with background
+        const editBtn = document.createElement("button");
+        editBtn.style.cursor = "pointer";
+        editBtn.style.border = "none";
+        editBtn.style.background = "#e3f2fd";
+        editBtn.style.padding = "4px 6px";
+        editBtn.style.borderRadius = "4px";
+        editBtn.style.color = "#1976d2";
+        editBtn.style.fontSize = "10px";
+        editBtn.style.fontWeight = "600";
+        editBtn.style.display = "flex";
+        editBtn.style.alignItems = "center";
+        editBtn.style.gap = "2px";
+        editBtn.style.transition = "all 0.15s cubic-bezier(0.4, 0, 0.2, 1)";
+        editBtn.style.boxShadow = "0 1px 2px rgba(0,0,0,0.1)";
+        editBtn.title = "Edit";
+        editBtn.innerHTML = '<span style="font-size: 11px;">✏️</span> Edit';
+        editBtn.onmouseover = () => {
+          editBtn.style.backgroundColor = "#1976d2";
+          editBtn.style.color = "#fff";
+          editBtn.style.boxShadow = "0 2px 6px rgba(25, 118, 210, 0.3)";
+          editBtn.style.transform = "translateY(-1px)";
+        };
+        editBtn.onmouseout = () => {
+          editBtn.style.backgroundColor = "#e3f2fd";
+          editBtn.style.color = "#1976d2";
+          editBtn.style.boxShadow = "0 1px 2px rgba(0,0,0,0.1)";
+          editBtn.style.transform = "translateY(0)";
+        };
+        editBtn.onclick = () => {
+          const rowData = instance.getSourceDataAtRow(row);
+          if (rowData?.pl_id) {
+            handleEdit(rowData.pl_id);
+          }
+        };
+
+        // Delete button - ultra compact with background
+        const deleteBtn = document.createElement("button");
+        deleteBtn.style.cursor = "pointer";
+        deleteBtn.style.border = "none";
+        deleteBtn.style.background = "#ffebee";
+        deleteBtn.style.padding = "4px 6px";
+        deleteBtn.style.borderRadius = "4px";
+        deleteBtn.style.color = "#d32f2f";
+        deleteBtn.style.fontSize = "10px";
+        deleteBtn.style.fontWeight = "600";
+        deleteBtn.style.display = "flex";
+        deleteBtn.style.alignItems = "center";
+        deleteBtn.style.gap = "2px";
+        deleteBtn.style.transition = "all 0.15s cubic-bezier(0.4, 0, 0.2, 1)";
+        deleteBtn.style.boxShadow = "0 1px 2px rgba(0,0,0,0.1)";
+        deleteBtn.title = "Delete";
+        deleteBtn.innerHTML = '<span style="font-size: 11px;">🗑️</span> Delete';
+        deleteBtn.onmouseover = () => {
+          deleteBtn.style.backgroundColor = "#d32f2f";
+          deleteBtn.style.color = "#fff";
+          deleteBtn.style.boxShadow = "0 2px 6px rgba(211, 47, 47, 0.3)";
+          deleteBtn.style.transform = "translateY(-1px)";
+        };
+        deleteBtn.onmouseout = () => {
+          deleteBtn.style.backgroundColor = "#ffebee";
+          deleteBtn.style.color = "#d32f2f";
+          deleteBtn.style.boxShadow = "0 1px 2px rgba(0,0,0,0.1)";
+          deleteBtn.style.transform = "translateY(0)";
+        };
+        deleteBtn.onclick = () => {
+          const rowData = instance.getSourceDataAtRow(row);
+          if (rowData?.pl_id) {
+            handleDelete(rowData.pl_id);
+          }
+        };
+
+        wrapper.appendChild(editBtn);
+        wrapper.appendChild(deleteBtn);
+        td.appendChild(wrapper);
+        return td;
       },
     },
     {
-      field: "receive_date",
-      headerName: "RECEIVE_DATE",
-      flex: 2,
-      editable: true,
-      type: "date",
-      valueFormatter: (params) => {
-        if (!params || !params.value) return "-";
-        const date = new Date(params.value);
-        if (isNaN(date)) return "-";
-        const day = String(date.getDate()).padStart(2, "0");
-        const month = String(date.getMonth() + 1).padStart(2, "0");
-        const year = date.getFullYear();
-        return `${day}-${month}-${year}`;
-      },
-      renderCell: (params) => {
-        if (!params.value)
-          return <Typography color="text.secondary">-</Typography>;
-        const date = new Date(params.value);
-        const day = String(date.getDate()).padStart(2, "0");
-        const month = String(date.getMonth() + 1).padStart(2, "0");
-        const year = date.getFullYear();
-        return (
-          <Typography color="text.secondary" noWrap>
-            {`${day}-${month}-${year}`}
-          </Typography>
-        );
-      },
+      data: "pl_number",
+      title: "PL_NO",
+      readOnly: true,
+      renderer: textRenderer,
+    },
+    { data: "pn_id", title: "PNID", readOnly: true, renderer: textRenderer },
+    {
+      data: "destination",
+      title: "DESTINATION",
+      readOnly: true,
+      renderer: textRenderer,
     },
     {
-      field: "pl_return_date",
-      headerName: "PL_RETURN_DATE",
-      flex: 2,
-      editable: true,
-      type: "date",
-      valueFormatter: (params) => {
-        if (!params || !params.value) return "-";
-        const date = new Date(params.value);
-        if (isNaN(date)) return "-";
-        const day = String(date.getDate()).padStart(2, "0");
-        const month = String(date.getMonth() + 1).padStart(2, "0");
-        const year = date.getFullYear();
-        return `${day}-${month}-${year}`;
-      },
-      renderCell: (params) => {
-        if (!params.value)
-          return <Typography color="text.secondary">-</Typography>;
-        const date = new Date(params.value);
-        const day = String(date.getDate()).padStart(2, "0");
-        const month = String(date.getMonth() + 1).padStart(2, "0");
-        const year = date.getFullYear();
-        return (
-          <Typography color="text.secondary" noWrap>
-            {`${day}-${month}-${year}`}
-          </Typography>
-        );
+      data: "expedition_name",
+      title: "EXPEDITION",
+      readOnly: true,
+      renderer: textRenderer,
+    },
+    {
+      data: "pl_type",
+      title: "PL_TYPE",
+      readOnly: true,
+      renderer: textRenderer,
+    },
+    {
+      data: "pl_date",
+      title: "PL_DATE",
+      readOnly: true,
+      renderer: (instance, td, row, col, prop, value) => {
+        td.innerText = formatDate(value);
+        return td;
       },
     },
     {
-      field: "int_pic",
-      headerName: "INT_PIC",
-      flex: 2,
-      editable: true,
-      renderCell: (p) => p.value || "NA",
-      renderEditCell: (params) => (
-        <Select
-          fullWidth
-          value={params.row.int_pic_id || ""}
-          onChange={(e) => {
-            params.api.setEditCellValue({
-              id: params.id,
-              field: "int_pic_id",
-              value: e.target.value,
-            });
-            const selectedUser = users.find((u) => u.id === e.target.value);
-            params.api.setEditCellValue({
-              id: params.id,
-              field: "int_pic",
-              value: selectedUser?.name || "NA",
-            });
-          }}
-        >
-          {users.map((u) => (
-            <MenuItem key={u.id} value={u.id}>
-              {u.name}
-            </MenuItem>
-          ))}
-        </Select>
-      ),
+      data: "ship_date",
+      title: "SHIP_DATE",
+      readOnly: true,
+      renderer: (instance, td, row, col, prop, value) => {
+        td.innerText = formatDate(value);
+        return td;
+      },
     },
     {
-      field: "client_pic",
-      headerName: "CLIENT_PIC",
-      flex: 2,
-      editable: true,
-      renderCell: (p) => p.value || "NA",
+      data: "receive_date",
+      title: "RECEIVE_DATE",
+      readOnly: true,
+      renderer: (instance, td, row, col, prop, value) => {
+        td.innerText = formatDate(value);
+        return td;
+      },
     },
     {
-      field: "remark",
-      headerName: "REMARK",
-      flex: 2,
-      editable: true,
-      renderCell: (p) => p.value || "NA",
+      data: "pl_return_date",
+      title: "PL_RETURN_DATE",
+      readOnly: true,
+      renderer: (instance, td, row, col, prop, value) => {
+        td.innerText = formatDate(value);
+        return td;
+      },
     },
     {
-      field: "created_by",
-      headerName: "CREATED_BY",
-      flex: 2,
-      renderCell: (p) => p.value || "NA",
+      data: "int_pic",
+      title: "INT_PIC",
+      readOnly: true,
+      renderer: textRenderer,
+    },
+    {
+      data: "client_pic",
+      title: "CLIENT_PIC",
+      readOnly: true,
+      renderer: textRenderer,
+    },
+    { data: "remark", title: "REMARK", readOnly: true, renderer: textRenderer },
+    {
+      data: "created_by",
+      title: "CREATED_BY",
+      readOnly: true,
+      renderer: textRenderer,
     },
   ];
 
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangePageSize = (event) => {
+    setPageSize(parseInt(event.target.value, 10));
+    setPage(0); // reset ke halaman pertama
+  };
+
+  const paginatedData = rows.slice(page * pageSize, page * pageSize + pageSize);
+
+  const tableHeight = Math.min(pageSize * 40 + 50, window.innerHeight - 250);
+
   return (
-    <Stack spacing={2} p={2}>
-      <Stack direction="row" justifyContent="flex-end">
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={handleOpenCreateModal}
-        >
-          Add Packing List
-        </Button>
+    <Box sx={{ position: "relative" }}>
+      <Stack spacing={2} p={2}>
+        <Stack direction="row" justifyContent="flex-end">
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={handleOpenCreateModal}
+          >
+            Add Packing List
+          </Button>
+        </Stack>
+
+        {/* Handsontable */}
+        <div className="table-wrapper">
+          <div className="table-inner">
+            <HotTable
+              ref={hotTableRef}
+              data={paginatedData}
+              colHeaders={columns.map((c) => c.title)}
+              columns={columns}
+              width="auto"
+              height={tableHeight}
+              manualColumnResize
+              licenseKey="non-commercial-and-evaluation"
+              manualColumnFreeze
+              fixedColumnsLeft={3}
+              stretchH="all"
+              filters
+              dropdownMenu
+              className="ht-theme-horizon"
+              manualColumnMove
+            />
+          </div>
+        </div>
+
+        {/* Pagination */}
+        <Box display="flex" justifyContent="flex-end" mt={2}>
+          <TablePagination
+            component="div"
+            count={rows.length}
+            page={page}
+            onPageChange={handleChangePage}
+            rowsPerPage={pageSize}
+            onRowsPerPageChange={handleChangePageSize}
+            rowsPerPageOptions={[10, 25, 50]}
+          />
+        </Box>
+
+        {/* Modal */}
+        <FormPackingListModal
+          open={openModal}
+          onClose={() => setOpenModal(false)}
+          formValues={formValues}
+          setFormValues={setFormValues}
+          onSuccess={handleCreateSuccess}
+          mode={mode}
+          projects={projects}
+          users={users}
+        />
       </Stack>
-
-      <DataGrid
-        rows={rows}
-        columns={columns}
-        autoHeight
-        loading={loading}
-        pageSize={10}
-        showToolbar
-        pagination
-        paginationModel={paginationModel}
-        onPaginationModelChange={setPaginationModel}
-        rowsPerPageOptions={[10, 20, 50]}
-        disableSelectionOnClick
-        experimentalFeatures={{ newEditingApi: true }}
-        processRowUpdate={processRowUpdate}
-        getRowId={(row) => row.pl_id}
-        sx={{
-          borderRadius: 2,
-          ".MuiDataGrid-cell": { py: 1.2 },
-          ".MuiDataGrid-columnHeaders": {
-            backgroundColor: "#f5f5f5",
-            fontWeight: 600,
-          },
-          ".MuiDataGrid-footerContainer": { borderTop: "1px solid #e0e0e0" },
-        }}
-      />
-
-      {/* Modal */}
-      <FormPackingListModal
-        open={openCreateModal}
-        onClose={() => setOpenCreateModal(false)}
-        formValues={formValues}
-        setFormValues={setFormValues}
-        onSuccess={handleCreateSuccess}
-      />
-    </Stack>
+    </Box>
   );
 }

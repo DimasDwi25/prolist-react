@@ -20,6 +20,7 @@ import api from "../../api/api";
 import SowModal from "./SowModal";
 import { formatDateForInput } from "../../utils/formatDateForInput";
 import BoqModal from "./BoqModal";
+import { sortOptions } from "../../helper/SortOptions";
 
 export default function UpdateDocumentPhcModal({
   open,
@@ -532,7 +533,7 @@ export default function UpdateDocumentPhcModal({
 
                     {/* PIC Engineering - editable (misalnya pakai Autocomplete) */}
                     <Autocomplete
-                      options={engineeringUsers}
+                      options={sortOptions(engineeringUsers, "name")}
                       getOptionLabel={(option) => option.name || ""}
                       value={
                         engineeringUsers.find(

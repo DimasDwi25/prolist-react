@@ -15,6 +15,7 @@ import ReactDOM from "react-dom";
 import { useNavigate } from "react-router-dom";
 import api from "../../api/api";
 import ProjectDetailsModal from "../../components/modal/ProjectDetailsModal";
+import ProjectDetailModalForAdmins from "../../components/modal/ProjectDetailModalForAdmins";
 import ViewProjectsModal from "../../components/modal/ViewProjectsModal";
 import { getUser } from "../../utils/storage";
 import LoadingOverlay from "../../components/loading/LoadingOverlay";
@@ -65,12 +66,14 @@ export default function ProjectFinishedSummary() {
     "marketing_admin",
     "manager_marketing",
     "sales_supervisor",
-    "super_admin",
-    "marketing_director",
     "supervisor marketing",
     "sales_supervisor",
     "marketing_estimator",
+  ].includes(userRole);
+  const adminRoles = [
+    "super_admin",
     "engineering_director",
+    "marketing_director",
   ].includes(userRole);
   const engineerRoles = [
     "project controller",
@@ -121,7 +124,13 @@ export default function ProjectFinishedSummary() {
           viewBtn.onclick = () => {
             const project = instance.getSourceDataAtRow(row);
             if (project?.pn_number) {
-              if (engineerRoles) {
+              if (adminRoles) {
+                setSelectedPnNumber(project.pn_number);
+                setOpenDetailsModal(true);
+              } else if (marketingRoles) {
+                setSelectedPnNumber(project.pn_number);
+                setOpenDetailsModal(true);
+              } else if (engineerRoles) {
                 setSelectedPnNumberForViewProjects(project.pn_number);
                 setOpenViewProjectsModal(true);
               } else {
@@ -364,14 +373,25 @@ export default function ProjectFinishedSummary() {
         </Alert>
       </Snackbar>
 
-      <ProjectDetailsModal
-        open={openDetailsModal}
-        onClose={() => {
-          setOpenDetailsModal(false);
-          setSelectedPnNumber(null);
-        }}
-        pn_number={selectedPnNumber}
-      />
+      {adminRoles ? (
+        <ProjectDetailModalForAdmins
+          open={openDetailsModal}
+          onClose={() => {
+            setOpenDetailsModal(false);
+            setSelectedPnNumber(null);
+          }}
+          pn_number={selectedPnNumber}
+        />
+      ) : (
+        <ProjectDetailsModal
+          open={openDetailsModal}
+          onClose={() => {
+            setOpenDetailsModal(false);
+            setSelectedPnNumber(null);
+          }}
+          pn_number={selectedPnNumber}
+        />
+      )}
 
       <ViewProjectsModal
         open={openViewProjectsModal}

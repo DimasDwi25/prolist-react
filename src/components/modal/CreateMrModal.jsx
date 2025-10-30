@@ -14,6 +14,7 @@ import {
   Checkbox,
 } from "@mui/material";
 import api from "../../api/api";
+import { sortOptions } from "../../helper/SortOptions";
 
 const CreateMRModal = ({ open, onClose, onSave, pn_number }) => {
   const [materialDesc, setMaterialDesc] = useState("");
@@ -105,7 +106,7 @@ const CreateMRModal = ({ open, onClose, onSave, pn_number }) => {
 
           {/* Material Handover */}
           <Autocomplete
-            options={users}
+            options={sortOptions(users, "name")}
             getOptionLabel={(option) => option.name || ""}
             value={users.find((u) => u.id === handoverUser) || null}
             onChange={(e, newValue) =>

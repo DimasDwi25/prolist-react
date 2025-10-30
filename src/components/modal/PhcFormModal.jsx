@@ -16,6 +16,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import api from "../../api/api";
 import BoqModal from "./BoqModal";
 import Swal from "sweetalert2";
+import { sortOptions } from "../../helper/SortOptions";
 
 export default function PhcFormModal({
   open,
@@ -58,6 +59,9 @@ export default function PhcFormModal({
     retention: "NA",
     warranty: "NA",
     penalty: "NA",
+    retention_percentage: "",
+    retention_months: "",
+    warranty_date: "",
   });
 
   // Determine mode based on presence of phcData
@@ -161,9 +165,12 @@ export default function PhcFormModal({
           notes: phcData.notes || "",
           costing_by_marketing: normalizeValue(phcData.costing_by_marketing),
           boq: normalizeValue(phcData.boq),
-          retention: phcData.retention || "NA",
-          warranty: phcData.warranty || "NA",
+          retention: phcData.retention ? "A" : "NA",
+          warranty: phcData.warranty ? "A" : "NA",
           penalty: phcData.penalty || "NA",
+          retention_percentage: phcData.retention_percentage || "",
+          retention_months: phcData.retention_months || "",
+          warranty_date: normalizeApiDate(phcData.warranty_date),
         });
       } else if (!isEditMode) {
         // Reset form for create mode
@@ -187,6 +194,9 @@ export default function PhcFormModal({
           retention: "NA",
           warranty: "NA",
           penalty: "NA",
+          retention_percentage: "",
+          retention_months: "",
+          warranty_date: "",
         });
       }
     }
@@ -216,6 +226,11 @@ export default function PhcFormModal({
           pic_marketing_id: String(formData.pic_marketing_id?.id || ""),
           ho_engineering_id: String(formData.ho_engineering_id?.id || ""),
           pic_engineering_id: String(formData.pic_engineering_id?.id || ""),
+          retention: formData.retention === "A",
+          warranty: formData.warranty === "A",
+          retention_percentage: formData.retention_percentage || null,
+          retention_months: formData.retention_months || null,
+          warranty_date: formData.warranty_date || null,
         });
       } else {
         // Create new PHC
@@ -229,6 +244,11 @@ export default function PhcFormModal({
           pic_marketing_id: String(formData.pic_marketing_id?.id || ""),
           ho_engineering_id: String(formData.ho_engineering_id?.id || ""),
           pic_engineering_id: String(formData.pic_engineering_id?.id || ""),
+          retention: formData.retention === "A",
+          warranty: formData.warranty === "A",
+          retention_percentage: formData.retention_percentage || null,
+          retention_months: formData.retention_months || null,
+          warranty_date: formData.warranty_date || null,
         });
       }
 
@@ -518,7 +538,7 @@ export default function PhcFormModal({
 
                   {/* 🔹 HO Marketing */}
                   <Autocomplete
-                    options={marketingUsers}
+                    options={sortOptions(marketingUsers, "name")}
                     getOptionLabel={(option) => option.name || ""}
                     value={formData.ho_marketings_id}
                     onChange={(e, newValue) =>
@@ -537,7 +557,7 @@ export default function PhcFormModal({
 
                   {/* 🔹 PIC Marketing */}
                   <Autocomplete
-                    options={marketingUsers}
+                    options={sortOptions(marketingUsers, "name")}
                     getOptionLabel={(option) => option.name || ""}
                     value={formData.pic_marketing_id}
                     onChange={(e, newValue) =>
@@ -556,7 +576,7 @@ export default function PhcFormModal({
 
                   {/* 🔹 HO Engineering */}
                   <Autocomplete
-                    options={engineeringUsers}
+                    options={sortOptions(engineeringUsers, "name")}
                     getOptionLabel={(option) => option.name || ""}
                     value={formData.ho_engineering_id}
                     onChange={(e, newValue) =>
@@ -575,7 +595,7 @@ export default function PhcFormModal({
 
                   {/* 🔹 PIC Engineering */}
                   <Autocomplete
-                    options={engineeringUsers}
+                    options={sortOptions(engineeringUsers, "name")}
                     getOptionLabel={(option) => option.name || ""}
                     value={formData.pic_engineering_id}
                     onChange={(e, newValue) =>
@@ -640,8 +660,8 @@ export default function PhcFormModal({
                       label: "Bill of Quantity (BOQ)",
                       type: "radio",
                     },
-                    { key: "retention", label: "Retention", type: "text" },
-                    { key: "warranty", label: "Warranty", type: "text" },
+                    { key: "retention", label: "Retention", type: "retention" },
+                    { key: "warranty", label: "Warranty", type: "warranty" },
                     { key: "penalty", label: "Penalty", type: "text" },
                   ].map(({ key, label, type }) => (
                     <div
@@ -696,9 +716,119 @@ export default function PhcFormModal({
                             </div>
                           )}
                         </>
+                      ) : type === "retention" ? (
+                        <>
+                          {/* 🔹 Retention pakai radio */}
+                          <div className="flex items-center gap-4">
+                            <label className="inline-flex items-center">
+                              <input
+                                type="radio"
+                                name={key}
+                                value="A"
+                                checked={formData[key] === "A"}
+                                onChange={() => handleChange(key, "A")}
+                                className="text-blue-600 border-gray-300 focus:ring-blue-500"
+                              />
+                              <span className="ml-2 text-sm">Applicable</span>
+                            </label>
+
+                            <label className="inline-flex items-center">
+                              <input
+                                type="radio"
+                                name={key}
+                                value="NA"
+                                checked={formData[key] === "NA"}
+                                onChange={() => handleChange(key, "NA")}
+                                className="text-blue-600 border-gray-300 focus:ring-blue-500"
+                              />
+                              <span className="ml-2 text-sm">
+                                Not Applicable
+                              </span>
+                            </label>
+                          </div>
+
+                          {/* Kalau Applicable, tampilkan input retention percentage dan months */}
+                          {formData[key] === "A" && (
+                            <div className="space-y-2 pt-2">
+                              <TextField
+                                type="number"
+                                label="Retention Percentage (%)"
+                                value={formData.retention_percentage}
+                                onChange={(e) =>
+                                  handleChange(
+                                    "retention_percentage",
+                                    e.target.value
+                                  )
+                                }
+                                inputProps={{ min: 0, max: 100 }}
+                                fullWidth
+                              />
+                              <TextField
+                                type="number"
+                                label="Retention Months"
+                                value={formData.retention_months}
+                                onChange={(e) =>
+                                  handleChange(
+                                    "retention_months",
+                                    e.target.value
+                                  )
+                                }
+                                inputProps={{ min: 0 }}
+                                fullWidth
+                              />
+                            </div>
+                          )}
+                        </>
+                      ) : type === "warranty" ? (
+                        <>
+                          {/* 🔹 Warranty pakai radio */}
+                          <div className="flex items-center gap-4">
+                            <label className="inline-flex items-center">
+                              <input
+                                type="radio"
+                                name={key}
+                                value="A"
+                                checked={formData[key] === "A"}
+                                onChange={() => handleChange(key, "A")}
+                                className="text-blue-600 border-gray-300 focus:ring-blue-500"
+                              />
+                              <span className="ml-2 text-sm">Applicable</span>
+                            </label>
+
+                            <label className="inline-flex items-center">
+                              <input
+                                type="radio"
+                                name={key}
+                                value="NA"
+                                checked={formData[key] === "NA"}
+                                onChange={() => handleChange(key, "NA")}
+                                className="text-blue-600 border-gray-300 focus:ring-blue-500"
+                              />
+                              <span className="ml-2 text-sm">
+                                Not Applicable
+                              </span>
+                            </label>
+                          </div>
+
+                          {/* Kalau Applicable, tampilkan input warranty date */}
+                          {formData[key] === "A" && (
+                            <div className="pt-2">
+                              <TextField
+                                type="date"
+                                label="Warranty Date"
+                                InputLabelProps={{ shrink: true }}
+                                value={formData.warranty_date}
+                                onChange={(e) =>
+                                  handleChange("warranty_date", e.target.value)
+                                }
+                                fullWidth
+                              />
+                            </div>
+                          )}
+                        </>
                       ) : (
                         <>
-                          {/* 🔹 Retention, Warranty, Penalty pakai radio dulu */}
+                          {/* 🔹 Penalty pakai radio dulu */}
                           <div className="flex items-center gap-4">
                             <label className="inline-flex items-center">
                               <input

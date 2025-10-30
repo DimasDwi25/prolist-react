@@ -113,6 +113,14 @@ export default function ActivityLogPage() {
     fetchLogs();
   }, []);
 
+  // Expose refresh function to window for modal communication
+  useEffect(() => {
+    window.refreshActivityLogs = handleRefresh;
+    return () => {
+      delete window.refreshActivityLogs;
+    };
+  }, []);
+
   useEffect(() => {
     const params = buildParams();
     fetchLogs(params);
@@ -232,11 +240,6 @@ export default function ActivityLogPage() {
   return (
     <Box sx={{ width: "100%", p: 2 }}>
       <LoadingOverlay loading={loading} />
-
-      {/* Header */}
-      <Typography variant="h4" gutterBottom>
-        Activity Logs
-      </Typography>
 
       {/* FilterBar */}
       <FilterBar
@@ -376,7 +379,7 @@ export default function ActivityLogPage() {
                   </Tooltip>
                 </TableCell>
                 <TableCell>
-                  {log.user ? `${log.user.name} (${log.user.email})` : "System"}
+                  {log.user ? `${log.user.name}` : "System"}
                 </TableCell>
                 <TableCell>
                   <Chip label={log.action} color="primary" size="small" />

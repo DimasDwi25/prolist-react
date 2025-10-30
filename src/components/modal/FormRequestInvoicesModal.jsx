@@ -24,6 +24,7 @@ import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 import { Receipt, Building2, User, FileText, Plus, Delete } from "lucide-react";
 import api from "../../api/api";
+import { sortOptions } from "../../helper/SortOptions";
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.mjs",
@@ -787,7 +788,7 @@ export default function FormRequestInvoicesModal({
                         <Grid size={{ xs: 12, md: 6 }}>
                           <Autocomplete
                             fullWidth
-                            options={phcDocuments}
+                            options={sortOptions(phcDocuments, "document_name")}
                             getOptionLabel={(option) =>
                               option.document_name || ""
                             }

@@ -27,6 +27,7 @@ import ColumnVisibilityModal from "../../components/ColumnVisibilityModal";
 import FilterBar from "../../components/filter/FilterBar";
 import { filterBySearch } from "../../utils/filter";
 import { getClientName } from "../../utils/getClientName";
+import { sortOptions } from "../../helper/SortOptions";
 
 export default function MarketingReport() {
   const hotTableRef = useRef(null);
@@ -413,7 +414,9 @@ export default function MarketingReport() {
         <Autocomplete
           size="small"
           sx={{ minWidth: 120 }}
-          options={[...new Set(quotations.map((q) => q.client_name))]}
+          options={sortOptions([
+            ...new Set(quotations.map((q) => q.client_name)),
+          ])}
           value={selectedClient}
           onChange={(event, newValue) => setSelectedClient(newValue || "")}
           renderInput={(params) => (

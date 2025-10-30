@@ -42,7 +42,7 @@ const ViewInvoicePaymentsModal = ({
       const response = await api.get("/finance/invoice-payments", {
         params: { invoice_id: invoiceId },
       });
-      setPayments(response.data || []);
+      setPayments(response.data.payments || []);
     } catch (error) {
       console.error("Failed to fetch payments:", error);
       setPayments([]);

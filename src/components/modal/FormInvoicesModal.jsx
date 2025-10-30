@@ -24,10 +24,18 @@ import {
   MenuItem,
   InputLabel,
 } from "@mui/material";
-import { Receipt, Building2, User, DollarSign, FileText } from "lucide-react";
+import {
+  Receipt,
+  Building2,
+  User,
+  DollarSign,
+  FileText,
+  Calendar,
+} from "lucide-react";
 import api from "../../api/api";
 import { formatValue } from "../../utils/formatValue";
 import { formatDate } from "../../utils/FormatDate";
+import { sortOptions } from "../../helper/SortOptions";
 
 export default function FormInvoicesModal({
   open,
@@ -85,6 +93,16 @@ export default function FormInvoicesModal({
 
   const [fullInvoiceData, setFullInvoiceData] = useState(null);
 
+  // Project financial summary states
+  const [remainingProjectValue, setRemainingProjectValue] = useState(0);
+  const [totalInvoiceValue, setTotalInvoiceValue] = useState(0);
+  const [projectValue, setProjectValue] = useState(0);
+  const [invoicesList, setInvoicesList] = useState([]);
+  const [showInvoicesList, setShowInvoicesList] = useState(false);
+  const [loadingInvoices, setLoadingInvoices] = useState(false);
+  const [invoicesPage, setInvoicesPage] = useState(1);
+  const [invoicesPerPage] = useState(10); // Show 10 invoices at a time for better UX
+
   const isEditMode = Boolean(invoiceData);
 
   // Fetch invoice types and project info
@@ -118,8 +136,48 @@ export default function FormInvoicesModal({
       }
     };
 
+    const fetchProjectInvoices = async () => {
+      if (!projectId) return;
+      setLoadingInvoices(true);
+      try {
+        const response = await api.get("/finance/invoices", {
+          params: { project_id: projectId },
+        });
+        const invoices = response.data?.invoices || [];
+        setInvoicesList(invoices);
+
+        // Calculate totals
+        const totalInvValue = invoices.reduce(
+          (sum, inv) => sum + (parseFloat(inv.invoice_value) || 0),
+          0
+        );
+        setTotalInvoiceValue(totalInvValue);
+
+        // Get project value from first invoice or project info
+        const projValue =
+          invoices.length > 0 && invoices[0].project
+            ? invoices[0].project.po_value
+            : projectInfo?.po_value || 0;
+        setProjectValue(projValue);
+
+        // Use remaining project value from API response (more accurate)
+        const remainingFromAPI =
+          invoices.length > 0 ? invoices[0].remaining_project_value : 0;
+        setRemainingProjectValue(remainingFromAPI || projValue - totalInvValue);
+      } catch (error) {
+        console.error("Failed to fetch project invoices:", error);
+        setInvoicesList([]);
+        setTotalInvoiceValue(0);
+        setProjectValue(0);
+        setRemainingProjectValue(0);
+      } finally {
+        setLoadingInvoices(false);
+      }
+    };
+
     fetchInvoiceTypes();
     fetchProjectInfo();
+    fetchProjectInvoices();
   }, [open, projectId]);
 
   // Fetch next global sequence when invoice type is selected (for create mode)
@@ -297,15 +355,10 @@ export default function FormInvoicesModal({
 
     setLoadingTaxPreview(true);
     try {
-      const params = {
-        invoice_value: invoiceValue,
-        currency: formData.currency,
-        is_ppn: formData.is_ppn ? 1 : 0,
-        is_pph23: formData.is_pph23 ? 1 : 0,
-        is_pph42: formData.is_pph42 ? 1 : 0,
-      };
+      let apiInvoiceValue = invoiceValue;
+      let apiCurrency = formData.currency;
 
-      // Only include rate_usd if currency is USD and rate is provided and valid
+      // For USD currency, convert to IDR first for tax calculation
       if (
         formData.currency === "USD" &&
         formData.rate_usd &&
@@ -313,9 +366,18 @@ export default function FormInvoicesModal({
       ) {
         const rateUsd = parseFloat(formData.rate_usd);
         if (!isNaN(rateUsd) && rateUsd > 0) {
-          params.rate_usd = rateUsd;
+          apiInvoiceValue = invoiceValue * rateUsd;
+          apiCurrency = "IDR"; // Calculate taxes on IDR equivalent
         }
       }
+
+      const params = {
+        invoice_value: apiInvoiceValue,
+        currency: apiCurrency,
+        is_ppn: formData.is_ppn ? 1 : 0,
+        is_pph23: formData.is_pph23 ? 1 : 0,
+        is_pph42: formData.is_pph42 ? 1 : 0,
+      };
 
       // Calculate manual tax values
       const manualPpn = formData.nilai_ppn
@@ -356,9 +418,9 @@ export default function FormInvoicesModal({
             (finalPreview.nilai_ppn || 0) +
             (finalPreview.nilai_pph23 || 0) +
             (finalPreview.nilai_pph42 || 0);
-          finalPreview.total_invoice = invoiceValue + totalTax;
+          finalPreview.total_invoice = apiInvoiceValue + totalTax;
           finalPreview.expected_payment =
-            invoiceValue +
+            apiInvoiceValue +
             (finalPreview.nilai_ppn || 0) -
             (finalPreview.nilai_pph23 || 0) -
             (finalPreview.nilai_pph42 || 0);
@@ -741,6 +803,11 @@ export default function FormInvoicesModal({
   const handleCurrencyChange = (value) => {
     const numericValue = value.replace(/[^0-9]/g, "");
     setFormData((prev) => ({ ...prev, invoice_value: numericValue }));
+  };
+
+  const handleRateUsdChange = (value) => {
+    const numericValue = value.replace(/[^0-9]/g, "");
+    setFormData((prev) => ({ ...prev, rate_usd: numericValue }));
   };
 
   if (showPreview && previewData) {
@@ -1446,21 +1513,6 @@ export default function FormInvoicesModal({
                   {/* Invoice Configuration Section */}
                   <Grid size={{ xs: 12 }}>
                     <Box sx={{ mb: 3 }}>
-                      <Typography
-                        variant="h6"
-                        sx={{
-                          mb: 3,
-                          fontWeight: 700,
-                          color: "primary.main",
-                          display: "flex",
-                          alignItems: "center",
-                          fontSize: "1.1rem",
-                        }}
-                      >
-                        <Receipt sx={{ mr: 1.5, fontSize: 22 }} />
-                        Invoice Configuration
-                      </Typography>
-
                       {/* Invoice Type Selection */}
                       <Box sx={{ mb: 3 }}>
                         <Typography
@@ -1489,7 +1541,8 @@ export default function FormInvoicesModal({
 
                         <Autocomplete
                           fullWidth
-                          options={invoiceTypes}
+                          disabled={isEditMode}
+                          options={sortOptions(invoiceTypes, "code_type")}
                           getOptionLabel={(option) =>
                             `${option.code_type} - ${option.description}`
                           }
@@ -1686,6 +1739,7 @@ export default function FormInvoicesModal({
                           <Grid size={{ xs: 12, md: 6 }}>
                             <TextField
                               fullWidth
+                              disabled={isEditMode}
                               label="Custom Sequence (Optional)"
                               placeholder="Enter custom sequence or leave empty for auto"
                               value={formData.invoice_sequence}
@@ -1960,7 +2014,7 @@ export default function FormInvoicesModal({
                               gap: 1,
                             }}
                           >
-                            <Receipt
+                            <Calendar
                               sx={{ fontSize: 16, color: "primary.main" }}
                             />
                             Invoice Date *
@@ -1983,7 +2037,7 @@ export default function FormInvoicesModal({
                             }
                             InputProps={{
                               startAdornment: (
-                                <Receipt
+                                <Calendar
                                   sx={{
                                     mr: 1,
                                     color: "action.active",
@@ -2026,7 +2080,7 @@ export default function FormInvoicesModal({
                           gap: 1,
                         }}
                       >
-                        <DollarSign
+                        <Calendar
                           sx={{ fontSize: 16, color: "primary.main" }}
                         />
                         Due Date *
@@ -2049,7 +2103,7 @@ export default function FormInvoicesModal({
                         }
                         InputProps={{
                           startAdornment: (
-                            <DollarSign
+                            <Calendar
                               sx={{
                                 mr: 1,
                                 color: "action.active",
@@ -2090,20 +2144,246 @@ export default function FormInvoicesModal({
                     "linear-gradient(135deg, #fff7ed 0%, #fed7aa 100%)",
                 }}
               >
-                <Typography
-                  variant="h6"
+                <Box
                   sx={{
-                    mb: 3,
-                    fontWeight: 700,
-                    color: "warning.main",
                     display: "flex",
+                    justifyContent: "space-between",
                     alignItems: "center",
-                    fontSize: "1.1rem",
+                    mb: 3,
                   }}
                 >
-                  <DollarSign sx={{ mr: 1.5, fontSize: 22 }} />
-                  Financial Details
-                </Typography>
+                  <Typography
+                    variant="h6"
+                    sx={{
+                      fontWeight: 700,
+                      color: "warning.main",
+                      display: "flex",
+                      alignItems: "center",
+                      fontSize: "1.1rem",
+                    }}
+                  >
+                    <DollarSign sx={{ mr: 1.5, fontSize: 22 }} />
+                    Financial Details
+                  </Typography>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={() => setShowInvoicesList(!showInvoicesList)}
+                    sx={{
+                      textTransform: "none",
+                      borderRadius: 2,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {showInvoicesList ? "Hide" : "Show"} Invoice List
+                  </Button>
+                </Box>
+
+                {/* Remaining Project Value Display */}
+                <Box
+                  sx={{
+                    mb: 3,
+                    p: 2,
+                    bgcolor: "background.paper",
+                    borderRadius: 2,
+                    border: "1px solid",
+                    borderColor: "divider",
+                  }}
+                >
+                  <Typography
+                    variant="subtitle2"
+                    sx={{ fontWeight: 600, color: "text.primary", mb: 1 }}
+                  >
+                    Remaining Project Value
+                  </Typography>
+                  <Typography
+                    variant="h6"
+                    sx={{
+                      fontWeight: 700,
+                      color:
+                        remainingProjectValue < 0
+                          ? "error.main"
+                          : "success.main",
+                    }}
+                  >
+                    {formatValue(remainingProjectValue).formatted}
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    sx={{ color: "text.secondary" }}
+                  >
+                    Project Value: {formatValue(projectValue).formatted} | Total
+                    Current Invoice: {formatValue(totalInvoiceValue).formatted}
+                  </Typography>
+                </Box>
+
+                {/* Invoice List Modal */}
+                {showInvoicesList && (
+                  <Paper
+                    elevation={2}
+                    sx={{
+                      p: 2,
+                      mb: 3,
+                      borderRadius: 2,
+                      border: "1px solid",
+                      borderColor: "divider",
+                      backgroundColor: "background.paper",
+                      maxHeight: 500,
+                      overflow: "hidden",
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        mb: 2,
+                      }}
+                    >
+                      <Typography
+                        variant="subtitle2"
+                        sx={{ fontWeight: 600, color: "text.primary" }}
+                      >
+                        Invoice List for this Project ({invoicesList.length}{" "}
+                        total)
+                      </Typography>
+                      {invoicesList.length > invoicesPerPage && (
+                        <Box sx={{ display: "flex", gap: 1 }}>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            onClick={() =>
+                              setInvoicesPage(Math.max(1, invoicesPage - 1))
+                            }
+                            disabled={invoicesPage === 1}
+                            sx={{ minWidth: 32, px: 1 }}
+                          >
+                            ‹
+                          </Button>
+                          <Typography
+                            variant="caption"
+                            sx={{ alignSelf: "center", mx: 1 }}
+                          >
+                            {invoicesPage} /{" "}
+                            {Math.ceil(invoicesList.length / invoicesPerPage)}
+                          </Typography>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            onClick={() =>
+                              setInvoicesPage(
+                                Math.min(
+                                  Math.ceil(
+                                    invoicesList.length / invoicesPerPage
+                                  ),
+                                  invoicesPage + 1
+                                )
+                              )
+                            }
+                            disabled={
+                              invoicesPage ===
+                              Math.ceil(invoicesList.length / invoicesPerPage)
+                            }
+                            sx={{ minWidth: 32, px: 1 }}
+                          >
+                            ›
+                          </Button>
+                        </Box>
+                      )}
+                    </Box>
+                    {loadingInvoices ? (
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "center",
+                          py: 2,
+                        }}
+                      >
+                        <CircularProgress size={24} />
+                      </Box>
+                    ) : invoicesList.length > 0 ? (
+                      <Box sx={{ maxHeight: 400, overflow: "auto" }}>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 1,
+                          }}
+                        >
+                          {invoicesList
+                            .slice(
+                              (invoicesPage - 1) * invoicesPerPage,
+                              invoicesPage * invoicesPerPage
+                            )
+                            .map((invoice) => (
+                              <Box
+                                key={invoice.invoice_id}
+                                sx={{
+                                  p: 1.5,
+                                  borderRadius: 1,
+                                  bgcolor: "grey.50",
+                                  border: "1px solid",
+                                  borderColor: "grey.200",
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  alignItems: "center",
+                                  "&:hover": {
+                                    bgcolor: "grey.100",
+                                  },
+                                }}
+                              >
+                                <Box sx={{ flex: 1, minWidth: 0 }}>
+                                  <Typography
+                                    variant="body2"
+                                    sx={{
+                                      fontWeight: 600,
+                                      fontFamily: "monospace",
+                                    }}
+                                  >
+                                    {invoice.invoice_id}
+                                  </Typography>
+                                  {/* <Typography
+                                    variant="caption"
+                                    sx={{
+                                      color: "text.secondary",
+                                      display: "block",
+                                      overflow: "hidden",
+                                      textOverflow: "ellipsis",
+                                      whiteSpace: "nowrap",
+                                    }}
+                                  >
+                                    {invoice.invoice_description ||
+                                      "No description"}
+                                  </Typography> */}
+                                </Box>
+                                <Typography
+                                  variant="body2"
+                                  sx={{
+                                    fontWeight: 600,
+                                    color: "primary.main",
+                                    ml: 2,
+                                  }}
+                                >
+                                  {formatValue(invoice.invoice_value).formatted}
+                                </Typography>
+                              </Box>
+                            ))}
+                        </Box>
+                      </Box>
+                    ) : (
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: "text.secondary",
+                          textAlign: "center",
+                          py: 2,
+                        }}
+                      >
+                        No invoices found for this project.
+                      </Typography>
+                    )}
+                  </Paper>
+                )}
 
                 <Grid container spacing={3}>
                   {/* Currency Selection */}
@@ -2364,10 +2644,14 @@ export default function FormInvoicesModal({
                         <TextField
                           fullWidth
                           placeholder="Enter USD to IDR exchange rate (e.g., 15000)"
-                          value={formData.rate_usd}
-                          onChange={(e) =>
-                            handleChange("rate_usd", e.target.value)
+                          value={
+                            formData.rate_usd
+                              ? Number(formData.rate_usd).toLocaleString(
+                                  "id-ID"
+                                )
+                              : ""
                           }
+                          onChange={(e) => handleRateUsdChange(e.target.value)}
                           InputProps={{
                             startAdornment: (
                               <Typography
@@ -2462,7 +2746,7 @@ export default function FormInvoicesModal({
                             }}
                           />
                         }
-                        label="PPN (11%)"
+                        label="PPN"
                       />
                       <FormControlLabel
                         control={
@@ -2479,7 +2763,7 @@ export default function FormInvoicesModal({
                             }}
                           />
                         }
-                        label="PPh 23 (2.65%)"
+                        label="PPh 23"
                       />
                       <FormControlLabel
                         control={
@@ -2496,7 +2780,7 @@ export default function FormInvoicesModal({
                             }}
                           />
                         }
-                        label="PPh 4(2) (2%)"
+                        label="PPh 4(2)"
                       />
                     </Box>
                   </Grid>
@@ -3019,19 +3303,6 @@ export default function FormInvoicesModal({
             }}
           >
             Cancel
-          </Button>
-          <Button
-            onClick={warningModal.onConfirm}
-            variant="contained"
-            color="warning"
-            sx={{
-              px: 4,
-              fontWeight: 600,
-              textTransform: "none",
-              borderRadius: 2,
-            }}
-          >
-            Proceed
           </Button>
         </DialogActions>
       </Dialog>

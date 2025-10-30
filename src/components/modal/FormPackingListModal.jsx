@@ -15,6 +15,7 @@ import {
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import api from "../../api/api";
+import { sortOptions } from "../../helper/SortOptions";
 
 export default function FormPackingListModal({
   open,
@@ -22,39 +23,16 @@ export default function FormPackingListModal({
   formValues,
   setFormValues,
   onSuccess,
+  mode = "create",
+  projects = [],
+  users = [],
 }) {
-  const [projects, setProjects] = useState([]);
-  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoadingData(true);
-        const projectsRes = await api.get("/projects");
-        const usersRes = await api.get("/users");
-
-        setProjects(
-          Array.isArray(projectsRes.data)
-            ? projectsRes.data
-            : projectsRes.data?.data || []
-        );
-        setUsers(
-          Array.isArray(usersRes.data)
-            ? usersRes.data
-            : usersRes.data?.data || []
-        );
-      } catch (err) {
-        console.error(err);
-        setProjects([]);
-        setUsers([]);
-      } finally {
-        setLoadingData(false);
-      }
-    };
-    fetchData();
-  }, []);
+    setLoadingData(false); // Data is passed as props, no need to fetch
+  }, [projects, users]);
 
   const handleInputChange = (field, value) =>
     setFormValues((prev) => ({ ...prev, [field]: value }));
@@ -62,12 +40,17 @@ export default function FormPackingListModal({
   const handleSubmit = async () => {
     setLoading(true);
     try {
-      const res = await api.post("/packing-lists", formValues);
-      onSuccess(res.data.data);
+      let res;
+      if (mode === "create") {
+        res = await api.post("/packing-lists", formValues);
+      } else if (mode === "edit") {
+        res = await api.put(`/packing-lists/${formValues.pl_id}`, formValues);
+      }
+      onSuccess(res.data.data || res.data);
       onClose();
     } catch (err) {
       console.error(err.response?.data || err);
-      alert("Failed to create packing list");
+      alert(`Failed to ${mode} packing list`);
     } finally {
       setLoading(false);
     }
@@ -82,8 +65,8 @@ export default function FormPackingListModal({
           alignItems: "center",
         }}
       >
-        <Typography variant="h6" fontWeight="600">
-          Create New Packing List
+        <Typography variant="h5" fontWeight="600">
+          {mode === "create" ? "Create New Packing List" : "Edit Packing List"}
         </Typography>
         <Typography variant="subtitle2" color="text.secondary">
           PL Number: {formValues.pl_number || "-"}
@@ -102,17 +85,21 @@ export default function FormPackingListModal({
           {/* Project Autocomplete */}
           <Autocomplete
             size="small"
-            options={projects || []}
+            options={sortOptions(projects || [], "project_number")}
             getOptionLabel={(option) => option.project_number || ""}
             loading={loadingData}
             value={
-              projects?.find((p) => p.pn_number === formValues.pn_id) || null
+              projects?.find((p) => p.project_number === formValues.pn_id) ||
+              null
             }
             onChange={(_, newValue) =>
-              handleInputChange("pn_id", newValue ? newValue.pn_number : "")
+              handleInputChange(
+                "pn_id",
+                newValue ? newValue.project_number : ""
+              )
             }
             isOptionEqualToValue={(option, value) =>
-              option.pn_number === value?.pn_id
+              option.project_number === value?.pn_id
             }
             renderInput={(params) => (
               <TextField
@@ -214,7 +201,7 @@ export default function FormPackingListModal({
           {/* Client PIC Autocomplete */}
           <Autocomplete
             size="small"
-            options={users || []}
+            options={sortOptions(users || [], "name")}
             getOptionLabel={(option) => option.name || ""}
             loading={loadingData}
             value={users?.find((u) => u.id === formValues.int_pic) || null}
@@ -304,7 +291,11 @@ export default function FormPackingListModal({
           onClick={handleSubmit}
           disabled={loading}
         >
-          {loading ? "Saving..." : "Create Packing List"}
+          {loading
+            ? "Saving..."
+            : mode === "create"
+            ? "Create Packing List"
+            : "Update Packing List"}
         </Button>
       </DialogActions>
     </Dialog>

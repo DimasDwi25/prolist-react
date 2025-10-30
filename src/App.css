@@ -71,3 +71,8 @@ main {
 .hot-table .ht_clone_top th {
   font-size: clamp(0.8rem, 1vw, 1.2rem);
 }
+
+/* Read-only cells styling */
+.handsontable .ht-theme-horizon td[readOnly] {
+  color: black !important;
+}

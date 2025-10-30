@@ -22,6 +22,7 @@ import {
   Snackbar,
 } from "@mui/material";
 import api from "../../api/api";
+import { sortOptions } from "../../helper/SortOptions";
 
 import PersonIcon from "@mui/icons-material/Person";
 import DescriptionIcon from "@mui/icons-material/Description";
@@ -285,7 +286,7 @@ export default function CreateQuotationDialog({
               >
                 <Autocomplete
                   size="small"
-                  options={clients || []}
+                  options={sortOptions(clients || [], "name")}
                   getOptionLabel={(option) => option.name || ""}
                   value={
                     (clients || []).find(

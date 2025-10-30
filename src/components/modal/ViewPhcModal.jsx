@@ -61,6 +61,8 @@ export default function ViewPhcModal({ phcId, open, handleClose }) {
             ...phc,
             costing_by_marketing: normalizeValue(phc.costing_by_marketing),
             boq: normalizeValue(phc.boq),
+            retention: phc.retention ? "A" : "NA",
+            warranty: phc.warranty ? "A" : "NA",
           });
         }
 
@@ -439,6 +441,33 @@ export default function ViewPhcModal({ phcId, open, handleClose }) {
                         sx={{ mb: 1 }}
                       >
                         Detail: {phc[`${key}_detail`]}
+                      </Typography>
+                    )}
+                    {key === "retention" && isApplicable && (
+                      <>
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          sx={{ mb: 1 }}
+                        >
+                          Percentage: {phc?.retention_percentage ?? "-"}%
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          sx={{ mb: 1 }}
+                        >
+                          Months: {phc?.retention_months ?? "-"}
+                        </Typography>
+                      </>
+                    )}
+                    {key === "warranty" && isApplicable && (
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{ mb: 1 }}
+                      >
+                        Date: {formatDate(phc?.warranty_date)}
                       </Typography>
                     )}
                     {key === "boq" && isApplicable && (

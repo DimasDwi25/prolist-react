@@ -17,6 +17,7 @@ import {
 } from "@mui/material";
 import api from "../../api/api"; // gunakan api instance
 import { getUser } from "../../utils/storage";
+import { sortOptions } from "../../helper/SortOptions";
 
 export default function FormLogModal({
   open,
@@ -124,7 +125,7 @@ export default function FormLogModal({
         <Stack spacing={3}>
           {/* Category */}
           <Autocomplete
-            options={categories}
+            options={sortOptions(categories, "name")}
             getOptionLabel={(option) => option.name || ""}
             value={
               categories.find((cat) => cat.id === form.categorie_log_id) || null
@@ -182,7 +183,7 @@ export default function FormLogModal({
           {/* Response User */}
           {form.need_response && (
             <Autocomplete
-              options={users}
+              options={sortOptions(users, "name")}
               getOptionLabel={(option) => option.name || ""}
               value={users.find((u) => u.id === form.response_by) || null}
               onChange={(event, newValue) =>
@@ -206,7 +207,7 @@ export default function FormLogModal({
           {/* Delegation User for Special Roles */}
           {isSpecialRole && (
             <Autocomplete
-              options={users}
+              options={sortOptions(users, "name")}
               getOptionLabel={(option) => option.name || ""}
               value={users.find((u) => u.id === form.users_id) || null}
               onChange={(event, newValue) =>

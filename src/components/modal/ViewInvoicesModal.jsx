@@ -10,7 +10,7 @@ import {
   TablePagination,
   TextField,
 } from "@mui/material";
-import { Plus, Edit, CreditCard } from "lucide-react";
+import { Plus, Edit, CreditCard, Receipt, Trash2 } from "lucide-react";
 import { HotTable } from "@handsontable/react";
 import api from "../../api/api";
 import LoadingOverlay from "../loading/LoadingOverlay";
@@ -20,6 +20,8 @@ import { formatValue } from "../../utils/formatValue";
 import FormInvoicesModal from "./FormInvoicesModal";
 import ViewInvoicePaymentsModal from "./ViewInvoicePaymentsModal";
 import FormInvoicePaymentsModal from "./FormInvoicePaymentsModal";
+import ViewHoldingTaxModal from "./ViewHoldingTaxModal";
+import FormHoldingTaxModal from "./FormHoldingTaxModal";
 
 const ViewInvoicesModal = ({
   open,
@@ -36,9 +38,15 @@ const ViewInvoicesModal = ({
   const hotTableRef = useRef(null);
   const [openFormModal, setOpenFormModal] = useState(false);
   const [openPaymentsModal, setOpenPaymentsModal] = useState(false);
+  const [openViewWhtModal, setOpenViewWhtModal] = useState(false);
+  const [openFormWhtModal, setOpenFormWhtModal] = useState(false);
+  const [openDeleteModal, setOpenDeleteModal] = useState(false);
 
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [selectedInvoiceData, setSelectedInvoiceData] = useState(null);
+  const [selectedInvoiceForWht, setSelectedInvoiceForWht] = useState(null);
+  const [selectedInvoiceForDelete, setSelectedInvoiceForDelete] =
+    useState(null);
 
   const fetchInvoices = async () => {
     if (!projectId || !year) return;
@@ -52,6 +60,7 @@ const ViewInvoicesModal = ({
         ...invoice,
         outstanding_payment:
           invoice.invoice_value - (invoice.total_payment_amount || 0),
+        has_wht: invoice.pph23_rate > 0 || invoice.pph42_rate > 0,
       }));
       setInvoices(invoicesWithOutstanding);
     } catch (error) {
@@ -182,9 +191,56 @@ const ViewInvoicesModal = ({
       setOpenPaymentsModal(true);
     });
 
+    // Tombol Delete
+    const deleteBtn = createButton(
+      "Delete",
+      "#fff",
+      "#f44336",
+      "#d32f2f",
+      `
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="3,6 5,6 21,6"></polyline>
+        <path d="M19,6v14a2,2 0 0,1-2,2H7a2,2 0 0,1-2-2V6m3,0V4a2,2 0 0,1,2-2h4a2,2 0 0,1,2,2v2"></path>
+        <line x1="10" y1="11" x2="10" y2="17"></line>
+        <line x1="14" y1="11" x2="14" y2="17"></line>
+      </svg>
+    `
+    );
+    deleteBtn.addEventListener("click", () => {
+      setSelectedInvoiceForDelete(invoice);
+      setOpenDeleteModal(true);
+    });
+
+    // Tombol WHT - hanya tampil jika invoice memiliki WHT
+    if (invoice.has_wht) {
+      const whtBtn = createButton(
+        "WHT",
+        "#fff",
+        "#ed6c02",
+        "#c05500",
+        `
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14,2 14,8 20,8"></polyline>
+          <line x1="16" y1="13" x2="8" y2="13"></line>
+          <line x1="16" y1="17" x2="8" y2="17"></line>
+          <polyline points="10,9 9,9 8,9"></polyline>
+        </svg>
+      `
+      );
+      whtBtn.addEventListener("click", () => {
+        setSelectedInvoiceForWht(invoice.invoice_id);
+        setOpenViewWhtModal(true);
+      });
+      container.appendChild(whtBtn);
+    }
+
     // Masukkan ke container
     container.appendChild(editBtn);
     container.appendChild(paymentBtn);
+    container.appendChild(deleteBtn);
     td.appendChild(container);
 
     // Pastikan cell tidak override
@@ -201,6 +257,7 @@ const ViewInvoicesModal = ({
       title: "Actions",
       renderer: actionsRenderer,
       readOnly: true,
+      width: 350,
     },
     { data: "invoice_id", title: "Invoice ID" },
     { data: "no_faktur", title: "No Faktur" },
@@ -246,6 +303,24 @@ const ViewInvoicesModal = ({
   const handleChangePageSize = (event) => {
     setPageSize(parseInt(event.target.value, 10));
     setPage(0);
+  };
+
+  const handleDelete = async () => {
+    if (!selectedInvoiceForDelete) return;
+
+    try {
+      await api.delete(
+        `/finance/invoices/${selectedInvoiceForDelete.invoice_id}`
+      );
+      setOpenDeleteModal(false);
+      setSelectedInvoiceForDelete(null);
+      fetchInvoices();
+      if (onDataUpdated) {
+        onDataUpdated();
+      }
+    } catch (error) {
+      console.error("Failed to delete invoice:", error);
+    }
   };
 
   const handleTableClick = (event) => {
@@ -395,6 +470,59 @@ const ViewInvoicesModal = ({
           }
         }}
       />
+
+      {/* WHT View Modal */}
+      <ViewHoldingTaxModal
+        open={openViewWhtModal}
+        onClose={() => {
+          setOpenViewWhtModal(false);
+          setSelectedInvoiceForWht(null);
+        }}
+        invoiceId={selectedInvoiceForWht}
+        onEdit={() => {
+          setOpenViewWhtModal(false);
+          setOpenFormWhtModal(true);
+        }}
+      />
+
+      {/* WHT Form Modal */}
+      <FormHoldingTaxModal
+        open={openFormWhtModal}
+        onClose={() => {
+          setOpenFormWhtModal(false);
+          setOpenViewWhtModal(true); // Return to view modal
+        }}
+        invoiceId={selectedInvoiceForWht}
+        onSave={() => {
+          setOpenFormWhtModal(false);
+          setOpenViewWhtModal(true); // Return to view modal after save
+        }}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <Dialog
+        open={openDeleteModal}
+        onClose={() => setOpenDeleteModal(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete invoice{" "}
+            <strong>{selectedInvoiceForDelete?.invoice_id}</strong>? This action
+            cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenDeleteModal(false)} color="primary">
+            Cancel
+          </Button>
+          <Button onClick={handleDelete} color="error" variant="contained">
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Dialog>
   );
 };

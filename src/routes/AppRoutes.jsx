@@ -57,6 +57,8 @@ import RequestInvoiceSummary from "../pages/Finance/RequestInvoiceSummary";
 import RequestInvoiceTable from "../pages/Finance/RequestInvoiceTable";
 import EngineerDashboard4K from "../pages/dashboard/EngineerDashboard4K";
 import ActivityLogPage from "../pages/activity-log/ActivityLogPage";
+import TaxTable from "../pages/Finance/TaxTable";
+import RetentionTable from "../pages/Finance/RetentionTable";
 
 function AppRoutes() {
   return (
@@ -999,6 +1001,44 @@ function AppRoutes() {
             >
               <MainLayout>
                 <ActivityLogPage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/taxes"
+          element={
+            <ProtectedRoute
+              roles={[
+                "acc_fin_manager",
+                "acc_fin_supervisor",
+                "finance_administration",
+                "super_admin",
+                "marketing_director",
+                "engineering_director",
+              ]}
+            >
+              <MainLayout>
+                <TaxTable />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/finance/retentions"
+          element={
+            <ProtectedRoute
+              roles={[
+                "acc_fin_manager",
+                "acc_fin_supervisor",
+                "finance_administration",
+                "super_admin",
+                "marketing_director",
+                "engineering_director",
+              ]}
+            >
+              <MainLayout>
+                <RetentionTable />
               </MainLayout>
             </ProtectedRoute>
           }

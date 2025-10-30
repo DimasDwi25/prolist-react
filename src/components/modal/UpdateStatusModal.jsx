@@ -10,6 +10,7 @@ import {
 } from "@mui/material";
 import api from "../../api/api";
 import { formatDateForInput } from "../../utils/formatDateForInput";
+import { sortOptions } from "../../helper/SortOptions";
 
 const UpdateStatusModal = ({ open, handleClose, project, onStatusUpdated }) => {
   const [allStatus, setAllStatus] = useState([]);
@@ -126,7 +127,7 @@ const UpdateStatusModal = ({ open, handleClose, project, onStatusUpdated }) => {
 
         <FormControl fullWidth disabled={loadingStatus}>
           <Autocomplete
-            options={allStatus}
+            options={sortOptions(allStatus, "name")}
             getOptionLabel={(option) => option.name || ""}
             value={allStatus.find((s) => s.id === selectedStatus) || null}
             onChange={(event, newValue) => {

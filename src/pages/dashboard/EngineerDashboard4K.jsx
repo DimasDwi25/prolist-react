@@ -1,7 +1,5 @@
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import Chart from "chart.js/auto";
-import { HotTable } from "@handsontable/react";
-import "handsontable/dist/handsontable.full.min.css";
 import {
   FaProjectDiagram,
   FaClock,
@@ -9,6 +7,8 @@ import {
   FaExclamationTriangle,
   FaChartPie,
   FaChartLine,
+  FaChevronLeft,
+  FaChevronRight,
 } from "react-icons/fa";
 import toast from "react-hot-toast";
 import api from "../../api/api";
@@ -18,39 +18,39 @@ import { FaUsersCog, FaCalendarAlt } from "react-icons/fa";
 import { formatDate } from "../../utils/FormatDate";
 import { Modal, Box, Typography, IconButton } from "@mui/material";
 import { Close, Visibility } from "@mui/icons-material";
+import { DataGrid } from "@mui/x-data-grid";
 
 const dateRenderer = (instance, td, row, col, prop, value) => {
   td.innerText = formatDate(value);
   return td;
 };
 
-const DashboardCard = ({ title, value, color, icon, onViewClick }) => {
+const DashboardCard = ({ title, value, color, onViewClick }) => {
   const displayValue = value === 0 ? "No data" : value || "No data available";
   return (
     <div
-      className={`bg-white shadow rounded-xl p-6 lg:p-8 xl:p-10 2xl:p-12 3xl:p-16 flex flex-col justify-center kpi-card relative`}
+      className="shadow rounded-xl p-6 lg:p-8 xl:p-10 2xl:p-12 3xl:p-16 flex flex-col justify-center items-center kpi-card relative hover:shadow-lg transition-shadow duration-300 h-64 lg:h-80 xl:h-96 2xl:h-[28rem] 3xl:h-[32rem]"
+      style={{ backgroundColor: color.bgColor }}
     >
-      {/* Value + Icon */}
-      <div className="flex items-center justify-between">
+      {/* Value */}
+      <div className="flex items-center justify-center flex-1">
         <div
-          className={`font-bold ${color.text} kpi-value text-2xl lg:text-3xl xl:text-4xl 2xl:text-5xl 3xl:text-6xl`}
+          className="font-bold kpi-value text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl 3xl:text-8xl"
+          style={{ color: color.textColor }}
         >
           {displayValue}
-        </div>
-        <div
-          className={`${color.bg} p-4 lg:p-6 xl:p-8 2xl:p-10 3xl:p-12 rounded-lg`}
-        >
-          {React.cloneElement(icon, {
-            size: 48,
-            className: "icon-size",
-          })}
         </div>
       </div>
 
       {/* Title */}
-      <p className="mt-6 text-gray-600 kpi-title text-lg lg:text-xl xl:text-2xl 2xl:text-3xl 3xl:text-4xl">
-        {title}
-      </p>
+      <div className="flex items-center justify-center flex-1">
+        <p
+          className="kpi-title text-2xl lg:text-3xl xl:text-4xl 2xl:text-5xl 3xl:text-6xl text-center"
+          style={{ color: color.textColor }}
+        >
+          {title}
+        </p>
+      </div>
 
       {/* View Button */}
       {onViewClick && (
@@ -58,10 +58,10 @@ const DashboardCard = ({ title, value, color, icon, onViewClick }) => {
           onClick={onViewClick}
           sx={{
             position: "absolute",
-            top: 16,
-            right: 16,
-            color: "#6b7280",
-            "&:hover": { color: "#374151" },
+            top: 12,
+            right: 12,
+            color: color.textColor,
+            "&:hover": { color: color.textColor, opacity: 0.8 },
           }}
         >
           <Visibility fontSize="large" />
@@ -79,72 +79,101 @@ export default function EngineerDashboard4K() {
   const [modalData, setModalData] = useState([]);
   const [modalColumns, setModalColumns] = useState([]);
   const [modalTitle, setModalTitle] = useState("");
-
-  const lineChartRef = useRef(null);
-  const pieChartRef = useRef(null);
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [currentPageOverdue, setCurrentPageOverdue] = useState(1);
+  const [currentPageUpcoming, setCurrentPageUpcoming] = useState(1);
+  const totalSlides = 2;
 
   const renderCharts = useCallback((data) => {
-    if (lineChartRef.current) lineChartRef.current.destroy();
-    if (pieChartRef.current) pieChartRef.current.destroy();
+    // Destroy existing charts if they exist
+    const lineCanvas = document.getElementById("lineChart");
+    const pieCanvas = document.getElementById("statusPie");
 
-    // Line Chart Completion Trend
-    lineChartRef.current = new Chart(document.getElementById("lineChart"), {
+    if (lineCanvas) {
+      const existingLineChart = Chart.getChart(lineCanvas);
+      if (existingLineChart) {
+        existingLineChart.destroy();
+      }
+    }
+
+    if (pieCanvas) {
+      const existingPieChart = Chart.getChart(pieCanvas);
+      if (existingPieChart) {
+        existingPieChart.destroy();
+      }
+    }
+
+    // Smooth Area Chart Completion Trend
+    new Chart(lineCanvas, {
       type: "line",
       data: {
         labels: data.months,
         datasets: [
           {
             label: "On Time",
-            font: {
-              size: 24,
-            },
             data: data.onTimeProjects,
             borderColor: "#10b981",
+            backgroundColor: "rgba(16,185,129,0.3)",
             fill: true,
-            backgroundColor: "rgba(16,185,129,0.1)",
+            tension: 0.4,
+            pointRadius: 6,
+            pointHoverRadius: 8,
           },
           {
             label: "Late",
-            font: {
-              size: 24,
-            },
             data: data.lateProjects,
             borderColor: "#ef4444",
+            backgroundColor: "rgba(239,68,68,0.3)",
             fill: true,
-            backgroundColor: "rgba(239,68,68,0.1)",
+            tension: 0.4,
+            pointRadius: 6,
+            pointHoverRadius: 8,
           },
         ],
       },
       options: {
         responsive: true,
-        plugins: { legend: { position: "bottom" } },
-      },
-      scales: {
-        x: {
-          ticks: {
-            font: { size: 20 },
+        backgroundColor: "white",
+        plugins: {
+          legend: {
+            position: "bottom",
+            labels: {
+              font: { size: 32, color: "gray" },
+            },
           },
         },
-        y: {
-          ticks: {
-            font: { size: 20 },
+        scales: {
+          x: {
+            ticks: {
+              font: { size: 20, color: "gray" },
+            },
+            grid: {
+              color: "rgba(128, 128, 128, 0.2)",
+            },
+          },
+          y: {
+            ticks: {
+              font: { size: 20, color: "gray" },
+              stepSize: 1,
+            },
+            beginAtZero: true,
+            grid: {
+              color: "rgba(128, 128, 128, 0.2)",
+            },
           },
         },
       },
     });
 
-    // Pie Chart Status Distribution
-    pieChartRef.current = new Chart(document.getElementById("statusPie"), {
-      type: "pie",
+    // Donut Chart Status Distribution
+    new Chart(pieCanvas, {
+      type: "doughnut",
       data: {
         labels: [
           "Overdue",
           "Due This Month",
           "Outstanding Projects (Not Overdue)",
         ],
-        font: {
-          size: 24,
-        },
         datasets: [
           {
             data: data.statusCounts,
@@ -152,16 +181,18 @@ export default function EngineerDashboard4K() {
           },
         ],
       },
-      options: { responsive: true, plugins: { legend: { position: "right" } } },
-      scales: {
-        x: {
-          ticks: {
-            font: { size: 20 },
-          },
-        },
-        y: {
-          ticks: {
-            font: { size: 20 },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: "right",
+            labels: {
+              font: {
+                size: 32,
+                color: "gray",
+              },
+            },
           },
         },
       },
@@ -188,18 +219,38 @@ export default function EngineerDashboard4K() {
   }, []);
 
   useEffect(() => {
-    if (stats) renderCharts(stats);
+    if (stats && currentSlide === 0) renderCharts(stats);
+  }, [stats, renderCharts, currentSlide]);
 
-    return () => {
-      if (lineChartRef.current) lineChartRef.current.destroy();
-      if (pieChartRef.current) pieChartRef.current.destroy();
-    };
-  }, [stats, renderCharts]);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % totalSlides);
+    }, 10000); // Auto-slide every 10 seconds
+    return () => clearInterval(interval);
+  }, [totalSlides]);
+
+  // Auto-pagination for slide 1
+  useEffect(() => {
+    if (currentSlide === 1) {
+      const interval = setInterval(() => {
+        const totalPagesOverdue = Math.ceil(
+          (stats?.top5Overdue?.length || 0) / 10
+        );
+        const totalPagesUpcoming = Math.ceil(
+          (stats?.upcomingProjects?.length || 0) / 10
+        );
+        setCurrentPageOverdue((prev) => (prev % totalPagesOverdue) + 1);
+        setCurrentPageUpcoming((prev) => (prev % totalPagesUpcoming) + 1);
+      }, 5000); // Auto-switch every 5 seconds
+      return () => clearInterval(interval);
+    }
+  }, [currentSlide, stats]);
+
+  const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % totalSlides);
+  const prevSlide = () =>
+    setCurrentSlide((prev) => (prev - 1 + totalSlides) % totalSlides);
 
   if (loading || !stats) return <LoadingScreen />;
-
-  const tableHeight = 600;
-  const largeTableHeight = 800;
 
   const handleViewClick = (type) => {
     if (type === "overdue") {
@@ -318,289 +369,403 @@ export default function EngineerDashboard4K() {
     {
       title: "Project Outstanding (Overdue)",
       value: stats.projectOverdue,
-      color: { bg: "bg-red-100", text: "text-red-600" },
-      icon: <FaExclamationTriangle size={32} />,
+      color: { bgColor: "#ef4444", textColor: "#ffffff" },
       onViewClick: () => handleViewClick("overdue"),
     },
     {
       title: "Due This Month",
       value: stats.projectDueThisMonth,
-      color: { bg: "bg-yellow-100", text: "text-yellow-600" },
-      icon: <FaClock size={32} />,
+      color: { bgColor: "#fbbf24", textColor: "#000000" },
       onViewClick: () => handleViewClick("dueThisMonth"),
     },
     {
       title: "Project Outstanding (Not Overdue)",
       value: stats.projectOnTrack,
-      color: { bg: "bg-purple-100", text: "text-purple-600" },
-      icon: <FaCheckCircle size={32} />,
+      color: { bgColor: "#10b981", textColor: "#ffffff" },
       onViewClick: () => handleViewClick("onTrack"),
     },
     {
       title: "Total Outstanding Projects",
       value: stats.totalOutstandingProjects,
-      color: { bg: "bg-orange-100", text: "text-orange-600" },
-      icon: <FaProjectDiagram size={32} />,
+      color: { bgColor: "#0074A8", textColor: "#ffffff" },
     },
     {
       title: "Work Orders (This Month)",
       value: stats.totalWorkOrders,
-      color: { bg: "bg-blue-100", text: "text-blue-600" },
-      icon: <FaUsersCog size={32} />,
+      color: { bgColor: "#0074A8", textColor: "#ffffff" },
       onViewClick: () => handleViewClick("workOrders"),
     },
   ];
 
   return (
-    <div className="w-full p-2 lg:p-4 xl:p-6 space-y-4 bg-gray-50 min-h-screen">
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        {cards.map((c, i) => (
-          <DashboardCard key={i} {...c} />
+    <div className="w-full h-screen bg-gray-50 flex flex-col relative overflow-hidden">
+      {/* Navigation Buttons */}
+      <button
+        onClick={prevSlide}
+        className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10 bg-white bg-opacity-80 hover:bg-opacity-100 rounded-full p-2 shadow-lg transition-all duration-300"
+      >
+        <FaChevronLeft size={32} className="text-gray-600" />
+      </button>
+      <button
+        onClick={nextSlide}
+        className="absolute right-4 top-1/2 transform -translate-y-1/2 z-10 bg-white bg-opacity-80 hover:bg-opacity-100 rounded-full p-2 shadow-lg transition-all duration-300"
+      >
+        <FaChevronRight size={32} className="text-gray-600" />
+      </button>
+
+      {/* Slide Indicators */}
+      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2 z-10">
+        {Array.from({ length: totalSlides }).map((_, index) => (
+          <div
+            key={index}
+            className={`w-3 h-3 rounded-full ${
+              index === currentSlide ? "bg-blue-500" : "bg-gray-400"
+            }`}
+          />
         ))}
       </div>
 
-      {/* Chart */}
-      <div
-        className="grid grid-cols-1 lg:grid-cols-2 gap-4
-                    h-auto lg:h-[25vh] 2xl:h-[30vh] 3xl:h-[35vh]"
-      >
-        <div className="bg-white shadow rounded-xl p-2 lg:p-4 flex flex-col min-h-[200px] 2xl:min-h-[250px] 3xl:min-h-[300px]">
-          <h2 className="text-xl lg:text-2xl xl:text-3xl 2xl:text-4xl 3xl:text-5xl font-semibold">
-            <FaChartLine className="text-green-500" /> Completion Trend
-          </h2>
-          <canvas id="lineChart" className="flex-1"></canvas>
-        </div>
-        <div className="bg-white shadow rounded-xl p-2 lg:p-4 flex flex-col min-h-[200px] 2xl:min-h-[250px] 3xl:min-h-[300px]">
-          <h2 className="text-xl lg:text-2xl xl:text-3xl 2xl:text-4xl 3xl:text-5xl font-semibold">
-            <FaChartPie className="text-purple-500" /> Outstanding Project
-            Status
-          </h2>
-          <canvas id="statusPie" className="flex-1"></canvas>
-        </div>
-      </div>
-      {/* Utilization + Top 5 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-white shadow rounded-xl p-2 lg:p-4 flex flex-col min-h-[400px] gap-2">
-          <h2 className="text-xl lg:text-2xl xl:text-3xl 3xl:text-4xl font-semibold flex items-center gap-4">
-            <FaUsersCog className="text-blue-500" /> Work Orders This Month
-          </h2>
-          {workOrdersThisMonth.length === 0 ? (
-            <p className="text-center text-gray-500 mt-2">
-              No work orders this month.
-            </p>
-          ) : (
-            <div className="table-wrapper">
-              <div className="table-inner">
-                <HotTable
-                  data={workOrdersThisMonth.slice(0, 10)}
-                  colHeaders={[
-                    "WO Code",
-                    "WO Date",
-                    "Project Name",
-                    "Client Name",
-                    "Created By",
-                    "PIC Names",
-                  ]}
-                  columns={[
-                    {
-                      data: "wo_kode_no",
-                      title: "WO Code",
-                      type: "text",
-                      editor: false,
-                      width: 200,
-                    },
-                    {
-                      data: "wo_date",
-                      title: "WO Date",
-                      type: "date",
-                      dateFormat: "YYYY-MM-DD",
-                      editor: false,
-                      width: 180,
-                      renderer: dateRenderer,
-                    },
-                    {
-                      data: "project_name",
-                      title: "Project Name",
-                      type: "text",
-                      editor: false,
-                      width: 250,
-                    },
-                    {
-                      data: "client_name",
-                      title: "Client Name",
-                      type: "text",
-                      editor: false,
-                      width: 250,
-                      renderer: (instance, td, row, col, prop, value) => {
-                        td.innerText = value || "-";
-                        return td;
-                      },
-                    },
-                    {
-                      data: "created_by",
-                      title: "Created By",
-                      type: "text",
-                      editor: false,
-                      width: 180,
-                    },
-                    {
-                      data: "pic_names",
-                      title: "PIC Names",
-                      type: "text",
-                      editor: false,
-                      width: 200,
-                    },
-                  ]}
-                  stretchH="all"
-                  height={largeTableHeight}
-                  licenseKey="non-commercial-and-evaluation"
-                  className="ht-theme-horizon"
-                  manualColumnResize
-                />
-              </div>
+      {/* Carousel Slides */}
+      {currentSlide === 0 && (
+        <div className="flex-1 flex flex-col p-4">
+          {/* KPI Cards */}
+          <div className="mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+              {cards.map((c, i) => (
+                <DashboardCard key={i} {...c} />
+              ))}
             </div>
-          )}
-        </div>
+          </div>
 
-        <div className="bg-white shadow rounded-xl p-2 lg:p-4 flex flex-col min-h-[400px]">
-          <h2 className="text-xl lg:text-2xl xl:text-3xl 3xl:text-4xl font-semibold flex items-center gap-4">
-            <FaProjectDiagram className="text-blue-500" /> Top 5 Overdue
-            Projects
-          </h2>
-          {stats.top5Overdue.length === 0 ? (
-            <p className="text-center text-gray-500 mt-2">
-              No overdue projects.
-            </p>
-          ) : (
-            <div className="table-wrapper">
-              <div className="table-inner">
-                <HotTable
-                  data={stats.top5Overdue}
-                  colHeaders={[
-                    "PN Number",
-                    "Project Name",
-                    "Client Name",
-                    "PIC",
-                    "Target Date",
-                    "Delay (days)",
-                    "Status",
-                  ]}
-                  columns={[
-                    {
-                      data: "pn_number",
-                      type: "text",
-                      editor: false,
-                      width: 150,
-                    },
-                    {
-                      data: "project_name",
-                      type: "text",
-                      editor: false,
-                      width: 200,
-                    },
-                    {
-                      data: "client_name",
-                      title: "Client Name",
-                      type: "text",
-                      editor: false,
-                      width: 200,
-                      renderer: (instance, td, row, col, prop, value) => {
-                        td.innerText = value || "-";
-                        return td;
-                      },
-                    },
-                    { data: "pic", type: "text", editor: false, width: 150 },
-                    {
-                      data: "target_dates",
-                      type: "date",
-                      dateFormat: "YYYY-MM-DD",
-                      editor: false,
-                      width: 180,
-                      renderer: (instance, td, row, col, prop, value) => {
-                        const displayValue = value ? formatDate(value) : "";
-                        td.innerHTML = displayValue;
-                        return td;
-                      },
-                    },
-                    {
-                      data: "delay_days",
-                      type: "numeric",
-                      editor: false,
-                      width: 120,
-                    },
-                    { data: "status", type: "text", editor: false, width: 120 },
-                  ]}
-                  stretchH="all"
-                  height={largeTableHeight}
-                  licenseKey="non-commercial-and-evaluation"
-                  className="ht-theme-horizon"
-                />
+          {/* Charts */}
+          <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="bg-gradient-to-br from-white to-gray-100 shadow rounded-xl p-4 flex flex-col">
+              <h2 className="text-2xl lg:text-3xl xl:text-4xl 2xl:text-5xl 3xl:text-6xl font-semibold mb-4 flex-shrink-0 text-gray-800">
+                <FaChartLine className="text-gray-800" /> Completion Trend
+              </h2>
+              <div className="flex-1 flex justify-center items-center">
+                <canvas id="lineChart" className="w-full h-full"></canvas>
               </div>
             </div>
-          )}
-        </div>
-      </div>
-      {/* Upcoming Projects */}
-      <div className="bg-white shadow rounded-xl p-2 lg:p-4 flex flex-col min-h-[200px]">
-        <h2 className="text-xl lg:text-2xl xl:text-3xl 3xl:text-4xl font-semibold flex items-center gap-4">
-          <FaCalendarAlt className="text-indigo-500" /> Upcoming Projects (Next
-          30 days)
-        </h2>
-        <div className="flex-1 mt-2">
-          {stats.upcomingProjects.length === 0 ? (
-            <p className="text-center text-gray-500 mt-2">
-              No upcoming projects in the next 30 days.
-            </p>
-          ) : (
-            <div className="table-wrapper">
-              <div className="table-inner">
-                <HotTable
-                  data={stats.upcomingProjects.slice(0, 5)}
-                  colHeaders={[
-                    "PN Number",
-                    "Project Name",
-                    "Client Name",
-                    "Target Date",
-                    "Status",
-                  ]}
-                  columns={[
-                    { data: "pn_number", type: "text", width: 150 },
-                    { data: "project_name", type: "text", width: 200 },
-                    {
-                      data: "client_name",
-                      title: "Client Name",
-                      type: "text",
-                      editor: false,
-                      width: 200,
-                      renderer: (instance, td, row, col, prop, value) => {
-                        td.innerText = value || "-";
-                        return td;
-                      },
-                    },
-                    {
-                      data: "target_dates",
-                      type: "date",
-                      dateFormat: "YYYY-MM-DD",
-                      width: 180,
-                      renderer: (instance, td, row, col, prop, value) => {
-                        const displayValue = value ? formatDate(value) : "";
-                        td.innerHTML = displayValue;
-                        return td;
-                      },
-                    },
-                    { data: "status", type: "text", width: 120 },
-                  ]}
-                  stretchH="all"
-                  height={tableHeight}
-                  className="ht-theme-horizon"
-                  licenseKey="non-commercial-and-evaluation"
-                />
+            <div className="bg-gradient-to-br from-white to-gray-100 shadow rounded-xl p-4 flex flex-col">
+              <h2 className="text-2xl lg:text-3xl xl:text-4xl 2xl:text-5xl 3xl:text-6xl font-semibold mb-4 flex-shrink-0 text-gray-800">
+                <FaChartPie className="text-gray-800" /> Outstanding Project
+                Status
+              </h2>
+              <div className="flex-1">
+                <canvas id="statusPie" className="w-full h-full"></canvas>
               </div>
             </div>
-          )}
+          </div>
         </div>
-      </div>
+      )}
+
+      {currentSlide === 1 && (
+        <div className="flex-1 flex flex-col p-4 space-y-4">
+          {/* Top Overdue Projects */}
+          <div className="bg-white shadow rounded-xl p-4 flex flex-col flex-1">
+            <h2 className="text-3xl lg:text-4xl xl:text-5xl 2xl:text-6xl 3xl:text-7xl font-semibold mb-4 flex items-center gap-4">
+              <FaProjectDiagram className="text-red-500" /> Top Overdue Projects
+            </h2>
+            {stats.top5Overdue.length === 0 ? (
+              <p className="text-center text-gray-500 flex-1 flex items-center justify-center text-2xl">
+                No overdue projects.
+              </p>
+            ) : (
+              <div
+                className="flex-1"
+                style={{ height: "1000px", marginTop: "20px" }}
+              >
+                <DataGrid
+                  rows={stats.top5Overdue
+                    .slice(
+                      (currentPageOverdue - 1) * 10,
+                      currentPageOverdue * 10
+                    )
+                    .map((row, index) => ({ id: index, ...row }))}
+                  columns={[
+                    {
+                      field: "pn_number",
+                      headerName: "PN Number",
+                      flex: 1,
+                      renderCell: (params) => (
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            height: "100%",
+                            fontSize: "32px",
+                          }}
+                        >
+                          {params.value || "-"}
+                        </div>
+                      ),
+                    },
+                    {
+                      field: "project_name",
+                      headerName: "Project Name",
+                      flex: 1,
+                      renderCell: (params) => (
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            height: "100%",
+                            fontSize: "32px",
+                          }}
+                        >
+                          {params.value || "-"}
+                        </div>
+                      ),
+                    },
+                    {
+                      field: "client_name",
+                      headerName: "Client Name",
+                      flex: 1,
+                      renderCell: (params) => (
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            height: "100%",
+                            fontSize: "32px",
+                          }}
+                        >
+                          {params.value || "-"}
+                        </div>
+                      ),
+                    },
+                    {
+                      field: "pic",
+                      headerName: "PIC",
+                      flex: 1,
+                      renderCell: (params) => (
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            height: "100%",
+                            fontSize: "32px",
+                          }}
+                        >
+                          {params.value || "-"}
+                        </div>
+                      ),
+                    },
+                    {
+                      field: "target_dates",
+                      headerName: "Target Date",
+                      flex: 1,
+                      renderCell: (params) => (
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            height: "100%",
+                            fontSize: "32px",
+                          }}
+                        >
+                          {params.value ? formatDate(params.value) : "-"}
+                        </div>
+                      ),
+                    },
+                    {
+                      field: "delay_days",
+                      headerName: "Delay (days)",
+                      flex: 1,
+                      renderCell: (params) => (
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            height: "100%",
+                            fontSize: "32px",
+                          }}
+                        >
+                          {params.value || "-"}
+                        </div>
+                      ),
+                    },
+                    {
+                      field: "status",
+                      headerName: "Status",
+                      flex: 1,
+                      renderCell: (params) => (
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            height: "100%",
+                            fontSize: "32px",
+                          }}
+                        >
+                          {params.value || "-"}
+                        </div>
+                      ),
+                    },
+                  ]}
+                  pageSize={10}
+                  rowsPerPageOptions={[10]}
+                  disableSelectionOnClick
+                  sx={{
+                    fontSize: "32px",
+                    "& .MuiDataGrid-cell": {
+                      fontSize: "32px",
+                      padding: "24px",
+                      alignItems: "center",
+                    },
+                    "& .MuiDataGrid-columnHeader": {
+                      fontSize: "32px",
+                      padding: "16px",
+                      alignItems: "center",
+                    },
+                    "& .MuiDataGrid-row": {
+                      marginBottom: "16px",
+                    },
+                    width: "100%",
+                    height: "100%",
+                  }}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Upcoming Projects */}
+          <div className="bg-white shadow rounded-xl p-4 flex flex-col flex-1">
+            <h2 className="text-3xl lg:text-4xl xl:text-5xl 2xl:text-6xl 3xl:text-7xl font-semibold mb-4 flex items-center gap-4">
+              <FaCalendarAlt className="text-indigo-500" /> Upcoming Projects
+              (Next 30 days)
+            </h2>
+            {stats.upcomingProjects.length === 0 ? (
+              <p className="text-center text-gray-500 flex-1 flex items-center justify-center text-2xl">
+                No upcoming projects in the next 30 days.
+              </p>
+            ) : (
+              <div
+                className="flex-1"
+                style={{ height: "1000px", marginTop: "20px" }}
+              >
+                <DataGrid
+                  rows={stats.upcomingProjects
+                    .slice(
+                      (currentPageUpcoming - 1) * 10,
+                      currentPageUpcoming * 10
+                    )
+                    .map((row, index) => ({ id: index, ...row }))}
+                  columns={[
+                    {
+                      field: "pn_number",
+                      headerName: "PN Number",
+                      flex: 1,
+                      renderCell: (params) => (
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            height: "100%",
+                            fontSize: "32px",
+                          }}
+                        >
+                          {params.value || "-"}
+                        </div>
+                      ),
+                    },
+                    {
+                      field: "project_name",
+                      headerName: "Project Name",
+                      flex: 1,
+                      renderCell: (params) => (
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            height: "100%",
+                            fontSize: "32px",
+                          }}
+                        >
+                          {params.value || "-"}
+                        </div>
+                      ),
+                    },
+                    {
+                      field: "client_name",
+                      headerName: "Client Name",
+                      flex: 1,
+                      renderCell: (params) => (
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            height: "100%",
+                            fontSize: "32px",
+                          }}
+                        >
+                          {params.value || "-"}
+                        </div>
+                      ),
+                    },
+                    {
+                      field: "target_dates",
+                      headerName: "Target Date",
+                      flex: 1,
+                      renderCell: (params) => (
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            height: "100%",
+                            fontSize: "32px",
+                          }}
+                        >
+                          {params.value ? formatDate(params.value) : "-"}
+                        </div>
+                      ),
+                    },
+                    {
+                      field: "status",
+                      headerName: "Status",
+                      flex: 1,
+                      renderCell: (params) => (
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            height: "100%",
+                            fontSize: "32px",
+                          }}
+                        >
+                          {params.value || "-"}
+                        </div>
+                      ),
+                    },
+                  ]}
+                  pageSize={10}
+                  rowsPerPageOptions={[10]}
+                  disableSelectionOnClick
+                  sx={{
+                    fontSize: "32px",
+                    "& .MuiDataGrid-cell": {
+                      fontSize: "32px",
+                      padding: "24px",
+                      alignItems: "center",
+                    },
+                    "& .MuiDataGrid-columnHeader": {
+                      fontSize: "32px",
+                      padding: "16px",
+                      alignItems: "center",
+                    },
+                    "& .MuiDataGrid-row": {
+                      marginBottom: "16px",
+                    },
+                    width: "100%",
+                    height: "100%",
+                  }}
+                />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Data Modal */}
       <Modal
@@ -656,7 +821,7 @@ export default function EngineerDashboard4K() {
                   data={modalData}
                   colHeaders={modalColumns.map((c) => c.title)}
                   columns={modalColumns}
-                  height={700}
+                  height="auto"
                   stretchH="all"
                   manualColumnResize={true}
                   licenseKey="non-commercial-and-evaluation"

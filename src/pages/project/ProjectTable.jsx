@@ -22,6 +22,7 @@ import { useNavigate } from "react-router-dom";
 import api from "../../api/api";
 import ProjectFormModal from "../project/ProjectFormModal";
 import ProjectDetailsModal from "../../components/modal/ProjectDetailsModal";
+import ProjectDetailModalForAdmins from "../../components/modal/ProjectDetailModalForAdmins";
 import ViewProjectsModal from "../../components/modal/ViewProjectsModal";
 import { getUser } from "../../utils/storage";
 import LoadingOverlay from "../../components/loading/LoadingOverlay";
@@ -63,12 +64,14 @@ export default function ProjectTable() {
     "marketing_admin",
     "manager_marketing",
     "sales_supervisor",
-    "super_admin",
-    "marketing_director",
     "supervisor marketing",
     "sales_supervisor",
     "marketing_estimator",
+  ].includes(userRole);
+  const adminRoles = [
+    "super_admin",
     "engineering_director",
+    "marketing_director",
   ].includes(userRole);
   const engineerRoles = [
     "project controller",
@@ -161,7 +164,13 @@ export default function ProjectTable() {
           viewBtn.onclick = () => {
             const project = instance.getSourceDataAtRow(row);
             if (project?.pn_number) {
-              if (engineerRoles) {
+              if (adminRoles) {
+                setSelectedPnNumber(project.pn_number);
+                setOpenDetailsModal(true);
+              } else if (marketingRoles) {
+                setSelectedPnNumber(project.pn_number);
+                setOpenDetailsModal(true);
+              } else if (engineerRoles) {
                 setSelectedPnNumberForViewProjects(project.pn_number);
                 setOpenViewProjectsModal(true);
               } else {
@@ -233,7 +242,12 @@ export default function ProjectTable() {
         renderer: confirmationRenderer,
       },
       { data: "parent_pn_number", title: "Parent PN" },
-      { data: "status_project", title: "Status", renderer: statusRenderer },
+      {
+        data: "status_project",
+        title: "Status",
+        renderer: statusRenderer,
+        width: 150,
+      },
     ],
     [marketingRoles, engineerRoles, suc, navigate, projects]
   );
@@ -595,14 +609,25 @@ export default function ProjectTable() {
       )}
 
       {/* Project Details Modal */}
-      <ProjectDetailsModal
-        open={openDetailsModal}
-        onClose={() => {
-          setOpenDetailsModal(false);
-          setSelectedPnNumber(null);
-        }}
-        pn_number={selectedPnNumber}
-      />
+      {adminRoles ? (
+        <ProjectDetailModalForAdmins
+          open={openDetailsModal}
+          onClose={() => {
+            setOpenDetailsModal(false);
+            setSelectedPnNumber(null);
+          }}
+          pn_number={selectedPnNumber}
+        />
+      ) : (
+        <ProjectDetailsModal
+          open={openDetailsModal}
+          onClose={() => {
+            setOpenDetailsModal(false);
+            setSelectedPnNumber(null);
+          }}
+          pn_number={selectedPnNumber}
+        />
+      )}
 
       {/* View Projects Modal */}
       <ViewProjectsModal

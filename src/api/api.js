@@ -41,4 +41,10 @@ export const getActions = () => api.get("/activity-logs/actions/list");
 export const getModelTypes = () => api.get("/activity-logs/model-types/list");
 export const getUsers = () => api.get("/users");
 
+// Tax API
+export const getTaxes = () => api.get("/finance/taxes");
+export const createTax = (data) => api.post("/finance/taxes", data);
+export const updateTax = (id, data) => api.put(`/finance/taxes/${id}`, data);
+export const deleteTax = (id) => api.delete(`/finance/taxes/${id}`);
+
 export default api;

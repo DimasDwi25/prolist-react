@@ -11,6 +11,7 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import api from "../../../api/api";
 import { useNavigate, useParams } from "react-router-dom";
+import { sortOptions } from "../../../helper/SortOptions";
 import Swal from "sweetalert2";
 import SowModal from "../../../components/modal/SowModal";
 import { formatDateForInput } from "../../../utils/formatDateForInput";
@@ -383,7 +384,7 @@ export default function UpdateDocumentPhc() {
 
               {/* PIC Engineering - editable (misalnya pakai Autocomplete) */}
               <Autocomplete
-                options={engineeringUsers}
+                options={sortOptions(engineeringUsers, "name")}
                 getOptionLabel={(option) => option.name || ""}
                 value={
                   engineeringUsers.find(

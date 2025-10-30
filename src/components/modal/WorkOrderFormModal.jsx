@@ -31,6 +31,7 @@ import NoteAltIcon from "@mui/icons-material/Event";
 import Swal from "sweetalert2";
 import api from "../../api/api";
 import SectionCard from "../card/SectionCard";
+import { sortOptions } from "../../helper/SortOptions";
 
 export default function WorkOrderFormModal({
   open,
@@ -442,7 +443,10 @@ export default function WorkOrderFormModal({
             </Grid>
             <Grid item xs={12} md={6}>
               <Autocomplete
-                options={purposes.map((p) => ({ label: p.name, value: p.id }))}
+                options={sortOptions(
+                  purposes.map((p) => ({ label: p.name, value: p.id })),
+                  "label"
+                )}
                 value={getPurposeOption(form.purpose_id)}
                 onChange={(_, newValue) => {
                   setForm((prev) => ({
@@ -668,8 +672,8 @@ export default function WorkOrderFormModal({
                 }}
               >
                 <Autocomplete
-                  options={users}
-                  getOptionLabel={(u) => `${u.name} (${u.email})`}
+                  options={sortOptions(users, "name")}
+                  getOptionLabel={(u) => `${u.name}`}
                   value={pic._userOption || null}
                   onChange={(_, val) =>
                     updatePic(index, "user_id", val ? val.id : "", val)
@@ -681,7 +685,7 @@ export default function WorkOrderFormModal({
                 />
 
                 <Autocomplete
-                  options={roles}
+                  options={sortOptions(roles, "name")}
                   getOptionLabel={(r) => r.name}
                   value={pic._roleOption || null}
                   onChange={(_, val) =>

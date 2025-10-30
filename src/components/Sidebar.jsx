@@ -114,6 +114,11 @@ const menuByRole = {
           path: "/finance/invoice-types",
           icon: <FaTasks />,
         },
+        {
+          name: "Tax",
+          path: "/taxes",
+          icon: <FaTasks />,
+        },
       ],
     },
     {
@@ -137,7 +142,6 @@ const menuByRole = {
           ],
         },
         { name: "Quotation", path: "/quotation", icon: <FaFileInvoice /> },
-        { name: "Projects", path: "/projects", icon: <FaTools /> },
       ],
     },
     {
@@ -166,7 +170,6 @@ const menuByRole = {
           icon: <FaTasks />,
         },
         { name: "Work Order", path: "/work-order", icon: <FaFileInvoice /> },
-        { name: "Projects", path: "/projects", icon: <FaTools /> },
 
         {
           name: "Request Invoice",
@@ -212,8 +215,14 @@ const menuByRole = {
           path: "/finance/request-invoice-list",
           icon: <FaPaypal />,
         },
+        {
+          name: "Retentions",
+          path: "/finance/retentions",
+          icon: <FaPaypal />,
+        },
       ],
     },
+    { name: "Projects", path: "/projects", icon: <FaTools /> },
     { name: "Approvall", path: "/approvall", icon: <FaCheckCircle /> },
     { name: "Activity Log", path: "/activity-logs", icon: <FaTasks /> },
   ],
@@ -377,6 +386,11 @@ const menuByRole = {
     {
       name: "Request Invoices List",
       path: "/finance/request-invoice-list",
+      icon: <FaPaypal />,
+    },
+    {
+      name: "Retentions",
+      path: "/finance/retentions",
       icon: <FaPaypal />,
     },
     // { name: "Projects", path: "/projects", icon: <FaTools /> },

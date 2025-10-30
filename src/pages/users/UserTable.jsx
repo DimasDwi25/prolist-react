@@ -29,6 +29,7 @@ import {
 import Swal from "sweetalert2";
 import api from "../../api/api";
 import LoadingOverlay from "../../components/loading/LoadingOverlay";
+import { sortOptions } from "../../helper/SortOptions";
 
 export default function UserTable() {
   const hotTableRef = useRef(null);
@@ -66,7 +67,7 @@ export default function UserTable() {
   const fetchRoles = async () => {
     try {
       const res = await api.get("/roles/onlyType1");
-      setRoles(res.data.data || res.data); // tergantung struktur API
+      setRoles(sortOptions(res.data.data || res.data, "name"));
     } catch (err) {
       console.error(err);
     }
@@ -75,7 +76,7 @@ export default function UserTable() {
   const fetchDepartments = async () => {
     try {
       const res = await api.get("/departments");
-      setDepartments(res.data.data || res.data);
+      setDepartments(sortOptions(res.data.data || res.data, "name"));
     } catch (err) {
       console.error(err);
     }

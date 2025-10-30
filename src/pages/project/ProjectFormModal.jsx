@@ -25,6 +25,7 @@ import {
 } from "@mui/material";
 import SettingsIcon from "@mui/icons-material/Settings";
 import api from "../../api/api";
+import { sortOptions } from "../../helper/SortOptions";
 
 import BusinessIcon from "@mui/icons-material/Business";
 import DescriptionIcon from "@mui/icons-material/Description";
@@ -428,7 +429,7 @@ export default function ProjectFormModal({
                     <Autocomplete
                       size="small"
                       fullWidth
-                      options={memoClients}
+                      options={sortOptions(memoClients, "name")}
                       getOptionLabel={(option) => option.name || ""}
                       value={selectedClient}
                       onChange={(e, newVal) =>
@@ -449,7 +450,7 @@ export default function ProjectFormModal({
                     <Autocomplete
                       size="small"
                       fullWidth
-                      options={filteredQuotations}
+                      options={sortOptions(filteredQuotations, "no_quotation")}
                       getOptionLabel={(option) => option.no_quotation || ""}
                       isOptionEqualToValue={(option, value) =>
                         String(option.quotation_number) ===
@@ -554,7 +555,7 @@ export default function ProjectFormModal({
                   {form.useDifferentClient && (
                     <Autocomplete
                       size="small"
-                      options={memoClients}
+                      options={sortOptions(memoClients, "name")}
                       getOptionLabel={(option) => option.name || ""}
                       value={
                         form.client_id
@@ -595,7 +596,7 @@ export default function ProjectFormModal({
                     <Autocomplete
                       size="small"
                       fullWidth
-                      options={memoCategories}
+                      options={sortOptions(memoCategories, "name")}
                       getOptionLabel={(option) => option.name || ""}
                       // 🟢 ini penting → supaya value lama match berdasarkan id
                       isOptionEqualToValue={(option, value) =>
@@ -783,7 +784,7 @@ export default function ProjectFormModal({
                 {form.is_variant_order && (
                   <Autocomplete
                     size="small"
-                    options={memoProjects}
+                    options={sortOptions(memoProjects, "project_number")}
                     getOptionLabel={(option) => option.project_number}
                     value={
                       form.parent_pn_number

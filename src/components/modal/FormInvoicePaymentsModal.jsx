@@ -15,7 +15,7 @@ import {
   Alert,
   CircularProgress,
 } from "@mui/material";
-import { Receipt, DollarSign, FileText } from "lucide-react";
+import { Receipt, DollarSign, FileText, Calendar } from "lucide-react";
 import api from "../../api/api";
 import { formatValue } from "../../utils/formatValue";
 
@@ -31,6 +31,7 @@ export default function FormInvoicePaymentsModal({
     payment_amount: "",
     notes: "",
     currency: "IDR",
+    nomor_bukti_pembayaran: "",
   });
 
   const [submitting, setSubmitting] = useState(false);
@@ -46,11 +47,32 @@ export default function FormInvoicePaymentsModal({
     onConfirm: null,
   });
 
+  const [paymentSummary, setPaymentSummary] = useState({
+    total_paid: 0,
+    remaining_payment: 0,
+    expected_payment: 0,
+  });
+
   const isEditMode = Boolean(paymentData);
 
   // Initialize form data and fetch invoice data
   useEffect(() => {
-    if (open) {
+    if (open && invoiceId) {
+      // Fetch payment summary
+      api
+        .get(`/finance/invoice-payments?invoice_id=${invoiceId}`)
+        .then((response) => {
+          const { total_paid, remaining_payment, expected_payment } =
+            response.data;
+          setPaymentSummary({
+            total_paid: total_paid || 0,
+            remaining_payment: remaining_payment || 0,
+            expected_payment: expected_payment || 0,
+          });
+        })
+        .catch((error) => {
+          console.error("Failed to fetch payment summary:", error);
+        });
       if (isEditMode && paymentData) {
         setFormData({
           payment_date: paymentData.payment_date
@@ -59,6 +81,7 @@ export default function FormInvoicePaymentsModal({
           payment_amount: paymentData.payment_amount || "",
           notes: paymentData.notes || "",
           currency: paymentData.currency || "IDR",
+          nomor_bukti_pembayaran: paymentData.nomor_bukti_pembayaran || "",
         });
       } else {
         setFormData({
@@ -162,6 +185,7 @@ export default function FormInvoicePaymentsModal({
         payment_amount: parseFloat(formData.payment_amount),
         notes: formData.notes || null,
         currency: formData.currency,
+        nomor_bukti_pembayaran: formData.nomor_bukti_pembayaran || null,
       };
 
       console.log("Payload:", payload); // Debug log
@@ -215,6 +239,93 @@ export default function FormInvoicePaymentsModal({
 
           <DialogContent dividers sx={{ py: 3 }}>
             <Box sx={{ p: 2 }}>
+              {/* Payment Summary Section */}
+              <Paper
+                elevation={1}
+                sx={{
+                  p: 3,
+                  borderRadius: 3,
+                  border: "1px solid",
+                  borderColor: "divider",
+                  mb: 3,
+                }}
+              >
+                <Typography
+                  variant="h6"
+                  sx={{
+                    mb: 3,
+                    fontWeight: 700,
+                    color: "primary.main",
+                    display: "flex",
+                    alignItems: "center",
+                    fontSize: "1.1rem",
+                  }}
+                >
+                  <DollarSign sx={{ mr: 1.5, fontSize: 22 }} />
+                  Payment Summary
+                </Typography>
+
+                <Grid container spacing={3}>
+                  <Grid size={{ xs: 12, md: 4 }}>
+                    <Box sx={{ textAlign: "center" }}>
+                      <Typography
+                        variant="subtitle2"
+                        sx={{ color: "text.secondary", mb: 1 }}
+                      >
+                        Total Paid
+                      </Typography>
+                      <Typography
+                        variant="h6"
+                        sx={{ fontWeight: 700, color: "success.main" }}
+                      >
+                        {
+                          formatValue(paymentSummary.total_paid, "IDR")
+                            .formatted
+                        }
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid size={{ xs: 12, md: 4 }}>
+                    <Box sx={{ textAlign: "center" }}>
+                      <Typography
+                        variant="subtitle2"
+                        sx={{ color: "text.secondary", mb: 1 }}
+                      >
+                        Remaining Payment
+                      </Typography>
+                      <Typography
+                        variant="h6"
+                        sx={{ fontWeight: 700, color: "warning.main" }}
+                      >
+                        {
+                          formatValue(paymentSummary.remaining_payment, "IDR")
+                            .formatted
+                        }
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid size={{ xs: 12, md: 4 }}>
+                    <Box sx={{ textAlign: "center" }}>
+                      <Typography
+                        variant="subtitle2"
+                        sx={{ color: "text.secondary", mb: 1 }}
+                      >
+                        Expected Payment
+                      </Typography>
+                      <Typography
+                        variant="h6"
+                        sx={{ fontWeight: 700, color: "primary.main" }}
+                      >
+                        {
+                          formatValue(paymentSummary.expected_payment, "IDR")
+                            .formatted
+                        }
+                      </Typography>
+                    </Box>
+                  </Grid>
+                </Grid>
+              </Paper>
+
               {/* Payment Details Section */}
               <Paper
                 elevation={1}
@@ -255,7 +366,9 @@ export default function FormInvoicePaymentsModal({
                           gap: 1,
                         }}
                       >
-                        <Receipt sx={{ fontSize: 16, color: "primary.main" }} />
+                        <Calendar
+                          sx={{ fontSize: 16, color: "primary.main" }}
+                        />
                         Payment Date *
                         <Typography
                           component="span"
@@ -276,7 +389,7 @@ export default function FormInvoicePaymentsModal({
                         }
                         InputProps={{
                           startAdornment: (
-                            <Receipt
+                            <Calendar
                               sx={{
                                 mr: 1,
                                 color: "action.active",
@@ -545,6 +658,63 @@ export default function FormInvoicePaymentsModal({
                   Additional Information
                 </Typography>
 
+                {/* Nomor Bukti Pembayaran */}
+                <Box sx={{ mb: 3 }}>
+                  <Typography
+                    variant="subtitle2"
+                    sx={{
+                      mb: 1.5,
+                      fontWeight: 600,
+                      color: "text.primary",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
+                    }}
+                  >
+                    <FileText sx={{ fontSize: 16, color: "primary.main" }} />
+                    Payment Receipt Number
+                  </Typography>
+                  <TextField
+                    fullWidth
+                    label="Payment Receipt Number"
+                    placeholder="Enter payment receipt number"
+                    value={formData.nomor_bukti_pembayaran}
+                    onChange={(e) =>
+                      handleChange("nomor_bukti_pembayaran", e.target.value)
+                    }
+                    InputProps={{
+                      startAdornment: (
+                        <FileText
+                          sx={{
+                            mr: 1,
+                            color: "action.active",
+                            fontSize: 18,
+                          }}
+                        />
+                      ),
+                    }}
+                    sx={{
+                      "& .MuiOutlinedInput-root": {
+                        borderRadius: 2,
+                        backgroundColor: "background.paper",
+                        "&:hover .MuiOutlinedInput-notchedOutline": {
+                          borderColor: "primary.main",
+                        },
+                        "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                          borderColor: "primary.main",
+                          borderWidth: 2,
+                        },
+                      },
+                      "& .MuiInputLabel-root": {
+                        color: "text.secondary",
+                        "&.Mui-focused": {
+                          color: "primary.main",
+                        },
+                      },
+                    }}
+                  />
+                </Box>
+
                 {/* Notes */}
                 <TextField
                   fullWidth
@@ -668,19 +838,6 @@ export default function FormInvoicePaymentsModal({
             }}
           >
             Cancel
-          </Button>
-          <Button
-            onClick={warningModal.onConfirm}
-            variant="contained"
-            color="warning"
-            sx={{
-              px: 4,
-              fontWeight: 600,
-              textTransform: "none",
-              borderRadius: 2,
-            }}
-          >
-            Proceed
           </Button>
         </DialogActions>
       </Dialog>
