@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import Chart from "chart.js/auto";
+import Highcharts from "highcharts";
 import {
   FaProjectDiagram,
   FaClock,
@@ -18,11 +19,27 @@ import { FaUsersCog, FaCalendarAlt } from "react-icons/fa";
 import { formatDate } from "../../utils/FormatDate";
 import { Modal, Box, Typography, IconButton } from "@mui/material";
 import { Close, Visibility } from "@mui/icons-material";
-import { DataGrid } from "@mui/x-data-grid";
+import { HotTable } from "@handsontable/react";
+import Handsontable from "../../handsontable.config";
 
 const dateRenderer = (instance, td, row, col, prop, value) => {
   td.innerText = formatDate(value);
+  td.style.fontSize = "54px";
+  td.style.textAlign = "center";
+  td.style.verticalAlign = "middle";
   return td;
+};
+
+const textRenderer = (instance, td, row, col, prop, value) => {
+  td.innerText = value || "-";
+  td.style.fontSize = "54px";
+  td.style.textAlign = "center";
+  td.style.verticalAlign = "middle";
+  return td;
+};
+
+const createHeader = (text) => {
+  return `<div style="font-size: 64px; font-weight: bold; text-align: center; height: 120px; display: flex; align-items: center; justify-content: center;">${text}</div>`;
 };
 
 const DashboardCard = ({ title, value, color, onViewClick }) => {
@@ -35,8 +52,8 @@ const DashboardCard = ({ title, value, color, onViewClick }) => {
       {/* Value */}
       <div className="flex items-center justify-center flex-1">
         <div
-          className="font-bold kpi-value text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl 3xl:text-8xl"
-          style={{ color: color.textColor }}
+          className="font-bold kpi-value"
+          style={{ color: color.textColor, fontSize: "64px" }}
         >
           {displayValue}
         </div>
@@ -45,8 +62,12 @@ const DashboardCard = ({ title, value, color, onViewClick }) => {
       {/* Title */}
       <div className="flex items-center justify-center flex-1">
         <p
-          className="kpi-title text-2xl lg:text-3xl xl:text-4xl 2xl:text-5xl 3xl:text-6xl text-center"
-          style={{ color: color.textColor }}
+          className="kpi-title text-center"
+          style={{
+            color: color.textColor,
+            fontSize: "64px",
+            lineHeight: "1.2",
+          }}
         >
           {title}
         </p>
@@ -80,21 +101,11 @@ export default function EngineerDashboard4K() {
   const [modalColumns, setModalColumns] = useState([]);
   const [modalTitle, setModalTitle] = useState("");
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [currentPageOverdue, setCurrentPageOverdue] = useState(1);
-  const [currentPageUpcoming, setCurrentPageUpcoming] = useState(1);
   const totalSlides = 2;
 
   const renderCharts = useCallback((data) => {
-    // Destroy existing charts if they exist
-    const lineCanvas = document.getElementById("lineChart");
+    // Destroy existing pie chart if it exists
     const pieCanvas = document.getElementById("statusPie");
-
-    if (lineCanvas) {
-      const existingLineChart = Chart.getChart(lineCanvas);
-      if (existingLineChart) {
-        existingLineChart.destroy();
-      }
-    }
 
     if (pieCanvas) {
       const existingPieChart = Chart.getChart(pieCanvas);
@@ -103,105 +114,110 @@ export default function EngineerDashboard4K() {
       }
     }
 
-    // Smooth Area Chart Completion Trend
-    new Chart(lineCanvas, {
-      type: "line",
-      data: {
-        labels: data.months,
-        datasets: [
-          {
-            label: "On Time",
-            data: data.onTimeProjects,
-            borderColor: "#10b981",
-            backgroundColor: "rgba(16,185,129,0.3)",
-            fill: true,
-            tension: 0.4,
-            pointRadius: 6,
-            pointHoverRadius: 8,
-          },
-          {
-            label: "Late",
-            data: data.lateProjects,
-            borderColor: "#ef4444",
-            backgroundColor: "rgba(239,68,68,0.3)",
-            fill: true,
-            tension: 0.4,
-            pointRadius: 6,
-            pointHoverRadius: 8,
-          },
-        ],
+    // Pie Chart Status Distribution using Highcharts
+    Highcharts.chart("statusPie", {
+      chart: {
+        type: "pie",
+        backgroundColor: "transparent",
+        spacing: 20,
       },
-      options: {
-        responsive: true,
-        backgroundColor: "white",
-        plugins: {
-          legend: {
-            position: "bottom",
-            labels: {
-              font: { size: 32, color: "gray" },
-            },
-          },
-        },
-        scales: {
-          x: {
-            ticks: {
-              font: { size: 20, color: "gray" },
-            },
-            grid: {
-              color: "rgba(128, 128, 128, 0.2)",
-            },
-          },
-          y: {
-            ticks: {
-              font: { size: 20, color: "gray" },
-              stepSize: 1,
-            },
-            beginAtZero: true,
-            grid: {
-              color: "rgba(128, 128, 128, 0.2)",
-            },
-          },
+      title: {
+        text: null,
+        style: {
+          fontSize: "64px",
+          fontWeight: "bold",
         },
       },
-    });
+      tooltip: {
+        pointFormat: "{series.name}: <b>{point.percentage:.1f}%</b>",
+        style: { fontSize: "42px" },
+      },
+      plotOptions: {
+        pie: {
+          borderWidth: 0,
+          allowPointSelect: true,
+          cursor: "pointer",
+        },
+      },
+      series: [
+        // INNER PIE — persentase di dalam
+        {
+          name: "Percentage",
+          size: "60%", // ukuran inner pie
+          dataLabels: {
+            enabled: true,
+            distance: -40,
+            format: "{point.y}",
+            style: {
+              fontSize: "64px",
+              fontWeight: "bold",
+              color: "white",
+              textOutline: "none",
+            },
+          },
+          data: [
+            {
+              name: "Project Overdue",
+              y: data.statusCounts[0],
+              color: "#ef4444",
+            },
+            {
+              name: "Target Due Less Than 1 Month",
+              y: data.statusCounts[1],
+              color: "#fbbf24",
+            },
+            {
+              name: "Target Due Greater Than 1 Month",
+              y: data.statusCounts[2],
+              color: "#10b981",
+            },
+          ],
+        },
 
-    // Donut Chart Status Distribution
-    new Chart(pieCanvas, {
-      type: "doughnut",
-      data: {
-        labels: [
-          "Overdue",
-          "Due This Month",
-          "Outstanding Projects (Not Overdue)",
-        ],
-        datasets: [
-          {
-            data: data.statusCounts,
-            backgroundColor: ["#ef4444", "#fbbf24", "#10b981"],
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            position: "right",
-            labels: {
-              font: {
-                size: 32,
-                color: "gray",
-              },
+        // OUTER PIE — label dan connector di luar
+        {
+          name: "Status",
+          size: "100%", // full pie
+          innerSize: "60%", // biar jadi layer luar
+          dataLabels: {
+            enabled: true,
+            distance: 100,
+            connectorColor: "#000000",
+            connectorWidth: 10,
+            format: "<b>{point.name}</b>",
+            style: {
+              fontSize: "64px",
+              fontWeight: "500",
+              color: "black",
+              textOutline: "none",
             },
           },
+          data: [
+            {
+              name: "Project Overdue",
+              y: data.statusCounts[0],
+              color: "#ef4444",
+            },
+            {
+              name: "Target Due Less Than 1 Month",
+              y: data.statusCounts[1],
+              color: "#fbbf24",
+            },
+            {
+              name: "Target Due Greater Than 1 Month",
+              y: data.statusCounts[2],
+              color: "#10b981",
+            },
+          ],
         },
-      },
+      ],
+      credits: { enabled: false },
     });
   }, []);
 
   useEffect(() => {
     api
-      .get("/engineer/dashboard")
+      .get("/engineer/dashboard4k")
       .then((res) => {
         setStats(res.data);
         setWorkOrdersThisMonth(res.data.workOrdersThisMonth || []);
@@ -225,26 +241,9 @@ export default function EngineerDashboard4K() {
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % totalSlides);
-    }, 10000); // Auto-slide every 10 seconds
+    }, 60000); // Auto-slide every 1 minute
     return () => clearInterval(interval);
   }, [totalSlides]);
-
-  // Auto-pagination for slide 1
-  useEffect(() => {
-    if (currentSlide === 1) {
-      const interval = setInterval(() => {
-        const totalPagesOverdue = Math.ceil(
-          (stats?.top5Overdue?.length || 0) / 10
-        );
-        const totalPagesUpcoming = Math.ceil(
-          (stats?.upcomingProjects?.length || 0) / 10
-        );
-        setCurrentPageOverdue((prev) => (prev % totalPagesOverdue) + 1);
-        setCurrentPageUpcoming((prev) => (prev % totalPagesUpcoming) + 1);
-      }, 5000); // Auto-switch every 5 seconds
-      return () => clearInterval(interval);
-    }
-  }, [currentSlide, stats]);
 
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % totalSlides);
   const prevSlide = () =>
@@ -367,33 +366,27 @@ export default function EngineerDashboard4K() {
 
   const cards = [
     {
-      title: "Project Outstanding (Overdue)",
+      title: "Project Overdue",
       value: stats.projectOverdue,
       color: { bgColor: "#ef4444", textColor: "#ffffff" },
       onViewClick: () => handleViewClick("overdue"),
     },
     {
-      title: "Due This Month",
+      title: "Target Due Less Than 1 Month",
       value: stats.projectDueThisMonth,
       color: { bgColor: "#fbbf24", textColor: "#000000" },
       onViewClick: () => handleViewClick("dueThisMonth"),
     },
     {
-      title: "Project Outstanding (Not Overdue)",
+      title: "Target Due Greater Than 1 Month",
       value: stats.projectOnTrack,
       color: { bgColor: "#10b981", textColor: "#ffffff" },
       onViewClick: () => handleViewClick("onTrack"),
     },
     {
-      title: "Total Outstanding Projects",
+      title: "Total Open Project",
       value: stats.totalOutstandingProjects,
       color: { bgColor: "#0074A8", textColor: "#ffffff" },
-    },
-    {
-      title: "Work Orders (This Month)",
-      value: stats.totalWorkOrders,
-      color: { bgColor: "#0074A8", textColor: "#ffffff" },
-      onViewClick: () => handleViewClick("workOrders"),
     },
   ];
 
@@ -430,7 +423,7 @@ export default function EngineerDashboard4K() {
         <div className="flex-1 flex flex-col p-4">
           {/* KPI Cards */}
           <div className="mb-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {cards.map((c, i) => (
                 <DashboardCard key={i} {...c} />
               ))}
@@ -438,22 +431,17 @@ export default function EngineerDashboard4K() {
           </div>
 
           {/* Charts */}
-          <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div className="bg-gradient-to-br from-white to-gray-100 shadow rounded-xl p-4 flex flex-col">
-              <h2 className="text-2xl lg:text-3xl xl:text-4xl 2xl:text-5xl 3xl:text-6xl font-semibold mb-4 flex-shrink-0 text-gray-800">
-                <FaChartLine className="text-gray-800" /> Completion Trend
-              </h2>
-              <div className="flex-1 flex justify-center items-center">
-                <canvas id="lineChart" className="w-full h-full"></canvas>
-              </div>
-            </div>
-            <div className="bg-gradient-to-br from-white to-gray-100 shadow rounded-xl p-4 flex flex-col">
-              <h2 className="text-2xl lg:text-3xl xl:text-4xl 2xl:text-5xl 3xl:text-6xl font-semibold mb-4 flex-shrink-0 text-gray-800">
+          <div className="flex-1 grid grid-cols-1 gap-4">
+            <div className="bg-gradient-to-br from-white to-gray-100 shadow rounded-xl p-8 flex flex-col">
+              <h2
+                className="font-semibold mb-4 flex-shrink-0 text-gray-800"
+                style={{ fontSize: "64px" }}
+              >
                 <FaChartPie className="text-gray-800" /> Outstanding Project
                 Status
               </h2>
-              <div className="flex-1">
-                <canvas id="statusPie" className="w-full h-full"></canvas>
+              <div className="flex-1 flex justify-center items-center">
+                <div id="statusPie" className="w-full h-full"></div>
               </div>
             </div>
           </div>
@@ -465,166 +453,40 @@ export default function EngineerDashboard4K() {
           {/* Top Overdue Projects */}
           <div className="bg-white shadow rounded-xl p-4 flex flex-col flex-1">
             <h2 className="text-3xl lg:text-4xl xl:text-5xl 2xl:text-6xl 3xl:text-7xl font-semibold mb-4 flex items-center gap-4">
-              <FaProjectDiagram className="text-red-500" /> Top Overdue Projects
+              <FaProjectDiagram className="text-red-500" /> Project Overdue
             </h2>
             {stats.top5Overdue.length === 0 ? (
               <p className="text-center text-gray-500 flex-1 flex items-center justify-center text-2xl">
                 No overdue projects.
               </p>
             ) : (
-              <div
-                className="flex-1"
-                style={{ height: "1000px", marginTop: "20px" }}
-              >
-                <DataGrid
-                  rows={stats.top5Overdue
-                    .slice(
-                      (currentPageOverdue - 1) * 10,
-                      currentPageOverdue * 10
-                    )
-                    .map((row, index) => ({ id: index, ...row }))}
-                  columns={[
-                    {
-                      field: "pn_number",
-                      headerName: "PN Number",
-                      flex: 1,
-                      renderCell: (params) => (
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            height: "100%",
-                            fontSize: "32px",
-                          }}
-                        >
-                          {params.value || "-"}
-                        </div>
-                      ),
-                    },
-                    {
-                      field: "project_name",
-                      headerName: "Project Name",
-                      flex: 1,
-                      renderCell: (params) => (
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            height: "100%",
-                            fontSize: "32px",
-                          }}
-                        >
-                          {params.value || "-"}
-                        </div>
-                      ),
-                    },
-                    {
-                      field: "client_name",
-                      headerName: "Client Name",
-                      flex: 1,
-                      renderCell: (params) => (
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            height: "100%",
-                            fontSize: "32px",
-                          }}
-                        >
-                          {params.value || "-"}
-                        </div>
-                      ),
-                    },
-                    {
-                      field: "pic",
-                      headerName: "PIC",
-                      flex: 1,
-                      renderCell: (params) => (
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            height: "100%",
-                            fontSize: "32px",
-                          }}
-                        >
-                          {params.value || "-"}
-                        </div>
-                      ),
-                    },
-                    {
-                      field: "target_dates",
-                      headerName: "Target Date",
-                      flex: 1,
-                      renderCell: (params) => (
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            height: "100%",
-                            fontSize: "32px",
-                          }}
-                        >
-                          {params.value ? formatDate(params.value) : "-"}
-                        </div>
-                      ),
-                    },
-                    {
-                      field: "delay_days",
-                      headerName: "Delay (days)",
-                      flex: 1,
-                      renderCell: (params) => (
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            height: "100%",
-                            fontSize: "32px",
-                          }}
-                        >
-                          {params.value || "-"}
-                        </div>
-                      ),
-                    },
-                    {
-                      field: "status",
-                      headerName: "Status",
-                      flex: 1,
-                      renderCell: (params) => (
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            height: "100%",
-                            fontSize: "32px",
-                          }}
-                        >
-                          {params.value || "-"}
-                        </div>
-                      ),
-                    },
+              <div className="flex-1" style={{ marginTop: "20px" }}>
+                <HotTable
+                  data={stats.top5Overdue}
+                  colHeaders={[
+                    createHeader("PN Number"),
+                    createHeader("Project Name"),
+                    createHeader("Client Name"),
+                    createHeader("PIC"),
+                    createHeader("Target Date"),
+                    createHeader("Delay (days)"),
+                    createHeader("Status"),
                   ]}
-                  pageSize={10}
-                  rowsPerPageOptions={[10]}
-                  disableSelectionOnClick
-                  sx={{
-                    fontSize: "32px",
-                    "& .MuiDataGrid-cell": {
-                      fontSize: "32px",
-                      padding: "24px",
-                      alignItems: "center",
-                    },
-                    "& .MuiDataGrid-columnHeader": {
-                      fontSize: "32px",
-                      padding: "16px",
-                      alignItems: "center",
-                    },
-                    "& .MuiDataGrid-row": {
-                      marginBottom: "16px",
-                    },
-                    width: "100%",
-                    height: "100%",
-                  }}
+                  columns={[
+                    { data: "pn_number", renderer: textRenderer },
+                    { data: "project_name", renderer: textRenderer },
+                    { data: "client_name", renderer: textRenderer },
+                    { data: "pic", renderer: textRenderer },
+                    { data: "target_dates", renderer: dateRenderer },
+                    { data: "delay_days", renderer: textRenderer },
+                    { data: "status", renderer: textRenderer },
+                  ]}
+                  height="auto"
+                  stretchH="all"
+                  manualColumnResize={true}
+                  licenseKey="non-commercial-and-evaluation"
+                  className="ht-theme-horizon"
+                  rowHeights={120}
                 />
               </div>
             )}
@@ -641,125 +503,29 @@ export default function EngineerDashboard4K() {
                 No upcoming projects in the next 30 days.
               </p>
             ) : (
-              <div
-                className="flex-1"
-                style={{ height: "1000px", marginTop: "20px" }}
-              >
-                <DataGrid
-                  rows={stats.upcomingProjects
-                    .slice(
-                      (currentPageUpcoming - 1) * 10,
-                      currentPageUpcoming * 10
-                    )
-                    .map((row, index) => ({ id: index, ...row }))}
-                  columns={[
-                    {
-                      field: "pn_number",
-                      headerName: "PN Number",
-                      flex: 1,
-                      renderCell: (params) => (
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            height: "100%",
-                            fontSize: "32px",
-                          }}
-                        >
-                          {params.value || "-"}
-                        </div>
-                      ),
-                    },
-                    {
-                      field: "project_name",
-                      headerName: "Project Name",
-                      flex: 1,
-                      renderCell: (params) => (
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            height: "100%",
-                            fontSize: "32px",
-                          }}
-                        >
-                          {params.value || "-"}
-                        </div>
-                      ),
-                    },
-                    {
-                      field: "client_name",
-                      headerName: "Client Name",
-                      flex: 1,
-                      renderCell: (params) => (
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            height: "100%",
-                            fontSize: "32px",
-                          }}
-                        >
-                          {params.value || "-"}
-                        </div>
-                      ),
-                    },
-                    {
-                      field: "target_dates",
-                      headerName: "Target Date",
-                      flex: 1,
-                      renderCell: (params) => (
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            height: "100%",
-                            fontSize: "32px",
-                          }}
-                        >
-                          {params.value ? formatDate(params.value) : "-"}
-                        </div>
-                      ),
-                    },
-                    {
-                      field: "status",
-                      headerName: "Status",
-                      flex: 1,
-                      renderCell: (params) => (
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            height: "100%",
-                            fontSize: "32px",
-                          }}
-                        >
-                          {params.value || "-"}
-                        </div>
-                      ),
-                    },
+              <div className="flex-1" style={{ marginTop: "20px" }}>
+                <HotTable
+                  data={stats.upcomingProjects}
+                  colHeaders={[
+                    createHeader("PN Number"),
+                    createHeader("Project Name"),
+                    createHeader("Client Name"),
+                    createHeader("Target Date"),
+                    createHeader("Status"),
                   ]}
-                  pageSize={10}
-                  rowsPerPageOptions={[10]}
-                  disableSelectionOnClick
-                  sx={{
-                    fontSize: "32px",
-                    "& .MuiDataGrid-cell": {
-                      fontSize: "32px",
-                      padding: "24px",
-                      alignItems: "center",
-                    },
-                    "& .MuiDataGrid-columnHeader": {
-                      fontSize: "32px",
-                      padding: "16px",
-                      alignItems: "center",
-                    },
-                    "& .MuiDataGrid-row": {
-                      marginBottom: "16px",
-                    },
-                    width: "100%",
-                    height: "100%",
-                  }}
+                  columns={[
+                    { data: "pn_number", renderer: textRenderer },
+                    { data: "project_name", renderer: textRenderer },
+                    { data: "client_name", renderer: textRenderer },
+                    { data: "target_dates", renderer: dateRenderer },
+                    { data: "status", renderer: textRenderer },
+                  ]}
+                  height="auto"
+                  stretchH="all"
+                  manualColumnResize={true}
+                  licenseKey="non-commercial-and-evaluation"
+                  className="ht-theme-horizon"
+                  rowHeights={120}
                 />
               </div>
             )}
