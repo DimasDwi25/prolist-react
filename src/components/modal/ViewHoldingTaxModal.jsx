@@ -32,12 +32,12 @@ const ViewHoldingTaxModal = ({ open, onClose, invoiceId, onEdit }) => {
     setError(null);
     try {
       const response = await api.get(
-        `/finance/holding-taxes/invoice/${invoiceId}`
+        `/finance/holding-taxes/invoice/${encodeURIComponent(invoiceId)}`
       );
       setHoldingTax(response.data.data.holding_tax);
     } catch (err) {
       console.error("Failed to fetch holding tax:", err);
-      setError("Holding tax not found for this invoice");
+      // Treat "not found" as normal case - no holding tax exists yet
       setHoldingTax(null);
     } finally {
       setLoading(false);

@@ -551,6 +551,7 @@ const ViewInvoicesModal = ({
         onSave={() => {
           setOpenFormWhtModal(false);
           setOpenViewWhtModal(true); // Return to view modal after save
+          fetchInvoices(); // Refresh data after save
         }}
       />
 

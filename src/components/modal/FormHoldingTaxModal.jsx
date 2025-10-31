@@ -37,7 +37,7 @@ const FormHoldingTaxModal = ({ open, onClose, invoiceId, onSave }) => {
     setError(null);
     try {
       const response = await api.get(
-        `/finance/holding-taxes/invoice/${invoiceId}`
+        `/finance/holding-taxes/invoice/${encodeURIComponent(invoiceId)}`
       );
       const data = response.data.data.holding_tax;
       setFormData({
@@ -51,8 +51,7 @@ const FormHoldingTaxModal = ({ open, onClose, invoiceId, onSave }) => {
       });
     } catch (err) {
       console.error("Failed to fetch holding tax:", err);
-      setError("Holding tax not found for this invoice");
-      // Initialize empty form for new entry
+      // Initialize empty form for new entry - this is normal
       setFormData({
         pph23_rate: "",
         nilai_pph23: "",
@@ -134,7 +133,10 @@ const FormHoldingTaxModal = ({ open, onClose, invoiceId, onSave }) => {
         tanggal_wht: formData.tanggal_wht || null,
       };
 
-      await api.put(`/finance/holding-taxes/invoice/${invoiceId}`, payload);
+      await api.put(
+        `/finance/holding-taxes/invoice/${encodeURIComponent(invoiceId)}`,
+        payload
+      );
 
       setSuccess(true);
       if (onSave) {
