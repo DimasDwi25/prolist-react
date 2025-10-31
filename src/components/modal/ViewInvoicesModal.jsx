@@ -78,12 +78,29 @@ const ViewInvoicesModal = ({
   }, [open, projectId, year]);
 
   const dateRenderer = (instance, td, row, col, prop, value) => {
-    td.innerText = formatDate(value);
+    if (value === null || value === undefined || value === "") {
+      td.innerText = "-";
+    } else {
+      td.innerText = formatDate(value);
+    }
     return td;
   };
 
   const currencyRenderer = (instance, td, row, col, prop, value) => {
-    td.innerText = formatValue(value).formatted;
+    if (value === null || value === undefined || value === "") {
+      td.innerText = "-";
+    } else {
+      td.innerText = formatValue(value).formatted;
+    }
+    return td;
+  };
+
+  const defaultRenderer = (instance, td, row, col, prop, value) => {
+    if (value === null || value === undefined || value === "") {
+      td.innerText = "-";
+    } else {
+      td.innerText = value;
+    }
     return td;
   };
 
@@ -93,7 +110,11 @@ const ViewInvoicesModal = ({
       partial: "#ff9800",
       paid: "#4caf50",
     };
-    td.innerText = value ? value.charAt(0).toUpperCase() + value.slice(1) : "";
+    if (value === null || value === undefined || value === "") {
+      td.innerText = "-";
+    } else {
+      td.innerText = value.charAt(0).toUpperCase() + value.slice(1);
+    }
     td.style.color = statusColors[value] || "#000";
     td.style.fontWeight = "bold";
     return td;
@@ -259,10 +280,14 @@ const ViewInvoicesModal = ({
       readOnly: true,
       width: 350,
     },
-    { data: "invoice_id", title: "Invoice ID" },
-    { data: "no_faktur", title: "No Faktur" },
+    { data: "invoice_id", title: "Invoice ID", renderer: defaultRenderer },
+    { data: "no_faktur", title: "No Faktur", renderer: defaultRenderer },
     { data: "invoice_date", title: "Invoice Date", renderer: dateRenderer },
-    { data: "invoice_description", title: "Description" },
+    {
+      data: "invoice_description",
+      title: "Description",
+      renderer: defaultRenderer,
+    },
     {
       data: "invoice_value",
       title: "Invoice Value",
@@ -278,13 +303,43 @@ const ViewInvoicesModal = ({
       title: "Outstanding Payment",
       renderer: currencyRenderer,
     },
+    {
+      data: "nilai_ppn",
+      title: "Nilai PPN",
+      renderer: currencyRenderer,
+    },
+    {
+      data: "nilai_pph23",
+      title: "Nilai PPH23",
+      renderer: currencyRenderer,
+    },
+    {
+      data: "nilai_pph42",
+      title: "Nilai PPH42",
+      renderer: currencyRenderer,
+    },
+    {
+      data: "total_invoice",
+      title: "Total Invoice",
+      renderer: currencyRenderer,
+    },
+    {
+      data: "expected_payment",
+      title: "Expected Payment",
+      renderer: currencyRenderer,
+    },
+    {
+      data: "payment_actual_date",
+      title: "Payment Actual Date",
+      renderer: dateRenderer,
+    },
     { data: "invoice_due_date", title: "Due Date", renderer: dateRenderer },
     {
       data: "payment_status",
       title: "Payment Status",
       renderer: statusRenderer,
     },
-    { data: "remarks", title: "Remarks" },
+    { data: "remarks", title: "Remarks", renderer: defaultRenderer },
   ];
 
   const filteredData = filterBySearch(invoices, searchTerm);

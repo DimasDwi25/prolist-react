@@ -146,6 +146,18 @@ export default function RequestInvoiceTable() {
     }
   };
 
+  const updateInvoiceStatus = (invoiceId, newStatus) => {
+    setRequestInvoices((prev) =>
+      prev.map((invoice) =>
+        invoice.id === invoiceId ? { ...invoice, status: newStatus } : invoice
+      )
+    );
+  };
+
+  const handleRefreshCallback = () => {
+    updateInvoiceStatus(selectedRequestInvoiceId, "approved");
+  };
+
   useEffect(() => {
     fetchData();
   }, [filters]);
@@ -293,6 +305,7 @@ export default function RequestInvoiceTable() {
           setSelectedRequestInvoiceId(null);
         }}
         invoiceId={selectedRequestInvoiceId}
+        refreshCallback={handleRefreshCallback}
       />
 
       {/* Pagination */}

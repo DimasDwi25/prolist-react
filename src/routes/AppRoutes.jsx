@@ -962,9 +962,10 @@ function AppRoutes() {
           element={
             <ProtectedRoute
               roles={[
-                "acc_fin_manager",
-                "acc_fin_supervisor",
-                "finance_administration",
+                "project controller",
+                "project manager",
+                "engineering_director",
+                "engineering_admin",
                 "super_admin",
                 "marketing_director",
                 "engineering_director",

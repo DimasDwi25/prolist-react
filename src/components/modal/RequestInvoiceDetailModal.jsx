@@ -45,6 +45,7 @@ export default function RequestInvoiceDetailModal({
   open,
   onClose,
   invoiceId,
+  refreshCallback,
 }) {
   const user = getUser();
   const isFinanceRole =
@@ -141,7 +142,13 @@ export default function RequestInvoiceDetailModal({
       });
       setOpenPinModal(false);
       setPin("");
-      // Refresh the invoice details to update status
+      // Update the invoice status locally first for immediate UI feedback
+      setInvoice((prev) => (prev ? { ...prev, status: "approved" } : prev));
+      // Call refresh callback to update the table status immediately
+      if (refreshCallback) {
+        refreshCallback();
+      }
+      // Refresh the invoice details to ensure consistency
       fetchInvoiceDetails();
     } catch (error) {
       console.error("Failed to approve request invoice:", error);

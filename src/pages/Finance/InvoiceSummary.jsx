@@ -128,6 +128,26 @@ export default function InvoiceSummary() {
         },
       },
       {
+        data: "expected_payment_total",
+        title: "Total Target Payment",
+        renderer: (instance, td, row, col, prop, value) => {
+          td.style.fontWeight = "600";
+          td.style.color = "green";
+          td.innerText = formatValue(value).formatted;
+          return td;
+        },
+      },
+      {
+        data: "total_dpp",
+        title: "Total DPP",
+        renderer: (instance, td, row, col, prop, value) => {
+          td.style.fontWeight = "600";
+          td.style.color = "green";
+          td.innerText = formatValue(value).formatted;
+          return td;
+        },
+      },
+      {
         data: "payment_total",
         title: "Payment Total",
         renderer: (instance, td, row, col, prop, value) => {
@@ -236,6 +256,8 @@ export default function InvoiceSummary() {
       client: getClientName(item),
       project_value: item.project_value || 0,
       invoice_total: item.invoice_total || 0,
+      expected_payment_total: item.expected_payment_total || 0,
+      total_dpp: item.total_dpp || 0,
       payment_total: item.payment_total || 0,
       outstanding_invoice: item.outstanding_invoice || 0,
       outstanding_amount: item.outstanding_amount || 0,
