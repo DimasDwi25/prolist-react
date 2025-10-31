@@ -243,6 +243,9 @@ function AppRoutes() {
                 "project manager",
                 "warehouse",
                 "engineering_admin",
+                "acc_fin_manager",
+                "acc_fin_supervisor",
+                "finance_administration",
               ]}
             >
               <MainLayout>
@@ -336,6 +339,9 @@ function AppRoutes() {
                 "project controller",
                 "project manager",
                 "engineering_admin",
+                "acc_fin_manager",
+                "acc_fin_supervisor",
+                "finance_administration",
               ]}
             >
               <MainLayout>

@@ -1,12 +1,10 @@
-ad# TODO: Update EngineerDashboard4K.jsx to use Handsontable with fontsize 54
+# TODO: Improve PIN Modal in ApprovallPage.jsx
 
-## Tasks
-
-- [x] Add HotTable import from handsontable.config.js
-- [x] Define custom renderers for text and date cells with fontsize 54
-- [x] Define header renderer with fontsize 64
-- [x] Replace DataGrid for Top Overdue Projects with HotTable
-- [x] Replace DataGrid for Upcoming Projects with HotTable
-- [x] Set rowHeights to 120px for both tables
-- [x] Remove unused DataGrid import
-- [ ] Test the changes
+- [ ] Translate modal text to English (title, buttons, labels)
+- [ ] Add lock icon to the modal title for security emphasis
+- [ ] Include a descriptive subtitle in the modal
+- [ ] Improve button styling (primary for Confirm, outlined for Cancel)
+- [ ] Enhance spacing, padding, and typography for a more modern look
+- [ ] Add subtle validation feedback (e.g., error state for empty PIN)
+- [ ] Ensure modal is responsive and accessible
+- [ ] Test the modal functionality after changes

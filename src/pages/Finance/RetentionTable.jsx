@@ -19,6 +19,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Tooltip,
 } from "@mui/material";
 import ReactDOM from "react-dom";
 
@@ -37,7 +38,7 @@ export default function RetentionTable() {
   const [searchTerm, setSearchTerm] = useState("");
   const [retentions, setRetentions] = useState([]);
   const [projects, setProjects] = useState([]);
-  const [invoices, setInvoices] = useState([]);
+
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
@@ -71,7 +72,7 @@ export default function RetentionTable() {
         data: "actions",
         title: "Actions",
         readOnly: true,
-        width: 120,
+        width: 150,
         renderer: (instance, td, row) => {
           td.innerHTML = "";
 
@@ -79,18 +80,39 @@ export default function RetentionTable() {
           const wrapper = document.createElement("div");
           wrapper.style.display = "flex";
           wrapper.style.alignItems = "center";
-          wrapper.style.gap = "6px"; // jarak antar tombol
+          wrapper.style.gap = "4px"; // jarak antar tombol lebih compact
 
-          // 👁️ View button
+          // View button
           const viewBtn = document.createElement("button");
           viewBtn.style.cursor = "pointer";
-          viewBtn.style.border = "none";
-          viewBtn.style.background = "transparent";
+          viewBtn.style.border = "1px solid #0ea5e9";
+          viewBtn.style.background = "#e0f2fe";
+          viewBtn.style.borderRadius = "6px";
+          viewBtn.style.padding = "4px 8px";
+          viewBtn.style.display = "flex";
+          viewBtn.style.alignItems = "center";
+          viewBtn.style.gap = "4px";
+          viewBtn.style.fontSize = "12px";
+          viewBtn.style.color = "#0c4a6e";
+          viewBtn.style.transition = "all 0.2s";
           viewBtn.title = "View";
 
           const viewIcon = document.createElement("span");
           viewIcon.innerHTML = "👁️";
           viewBtn.appendChild(viewIcon);
+
+          const viewLabel = document.createElement("span");
+          viewLabel.innerText = "View";
+          viewBtn.appendChild(viewLabel);
+
+          viewBtn.onmouseover = () => {
+            viewBtn.style.background = "#bae6fd";
+            viewBtn.style.borderColor = "#0284c7";
+          };
+          viewBtn.onmouseout = () => {
+            viewBtn.style.background = "#e0f2fe";
+            viewBtn.style.borderColor = "#0ea5e9";
+          };
 
           viewBtn.onclick = () => {
             const retention = instance.getSourceDataAtRow(row);
@@ -100,13 +122,38 @@ export default function RetentionTable() {
 
           wrapper.appendChild(viewBtn);
 
-          // ✏️ Edit button
+          // Edit button
           const editBtn = document.createElement("button");
           editBtn.style.cursor = "pointer";
-          editBtn.style.border = "none";
-          editBtn.style.background = "transparent";
+          editBtn.style.border = "1px solid #f59e0b";
+          editBtn.style.background = "#fef3c7";
+          editBtn.style.borderRadius = "6px";
+          editBtn.style.padding = "4px 8px";
+          editBtn.style.display = "flex";
+          editBtn.style.alignItems = "center";
+          editBtn.style.gap = "4px";
+          editBtn.style.fontSize = "12px";
+          editBtn.style.color = "#92400e";
+          editBtn.style.transition = "all 0.2s";
           editBtn.title = "Edit";
-          editBtn.innerHTML = "✏️";
+
+          const editIcon = document.createElement("span");
+          editIcon.innerHTML = "✏️";
+          editBtn.appendChild(editIcon);
+
+          const editLabel = document.createElement("span");
+          editLabel.innerText = "Edit";
+          editBtn.appendChild(editLabel);
+
+          editBtn.onmouseover = () => {
+            editBtn.style.background = "#fde68a";
+            editBtn.style.borderColor = "#d97706";
+          };
+          editBtn.onmouseout = () => {
+            editBtn.style.background = "#fef3c7";
+            editBtn.style.borderColor = "#f59e0b";
+          };
+
           editBtn.onclick = () => {
             const retention = instance.getSourceDataAtRow(row);
             setSelectedRetention(retention);
@@ -114,13 +161,38 @@ export default function RetentionTable() {
           };
           wrapper.appendChild(editBtn);
 
-          // 🗑️ Delete button
+          // Delete button
           const deleteBtn = document.createElement("button");
           deleteBtn.style.cursor = "pointer";
-          deleteBtn.style.border = "none";
-          deleteBtn.style.background = "transparent";
+          deleteBtn.style.border = "1px solid #ef4444";
+          deleteBtn.style.background = "#fef2f2";
+          deleteBtn.style.borderRadius = "6px";
+          deleteBtn.style.padding = "4px 8px";
+          deleteBtn.style.display = "flex";
+          deleteBtn.style.alignItems = "center";
+          deleteBtn.style.gap = "4px";
+          deleteBtn.style.fontSize = "12px";
+          deleteBtn.style.color = "#991b1b";
+          deleteBtn.style.transition = "all 0.2s";
           deleteBtn.title = "Delete";
-          deleteBtn.innerHTML = "🗑️";
+
+          const deleteIcon = document.createElement("span");
+          deleteIcon.innerHTML = "🗑️";
+          deleteBtn.appendChild(deleteIcon);
+
+          const deleteLabel = document.createElement("span");
+          deleteLabel.innerText = "Delete";
+          deleteBtn.appendChild(deleteLabel);
+
+          deleteBtn.onmouseover = () => {
+            deleteBtn.style.background = "#fecaca";
+            deleteBtn.style.borderColor = "#dc2626";
+          };
+          deleteBtn.onmouseout = () => {
+            deleteBtn.style.background = "#fef2f2";
+            deleteBtn.style.borderColor = "#ef4444";
+          };
+
           deleteBtn.onclick = () => {
             const retention = instance.getSourceDataAtRow(row);
             setDeleteDialog({ open: true, retention });
@@ -131,8 +203,9 @@ export default function RetentionTable() {
           return td;
         },
       },
-      { data: "id", title: "ID" },
+      { data: "project_number", title: "Project Number" },
       { data: "project_name", title: "Project Name" },
+      { data: "client_name", title: "Client Name" },
       { data: "invoice_number", title: "Invoice Number" },
       {
         data: "retention_due_date",
@@ -184,7 +257,9 @@ export default function RetentionTable() {
         retention_due_date: r.retention_due_date,
         retention_value: r.retention_value,
         invoice_id: r.invoice_id,
+        project_number: r.project?.project_number || "-",
         project_name: r.project?.project_name || "-",
+        client_name: r.client_name || "-",
         invoice_number: r.invoice?.invoice_number || "-",
       }));
       setRetentions(retentionsData);
@@ -198,12 +273,9 @@ export default function RetentionTable() {
     try {
       await fetchRetentions();
 
-      // Fetch projects and invoices for form modal
+      // Fetch projects for form modal
       const resProjects = await api.get("/projects");
       setProjects(resProjects.data?.data || []);
-
-      // Note: Invoices endpoint not available, using empty array for now
-      setInvoices([]);
     } catch (err) {
       console.error(err.response?.data || err);
     } finally {
@@ -243,7 +315,9 @@ export default function RetentionTable() {
     retention_due_date: r.retention_due_date,
     retention_value: r.retention_value,
     invoice_id: r.invoice_id,
+    project_number: r.project_number,
     project_name: r.project_name,
+    client_name: r.client_name,
     invoice_number: r.invoice_number,
   }));
   const paginatedData = filteredData.slice(
@@ -375,7 +449,6 @@ export default function RetentionTable() {
         }}
         retention={selectedRetention}
         projects={projects}
-        invoices={invoices}
         onSave={() => {
           setSnackbar({
             open: true,

@@ -24,6 +24,7 @@ import ProjectFormModal from "../project/ProjectFormModal";
 import ProjectDetailsModal from "../../components/modal/ProjectDetailsModal";
 import ProjectDetailModalForAdmins from "../../components/modal/ProjectDetailModalForAdmins";
 import ViewProjectsModal from "../../components/modal/ViewProjectsModal";
+import ViewProjectsModalForFinance from "../../components/modal/ViewProjectsModalForFinance";
 import { getUser } from "../../utils/storage";
 import LoadingOverlay from "../../components/loading/LoadingOverlay";
 import ColumnVisibilityModal from "../../components/ColumnVisibilityModal";
@@ -79,6 +80,11 @@ export default function ProjectTable() {
     "engineering_admin",
   ].includes(userRole);
   const suc = ["warehouse"].includes(userRole);
+  const financeRoles = [
+    "acc_fin_manager",
+    "acc_fin_supervisor",
+    "finance_administration",
+  ].includes(userRole);
 
   const formatValue = (val) => {
     if (val == null || val === "" || val === undefined) return "-";
@@ -173,6 +179,9 @@ export default function ProjectTable() {
               } else if (engineerRoles) {
                 setSelectedPnNumberForViewProjects(project.pn_number);
                 setOpenViewProjectsModal(true);
+              } else if (financeRoles) {
+                setSelectedPnNumberForViewProjects(project.pn_number);
+                setOpenViewProjectsModal(true);
               } else {
                 setSelectedPnNumber(project.pn_number);
                 setOpenDetailsModal(true);
@@ -183,7 +192,7 @@ export default function ProjectTable() {
           wrapper.appendChild(viewBtn);
 
           // ✏️ Edit button (hanya role marketing/super_admin)
-          if (!engineerRoles && !suc) {
+          if (!engineerRoles && !suc && !financeRoles) {
             const editBtn = document.createElement("button");
             editBtn.style.cursor = "pointer";
             editBtn.style.border = "none";
@@ -285,6 +294,21 @@ export default function ProjectTable() {
       "project_progress",
       "status_project",
     ],
+    finance: [
+      "actions",
+      "project_number",
+      "project_name",
+      "categories_name",
+      "no_quotation",
+      "client_name",
+      "phc_dates",
+      "target_dates",
+      "engineering_finish_date",
+      "po_number",
+      "po_value",
+      "project_progress",
+      "status_project",
+    ],
     super_admin: allColumns.map((c) => c.data),
   };
 
@@ -292,6 +316,7 @@ export default function ProjectTable() {
   if (marketingRoles) roleGroup = "marketing";
   else if (engineerRoles) roleGroup = "engineer";
   else if (suc) roleGroup = "warehouse";
+  else if (financeRoles) roleGroup = "finance";
   else if (userRole === "super_admin") roleGroup = "super_admin";
 
   const allowedColumns = roleGroup ? roleGroupColumnMap[roleGroup] : [];
@@ -630,14 +655,25 @@ export default function ProjectTable() {
       )}
 
       {/* View Projects Modal */}
-      <ViewProjectsModal
-        open={openViewProjectsModal}
-        onClose={() => {
-          setOpenViewProjectsModal(false);
-          setSelectedPnNumberForViewProjects(null);
-        }}
-        pn_number={selectedPnNumberForViewProjects}
-      />
+      {financeRoles ? (
+        <ViewProjectsModalForFinance
+          open={openViewProjectsModal}
+          onClose={() => {
+            setOpenViewProjectsModal(false);
+            setSelectedPnNumberForViewProjects(null);
+          }}
+          pn_number={selectedPnNumberForViewProjects}
+        />
+      ) : (
+        <ViewProjectsModal
+          open={openViewProjectsModal}
+          onClose={() => {
+            setOpenViewProjectsModal(false);
+            setSelectedPnNumberForViewProjects(null);
+          }}
+          pn_number={selectedPnNumberForViewProjects}
+        />
+      )}
 
       {/* Pagination */}
       <Box display="flex" justifyContent="flex-end" mt={2}>

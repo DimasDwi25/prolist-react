@@ -19,6 +19,7 @@ import api from "../../api/api";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import IconButton from "@mui/material/IconButton";
+import LockIcon from "@mui/icons-material/Lock";
 import ViewPhcModal from "../../components/modal/ViewPhcModal";
 import ViewWorkOrderModal from "../../components/modal/ViewWorkOrderModal";
 import ViewLogModal from "../../components/modal/ViewLogModal";
@@ -290,23 +291,73 @@ export default function ApprovalPage() {
         </div>
       </div>
 
-      {/* Modal PIN */}
-      <Dialog open={modalOpen} onClose={() => setModalOpen(false)}>
-        <DialogTitle>Masukkan PIN untuk {statusToUpdate}</DialogTitle>
-        <DialogContent>
+      {/* PIN Modal */}
+      <Dialog
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        sx={{
+          "& .MuiDialog-paper": {
+            borderRadius: 2,
+            boxShadow: "0 8px 32px rgba(0,0,0,0.1)",
+          },
+        }}
+      >
+        <DialogTitle
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+            bgcolor: "primary.main",
+            color: "white",
+            py: 2,
+          }}
+        >
+          <LockIcon />
+          <Typography variant="h6" component="div">
+            Confirm{" "}
+            {statusToUpdate.charAt(0).toUpperCase() + statusToUpdate.slice(1)}
+          </Typography>
+        </DialogTitle>
+        <DialogContent sx={{ pt: 3, pb: 2 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Please enter your PIN to proceed with this action. This ensures the
+            security of your approval process.
+          </Typography>
           <TextField
             label="PIN"
             type="password"
             fullWidth
             value={pin}
             onChange={(e) => setPin(e.target.value)}
-            sx={{ mt: 1 }}
+            error={!pin && pin !== ""}
+            helperText={!pin && pin !== "" ? "PIN is required" : ""}
+            sx={{
+              "& .MuiOutlinedInput-root": {
+                borderRadius: 1,
+              },
+            }}
           />
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setModalOpen(false)}>Batal</Button>
-          <Button variant="contained" onClick={handleConfirm}>
-            Konfirmasi
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={() => setModalOpen(false)}
+            variant="outlined"
+            sx={{ borderRadius: 1, textTransform: "none" }}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleConfirm}
+            sx={{
+              borderRadius: 1,
+              textTransform: "none",
+              px: 3,
+            }}
+          >
+            Confirm
           </Button>
         </DialogActions>
       </Dialog>

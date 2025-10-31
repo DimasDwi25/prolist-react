@@ -92,7 +92,6 @@ export default function InvoiceList() {
       },
       { data: "remarks", title: "Remarks" },
       { data: "currency", title: "Currency" },
-      { data: "created_at", title: "Created At" },
     ],
     []
   );

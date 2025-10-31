@@ -210,6 +210,27 @@ const ProjectDetailModalForAdmins = ({ open, onClose, pn_number }) => {
                 </Button>
 
                 <button
+                  onClick={() => setShowPhcForm(true)}
+                  className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                    />
+                  </svg>
+                  Edit PHC
+                </button>
+
+                <button
                   onClick={() => setShowViewPhc(true)}
                   className="flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm"
                 >
@@ -881,8 +902,7 @@ const ProjectDetailModalForAdmins = ({ open, onClose, pn_number }) => {
               try {
                 setLoading(true);
                 const res = await api.get(`/projects/${pn_number}`);
-                const projectData = res.data?.data?.
-project;
+                const projectData = res.data?.data?.project;
                 setProject(projectData);
               } catch (err) {
                 console.error(err.response?.data || err);

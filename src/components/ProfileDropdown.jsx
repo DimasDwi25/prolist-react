@@ -50,7 +50,7 @@ export default function ProfileDropdown({ user }) {
             <div className="text-xs text-gray-500">{user.email}</div>
           </div>
           <a href="/profile" className="block px-3 py-2 hover:bg-gray-100">
-            ⚙️ Pengaturan Akun
+            ⚙️ Setting Account
           </a>
           <button
             onClick={handleLogout}

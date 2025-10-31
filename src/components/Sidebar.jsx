@@ -393,8 +393,8 @@ const menuByRole = {
       path: "/finance/retentions",
       icon: <FaPaypal />,
     },
-    // { name: "Projects", path: "/projects", icon: <FaTools /> },
-    // { name: "Approvall", path: "/approvall", icon: <FaCheckCircle /> },
+    { name: "Projects", path: "/projects", icon: <FaTools /> },
+    { name: "Approvall", path: "/approvall", icon: <FaCheckCircle /> },
   ],
 };
 
