@@ -221,24 +221,24 @@ export default function FormInvoicesModal({
             if (typeInvoices.length > 0) {
               // Find the highest sequence for this type
               const sequences = typeInvoices.map((inv) =>
-                parseInt(inv.invoice_id.slice(-3))
+                parseInt(inv.invoice_id.slice(-4))
               );
               const maxSeq = Math.max(...sequences);
               const nextSeq = maxSeq + 1;
-              const sequenceStr = nextSeq.toString().padStart(3, "0");
+              const sequenceStr = nextSeq.toString().padStart(4, "0");
               setNextSequence(sequenceStr);
               setFormData((prev) => ({
                 ...prev,
                 invoice_sequence: sequenceStr,
               }));
             } else {
-              setNextSequence("001");
-              setFormData((prev) => ({ ...prev, invoice_sequence: "001" }));
+              setNextSequence("0001");
+              setFormData((prev) => ({ ...prev, invoice_sequence: "0001" }));
             }
           } catch (fallbackError) {
             console.error("Fallback sequence fetch failed:", fallbackError);
-            setNextSequence("001");
-            setFormData((prev) => ({ ...prev, invoice_sequence: "001" }));
+            setNextSequence("0001");
+            setFormData((prev) => ({ ...prev, invoice_sequence: "0001" }));
           }
         }
       };
@@ -282,8 +282,8 @@ export default function FormInvoicesModal({
         const invoiceTypeId = data.invoice_type_id
           ? parseInt(data.invoice_type_id)
           : null;
-        // Extract sequence from invoice_id (last 3 characters)
-        const sequence = data.invoice_id ? data.invoice_id.slice(-3) : "";
+        // Extract sequence from invoice_id (last 4 characters)
+        const sequence = data.invoice_id ? data.invoice_id.slice(-4) : "";
         setFormData({
           invoice_type_id: invoiceTypeId,
           invoice_sequence: sequence,
@@ -471,7 +471,7 @@ export default function FormInvoicesModal({
   }, [calculateTaxPreview]);
 
   const handleSequenceChange = async (value) => {
-    const numericValue = value.replace(/[^0-9]/g, "").slice(0, 3);
+    const numericValue = value.replace(/[^0-9]/g, "").slice(0, 4);
     setFormData((prev) => ({ ...prev, invoice_sequence: numericValue }));
 
     // Clear previous error
@@ -505,7 +505,7 @@ export default function FormInvoicesModal({
           const typeName = selectedType
             ? selectedType.code_type
             : "selected type";
-          const paddedSequence = numericValue.padStart(3, "0");
+          const paddedSequence = numericValue.padStart(4, "0");
 
           setSequenceError(
             `Sequence ${paddedSequence} already exists for ${typeName} invoices in this project. Please choose a different sequence number.`
@@ -684,8 +684,10 @@ export default function FormInvoicesModal({
         const year = new Date().getFullYear().toString().slice(-2);
         generatedId =
           selectedType.code_type +
+          "/" +
           year +
-          formData.invoice_sequence.padStart(3, "0");
+          "/" +
+          formData.invoice_sequence.padStart(4, "0");
         console.log("Preview constructed ID for create:", generatedId);
       }
     }
@@ -697,7 +699,7 @@ export default function FormInvoicesModal({
     const preview = {
       invoice_id: isEditMode
         ? generatedId || invoiceData?.invoice_id || "N/A"
-        : generatedId || previewInvoiceId || "IP0000000",
+        : generatedId || previewInvoiceId || "IP/25/0001",
       project_id: projectId,
       invoice_type: selectedType
         ? `${selectedType.code_type} - ${selectedType.description}`
@@ -1721,7 +1723,7 @@ export default function FormInvoicesModal({
                                   }}
                                 >
                                   {formData.invoice_type_id
-                                    ? nextSequence || "001"
+                                    ? nextSequence || "0001"
                                     : "---"}
                                 </Typography>
                                 <Typography
@@ -1774,8 +1776,8 @@ export default function FormInvoicesModal({
                                 },
                               }}
                               inputProps={{
-                                maxLength: 3,
-                                pattern: "\\d{1,3}",
+                                maxLength: 4,
+                                pattern: "\\d{1,4}",
                               }}
                             />
                           </Grid>
@@ -1848,11 +1850,13 @@ export default function FormInvoicesModal({
                                     .slice(-2);
                                   return (
                                     selectedType.code_type +
+                                    "/" +
                                     year +
-                                    formData.invoice_sequence.padStart(3, "0")
+                                    "/" +
+                                    formData.invoice_sequence.padStart(4, "0")
                                   );
                                 }
-                                return "IP25001";
+                                return "IP/25/0001";
                               })()}
                             </Typography>
                             {formData.invoice_type_id &&
