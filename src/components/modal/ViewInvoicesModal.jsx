@@ -60,7 +60,7 @@ const ViewInvoicesModal = ({
         ...invoice,
         outstanding_payment:
           invoice.invoice_value - (invoice.total_payment_amount || 0),
-        has_wht: invoice.pph23_rate > 0 || invoice.pph42_rate > 0,
+        has_wht: invoice.nilai_pph23 > 0 || invoice.nilai_pph42 > 0,
       }));
       setInvoices(invoicesWithOutstanding);
     } catch (error) {

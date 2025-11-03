@@ -297,9 +297,11 @@ export default function FormInvoicesModal({
           remarks: data.remarks || "",
           currency: data.currency || "IDR",
           rate_usd: data.rate_usd || "",
-          is_ppn: data.is_ppn || false,
-          is_pph23: data.is_pph23 || false,
-          is_pph42: data.is_pph42 || false,
+          is_ppn: (data.nilai_ppn && parseFloat(data.nilai_ppn) > 0) || false,
+          is_pph23:
+            (data.nilai_pph23 && parseFloat(data.nilai_pph23) > 0) || false,
+          is_pph42:
+            (data.nilai_pph42 && parseFloat(data.nilai_pph42) > 0) || false,
           nilai_ppn: data.nilai_ppn || "",
           nilai_pph23: data.nilai_pph23 || "",
           nilai_pph42: data.nilai_pph42 || "",
