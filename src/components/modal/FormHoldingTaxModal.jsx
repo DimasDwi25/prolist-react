@@ -37,7 +37,9 @@ const FormHoldingTaxModal = ({ open, onClose, invoiceId, onSave }) => {
     setError(null);
     try {
       const response = await api.get(
-        `/finance/holding-taxes/invoice/${encodeURIComponent(invoiceId)}`
+        `/finance/holding-taxes/invoice?invoice_id=${encodeURIComponent(
+          invoiceId
+        )}`
       );
       const data = response.data.data.holding_tax;
       setFormData({
@@ -133,10 +135,9 @@ const FormHoldingTaxModal = ({ open, onClose, invoiceId, onSave }) => {
         tanggal_wht: formData.tanggal_wht || null,
       };
 
-      await api.put(
-        `/finance/holding-taxes/invoice/${encodeURIComponent(invoiceId)}`,
-        payload
-      );
+      await api.put(`/finance/holding-taxes/invoice`, payload, {
+        params: { invoice_id: invoiceId },
+      });
 
       setSuccess(true);
       if (onSave) {
@@ -162,9 +163,9 @@ const FormHoldingTaxModal = ({ open, onClose, invoiceId, onSave }) => {
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
       <DialogTitle>
-        <Typography variant="h6">
+        <div style={{ fontSize: "1.25rem", fontWeight: 500 }}>
           Edit With Holding Tax - Invoice {invoiceId}
-        </Typography>
+        </div>
       </DialogTitle>
       <DialogContent>
         <Box sx={{ position: "relative", minHeight: 400 }}>

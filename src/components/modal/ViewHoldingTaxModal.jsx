@@ -32,7 +32,9 @@ const ViewHoldingTaxModal = ({ open, onClose, invoiceId, onEdit }) => {
     setError(null);
     try {
       const response = await api.get(
-        `/finance/holding-taxes/invoice/${encodeURIComponent(invoiceId)}`
+        `/finance/holding-taxes/invoice?invoice_id=${encodeURIComponent(
+          invoiceId
+        )}`
       );
       setHoldingTax(response.data.data.holding_tax);
     } catch (err) {
