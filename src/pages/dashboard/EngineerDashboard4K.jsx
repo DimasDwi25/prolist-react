@@ -21,6 +21,7 @@ import { Modal, Box, Typography, IconButton } from "@mui/material";
 import { Close, Visibility } from "@mui/icons-material";
 import { HotTable } from "@handsontable/react";
 import Handsontable from "../../handsontable.config";
+import Echo from "../../echo";
 
 const dateRenderer = (instance, td, row, col, prop, value) => {
   td.innerText = formatDate(value);
@@ -108,9 +109,10 @@ export default function EngineerDashboard4K() {
   const [modalColumns, setModalColumns] = useState([]);
   const [modalTitle, setModalTitle] = useState("");
   const [currentSlide, setCurrentSlide] = useState(0);
-  const totalSlides = 3;
+  const totalSlides = 4;
   const [currentPageOverdue, setCurrentPageOverdue] = useState(0);
   const [currentPageUpcoming, setCurrentPageUpcoming] = useState(0);
+  const [currentPageDueThisMonth, setCurrentPageDueThisMonth] = useState(0);
   const itemsPerPage = 10;
 
   const renderCharts = useCallback((data) => {
@@ -225,7 +227,7 @@ export default function EngineerDashboard4K() {
     });
   }, []);
 
-  useEffect(() => {
+  const fetchDashboardData = useCallback(() => {
     api
       .get("/engineer/dashboard4k")
       .then((res) => {
@@ -243,6 +245,22 @@ export default function EngineerDashboard4K() {
         setLoading(false);
       });
   }, []);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
+
+  useEffect(() => {
+    const channel = Echo.channel("engineer.dashboard.updated");
+    channel.listen(".dashboard.updated", (e) => {
+      console.log("Dashboard updated event received:", e);
+      fetchDashboardData();
+    });
+
+    return () => {
+      channel.stopListening(".dashboard.updated");
+    };
+  }, [fetchDashboardData]);
 
   useEffect(() => {
     if (stats && currentSlide === 0) renderCharts(stats);
@@ -275,6 +293,17 @@ export default function EngineerDashboard4K() {
     }, 10000); // Auto-page every 10 seconds for upcoming
     return () => clearInterval(interval);
   }, [stats?.projectOnTrackList?.length, itemsPerPage]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentPageDueThisMonth(
+        (prev) =>
+          (prev + 1) %
+          Math.ceil(stats?.projectDueThisMonthList?.length / itemsPerPage || 1)
+      );
+    }, 10000); // Auto-page every 10 seconds for due this month
+    return () => clearInterval(interval);
+  }, [stats?.projectDueThisMonthList?.length, itemsPerPage]);
 
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % totalSlides);
   const prevSlide = () =>
@@ -530,6 +559,57 @@ export default function EngineerDashboard4K() {
       )}
 
       {currentSlide === 2 && (
+        <div className="flex-1 flex flex-col p-4 space-y-4">
+          {/* Target Project Due Less Than 1 Month */}
+          <div className="bg-white shadow rounded-xl p-4 flex flex-col flex-1">
+            <h2 className="text-3xl lg:text-4xl xl:text-5xl 2xl:text-6xl 3xl:text-7xl font-semibold mb-4 flex items-center gap-4">
+              <FaClock className="text-yellow-500" /> Target Project Due Less
+              Than 1 Month
+            </h2>
+            {stats.projectDueThisMonthList.length === 0 ? (
+              <p className="text-center text-gray-500 flex-1 flex items-center justify-center text-2xl">
+                No projects due in less than 1 month.
+              </p>
+            ) : (
+              <div
+                className="flex-1"
+                style={{ marginTop: "20px", overflowX: "hidden" }}
+              >
+                <HotTable
+                  data={stats.projectDueThisMonthList.slice(
+                    currentPageDueThisMonth * itemsPerPage,
+                    (currentPageDueThisMonth + 1) * itemsPerPage
+                  )}
+                  colHeaders={[
+                    createHeader("PN Number"),
+                    createHeader("Project Name"),
+                    createHeader("Client Name"),
+                    createHeader("PIC"),
+                    createHeader("Target Date"),
+                    createHeader("Latest Log"),
+                  ]}
+                  columns={[
+                    { data: "pn_number", renderer: textRenderer },
+                    { data: "project_name", renderer: textRenderer },
+                    { data: "client_name", renderer: textRenderer },
+                    { data: "pic", renderer: textRenderer },
+                    { data: "target_dates", renderer: dateRenderer },
+                    { data: "latest_log", renderer: logRenderer, width: 400 },
+                  ]}
+                  height="auto"
+                  stretchH="all"
+                  manualColumnResize={false}
+                  licenseKey="non-commercial-and-evaluation"
+                  className="ht-theme-horizon"
+                  rowHeights={120}
+                />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {currentSlide === 3 && (
         <div className="flex-1 flex flex-col p-4 space-y-4">
           {/* Target Project Due Greater Than 1 Month */}
           <div className="bg-white shadow rounded-xl p-4 flex flex-col flex-1">

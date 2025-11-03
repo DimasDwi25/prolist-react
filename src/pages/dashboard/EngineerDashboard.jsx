@@ -18,6 +18,7 @@ import { FaUsersCog, FaCalendarAlt } from "react-icons/fa";
 import { formatDate } from "../../utils/FormatDate";
 import { Modal, Box, Typography, IconButton } from "@mui/material";
 import { Close, Visibility } from "@mui/icons-material";
+import Echo from "../../echo";
 
 const dateRenderer = (instance, td, row, col, prop, value) => {
   td.innerText = formatDate(value);
@@ -166,7 +167,7 @@ export default function EngineerDashboard() {
     });
   }, []);
 
-  useEffect(() => {
+  const fetchDashboardData = useCallback(() => {
     api
       .get("/engineer/dashboard")
       .then((res) => {
@@ -184,6 +185,22 @@ export default function EngineerDashboard() {
         setLoading(false);
       });
   }, []);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
+
+  useEffect(() => {
+    const channel = Echo.channel("engineer.dashboard.updated");
+    channel.listen(".dashboard.updated", (e) => {
+      console.log("Dashboard updated event received:", e);
+      fetchDashboardData();
+    });
+
+    return () => {
+      channel.stopListening(".dashboard.updated");
+    };
+  }, [fetchDashboardData]);
 
   useEffect(() => {
     if (stats) renderCharts(stats);

@@ -12,6 +12,8 @@ import {
   DialogActions,
   TablePagination,
   Box,
+  Autocomplete,
+  TextField,
 } from "@mui/material";
 import { Close as CloseIcon } from "@mui/icons-material";
 import api from "../../api/api";
@@ -33,6 +35,10 @@ export default function LogTable({ projectId }) {
 
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
+
+  // Filter states
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
 
   // ------------------ Fetch logs ------------------ //
   const fetchLogs = async () => {
@@ -182,7 +188,20 @@ export default function LogTable({ projectId }) {
     setPage(0);
   };
 
-  const paginatedData = logs.slice(page * pageSize, page * pageSize + pageSize);
+  // Filtered data
+  const filteredLogs = useMemo(() => {
+    return logs.filter((log) => {
+      const matchesCategory =
+        categoryFilter === "" || log.categorie === categoryFilter;
+      const matchesStatus = statusFilter === "" || log.status === statusFilter;
+      return matchesCategory && matchesStatus;
+    });
+  }, [logs, categoryFilter, statusFilter]);
+
+  const paginatedData = filteredLogs.slice(
+    page * pageSize,
+    page * pageSize + pageSize
+  );
 
   const tableHeight = Math.min(pageSize * 40 + 50, window.innerHeight - 250);
 
@@ -190,14 +209,48 @@ export default function LogTable({ projectId }) {
   return (
     <Box sx={{ position: "relative" }}>
       <Stack spacing={2} p={2}>
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={() => setOpenModal(true)}
-          sx={{ alignSelf: "flex-end" }}
-        >
-          + Add Log
-        </Button>
+        <Box display="flex" justifyContent="space-between" alignItems="center">
+          {/* Filters */}
+          <Box display="flex" gap={2}>
+            <Autocomplete
+              size="small"
+              sx={{ minWidth: 200 }}
+              options={["", ...new Set(logs.map((log) => log.categorie))]}
+              getOptionLabel={(option) => option || "All Categories"}
+              value={categoryFilter}
+              onChange={(event, newValue) => setCategoryFilter(newValue || "")}
+              renderInput={(params) => (
+                <TextField {...params} label="Filter by Category" />
+              )}
+            />
+
+            <Autocomplete
+              size="small"
+              sx={{ minWidth: 200 }}
+              options={["", "open", "closed", "waiting approval"]}
+              getOptionLabel={(option) => {
+                if (option === "") return "All Statuses";
+                if (option === "open") return "Open";
+                if (option === "closed") return "Closed";
+                if (option === "waiting approval") return "Waiting Approval";
+                return option;
+              }}
+              value={statusFilter}
+              onChange={(event, newValue) => setStatusFilter(newValue || "")}
+              renderInput={(params) => (
+                <TextField {...params} label="Filter by Status" />
+              )}
+            />
+          </Box>
+
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() => setOpenModal(true)}
+          >
+            + Add Log
+          </Button>
+        </Box>
 
         <FormLogModal
           open={openModal}
@@ -251,7 +304,7 @@ export default function LogTable({ projectId }) {
         <Box display="flex" justifyContent="flex-end" mt={2}>
           <TablePagination
             component="div"
-            count={logs.length}
+            count={filteredLogs.length}
             page={page}
             onPageChange={handleChangePage}
             rowsPerPage={pageSize}

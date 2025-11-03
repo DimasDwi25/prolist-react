@@ -14,6 +14,7 @@ export default function MainLayout({ children }) {
   const fullScreenHandle = useFullScreenHandle();
 
   const [notifications, setNotifications] = useState([]);
+  const [shownLogIds, setShownLogIds] = useState(new Set());
 
   useEffect(() => {
     if (!user) return;
@@ -35,70 +36,105 @@ export default function MainLayout({ children }) {
       .catch((err) => {
         console.error("❌ Error fetch notifikasi:", err);
       });
+  }, []); // hanya sekali untuk notifikasi
 
+  // No need to fetch projects, assume user listens to all possible channels or specific ones
+
+  useEffect(() => {
     // Listen realtime notifikasi baru
-    if (user && getToken()) {
-      const token = getToken();
+    if (!user || !getToken()) return;
 
-      window.Pusher = Pusher;
-      window.Echo = new Echo({
-        broadcaster: "pusher",
-        key: import.meta.env.VITE_PUSHER_APP_KEY,
-        cluster: import.meta.env.VITE_PUSHER_APP_CLUSTER,
-        forceTLS: true,
-        authEndpoint: "http://127.0.0.1:8000/api/broadcasting/auth",
-        auth: {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: "application/json",
-          },
+    const token = getToken();
+
+    window.Pusher = Pusher;
+    window.Echo = new Echo({
+      broadcaster: "pusher",
+      key: import.meta.env.VITE_PUSHER_APP_KEY,
+      cluster: import.meta.env.VITE_PUSHER_APP_CLUSTER,
+      forceTLS: true,
+      authEndpoint: "http://127.0.0.1:8000/api/broadcasting/auth",
+      auth: {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
         },
-      });
+      },
+    });
 
-      console.log("✅ Echo initialized for user:", user.id);
+    console.log("✅ Echo initialized for user:", user.id);
 
-      const phcChannel = window.Echo.channel("phc.created")
-        .listen(".phc.created", (e) => {
-          console.log("🔥 PHC baru dibuat:", e);
-          if (e.user_ids.includes(user.id)) {
-            setNotifications((prev) => [e, ...prev]);
-            toast.success(e.message, { duration: 5000 });
-          }
-        })
-        .error((err) => console.error("❌ Echo channel error:", err));
+    const phcChannel = window.Echo.channel("phc.created")
+      .listen(".phc.created", (e) => {
+        console.log("🔥 PHC baru dibuat:", e);
+        if (e.user_ids.includes(user.id)) {
+          setNotifications((prev) => [e, ...prev]);
+          toast.success(e.message, { duration: 5000 });
+        }
+      })
+      .error((err) => console.error("❌ Echo channel error:", err));
 
-      const requestInvoiceChannel = window.Echo.channel(
-        "request.invoice.created"
-      )
-        .listen(".request.invoice.created", (e) => {
-          console.log("🔥 Request Invoice baru dibuat:", e);
-          if (e.user_ids.includes(user.id)) {
-            const notification = {
-              ...e,
-              created_at: new Date().toISOString(),
-              id: Date.now(), // temporary ID for real-time notifications
-            };
-            setNotifications((prev) => [notification, ...prev]);
-            toast.success(e.message, { duration: 5000 });
-          }
-        })
-        .error((err) => console.error("❌ Echo channel error:", err));
+    const requestInvoiceChannel = window.Echo.channel("request.invoice.created")
+      .listen(".request.invoice.created", (e) => {
+        console.log("🔥 Request Invoice baru dibuat:", e);
+        if (e.user_ids.includes(user.id)) {
+          const notification = {
+            ...e,
+            created_at: new Date().toISOString(),
+            id: Date.now(), // temporary ID for real-time notifications
+          };
+          setNotifications((prev) => [notification, ...prev]);
+          toast.success(e.message, { duration: 5000 });
+        }
+      })
+      .error((err) => console.error("❌ Echo channel error:", err));
 
-      const notifChannel = window.Echo.channel(
-        `App.Models.User.${user.id}`
-      ).notification((notif) => {
-        console.log("🔔 Notifikasi baru via notification:", notif);
-        setNotifications((prev) => [notif, ...prev]);
-        toast.success(notif.message || "Notifikasi baru!", { duration: 5000 });
-      });
+    const notifChannel = window.Echo.channel(
+      `App.Models.User.${user.id}`
+    ).notification((notif) => {
+      console.log("🔔 Notifikasi baru via notification:", notif);
+      setNotifications((prev) => [notif, ...prev]);
+      toast.success(notif.message || "Notifikasi baru!", { duration: 5000 });
+    });
 
-      return () => {
-        phcChannel.stopListening(".phc.created");
-        requestInvoiceChannel.stopListening(".request.invoice.created");
-        notifChannel.stopListening("notification");
-      };
-    }
-  }, []); // kosong, supaya hanya jalan sekali
+    // Listen to log events on public channel
+    const logCreatedChannel = window.Echo.channel("log.created")
+      .listen(".log.created", (e) => {
+        console.log("🔥 Log created event received:", e);
+        console.log("Current user ID:", user.id);
+        console.log("User IDs in event:", e.user_ids);
+        if (e.user_ids.includes(user.id) && !shownLogIds.has(e.log_id)) {
+          console.log("✅ Showing notification for log:", e.log_id);
+          setShownLogIds((prev) => new Set(prev).add(e.log_id));
+          setNotifications((prev) => [e, ...prev]);
+          toast.success(e.message, { duration: 5000 });
+        } else {
+          console.log(
+            "❌ Notification not shown: user not in list or already shown"
+          );
+        }
+      })
+      .error((err) => console.error("❌ Echo channel error:", err));
+
+    const logApprovalChannel = window.Echo.channel(`App.Models.User.${user.id}`)
+      .listen(".log.approval.updated", (e) => {
+        console.log("🔥 Log approval updated:", e);
+        setNotifications((prev) => [e, ...prev]);
+        toast.success(e.message || "Log approval updated", {
+          duration: 5000,
+        });
+      })
+      .error((err) =>
+        console.error("❌ Echo channel error for log approval:", err)
+      );
+
+    return () => {
+      phcChannel.stopListening(".phc.created");
+      requestInvoiceChannel.stopListening(".request.invoice.created");
+      notifChannel.stopListening("notification");
+      logCreatedChannel.stopListening(".log.created");
+      logApprovalChannel.stopListening(".log.approval.updated");
+    };
+  }, []); // only once
 
   const handleReadNotification = async (id) => {
     await api.post(`/notifications/${id}/read`);
