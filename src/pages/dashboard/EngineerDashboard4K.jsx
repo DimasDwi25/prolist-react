@@ -305,6 +305,27 @@ export default function EngineerDashboard4K() {
     return () => clearInterval(interval);
   }, [stats?.projectDueThisMonthList?.length, itemsPerPage]);
 
+  // Auto-refresh data at midnight every day
+  useEffect(() => {
+    const now = new Date();
+    const midnight = new Date(now);
+    midnight.setHours(24, 0, 0, 0); // Set to next midnight
+
+    const timeUntilMidnight = midnight - now;
+
+    const timeout = setTimeout(() => {
+      fetchDashboardData();
+      // Set up daily refresh
+      const dailyInterval = setInterval(() => {
+        fetchDashboardData();
+      }, 24 * 60 * 60 * 1000); // 24 hours in milliseconds
+
+      return () => clearInterval(dailyInterval);
+    }, timeUntilMidnight);
+
+    return () => clearTimeout(timeout);
+  }, [fetchDashboardData]);
+
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % totalSlides);
   const prevSlide = () =>
     setCurrentSlide((prev) => (prev - 1 + totalSlides) % totalSlides);
@@ -315,7 +336,7 @@ export default function EngineerDashboard4K() {
     if (type === "overdue") {
       setModalData(stats.top5Overdue);
       setModalColumns([
-        { data: "pn_number", title: "PN Number" },
+        { data: "project_number", title: "Project Number" },
         { data: "project_name", title: "Project Name" },
         { data: "pic", title: "PIC" },
         {
@@ -334,7 +355,7 @@ export default function EngineerDashboard4K() {
     } else if (type === "dueThisMonth") {
       setModalData(stats.projectDueThisMonthList);
       setModalColumns([
-        { data: "pn_number", title: "PN Number" },
+        { data: "project_number", title: "Project Number" },
         { data: "project_name", title: "Project Name" },
         { data: "pic", title: "PIC" },
         {
@@ -352,7 +373,7 @@ export default function EngineerDashboard4K() {
     } else if (type === "onTrack") {
       setModalData(stats.projectOnTrackList);
       setModalColumns([
-        { data: "pn_number", title: "PN Number" },
+        { data: "project_number", title: "Project Number" },
         { data: "project_name", title: "Project Name" },
         { data: "pic", title: "PIC" },
         {
@@ -530,7 +551,7 @@ export default function EngineerDashboard4K() {
                     (currentPageOverdue + 1) * itemsPerPage
                   )}
                   colHeaders={[
-                    createHeader("PN Number"),
+                    createHeader("Project Number"),
                     createHeader("Project Name"),
                     createHeader("Client Name"),
                     createHeader("PIC"),
@@ -538,7 +559,7 @@ export default function EngineerDashboard4K() {
                     createHeader("Latest Log"),
                   ]}
                   columns={[
-                    { data: "pn_number", renderer: textRenderer },
+                    { data: "project_number", renderer: textRenderer },
                     { data: "project_name", renderer: textRenderer },
                     { data: "client_name", renderer: textRenderer },
                     { data: "pic", renderer: textRenderer },
@@ -581,7 +602,7 @@ export default function EngineerDashboard4K() {
                     (currentPageDueThisMonth + 1) * itemsPerPage
                   )}
                   colHeaders={[
-                    createHeader("PN Number"),
+                    createHeader("Project Number"),
                     createHeader("Project Name"),
                     createHeader("Client Name"),
                     createHeader("PIC"),
@@ -589,7 +610,7 @@ export default function EngineerDashboard4K() {
                     createHeader("Latest Log"),
                   ]}
                   columns={[
-                    { data: "pn_number", renderer: textRenderer },
+                    { data: "project_number", renderer: textRenderer },
                     { data: "project_name", renderer: textRenderer },
                     { data: "client_name", renderer: textRenderer },
                     { data: "pic", renderer: textRenderer },
@@ -629,7 +650,7 @@ export default function EngineerDashboard4K() {
                     (currentPageUpcoming + 1) * itemsPerPage
                   )}
                   colHeaders={[
-                    createHeader("PN Number"),
+                    createHeader("Project Number"),
                     createHeader("Project Name"),
                     createHeader("Client Name"),
                     createHeader("PIC"),
@@ -637,7 +658,7 @@ export default function EngineerDashboard4K() {
                     createHeader("Status"),
                   ]}
                   columns={[
-                    { data: "pn_number", renderer: textRenderer },
+                    { data: "project_number", renderer: textRenderer },
                     { data: "project_name", renderer: textRenderer },
                     { data: "client_name", renderer: textRenderer },
                     { data: "pic", renderer: textRenderer },

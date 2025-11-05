@@ -9,7 +9,12 @@ import {
   Button,
 } from "@mui/material";
 
-export default function FilterBar({ stats, onFilter, initialFilters }) {
+export default function FilterBar({
+  stats,
+  onFilter,
+  initialFilters,
+  loading = false,
+}) {
   const currentYear = new Date().getFullYear();
 
   const months = [
@@ -96,6 +101,7 @@ export default function FilterBar({ stats, onFilter, initialFilters }) {
           label="Range"
           onChange={(e) => setRangeType(e.target.value)}
         >
+          <MenuItem value="yearly">Yearly</MenuItem>
           <MenuItem value="monthly">Monthly</MenuItem>
           <MenuItem value="weekly">Weekly</MenuItem>
           <MenuItem value="custom">Custom</MenuItem>
@@ -150,9 +156,10 @@ export default function FilterBar({ stats, onFilter, initialFilters }) {
         color="secondary"
         size="small"
         onClick={handleClear}
+        disabled={loading}
         sx={{ minWidth: 100 }}
       >
-        Clear
+        {loading ? "Filtering..." : "Clear"}
       </Button>
     </Box>
   );

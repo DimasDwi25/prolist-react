@@ -220,7 +220,7 @@ export default function EngineerDashboard() {
     if (type === "overdue") {
       setModalData(stats.top5Overdue);
       setModalColumns([
-        { data: "pn_number", title: "PN Number" },
+        { data: "project_number", title: "Project Number" },
         { data: "project_name", title: "Project Name" },
         { data: "pic", title: "PIC" },
         {
@@ -239,7 +239,7 @@ export default function EngineerDashboard() {
     } else if (type === "dueThisMonth") {
       setModalData(stats.projectDueThisMonthList);
       setModalColumns([
-        { data: "pn_number", title: "PN Number" },
+        { data: "project_number", title: "Project Number" },
         { data: "project_name", title: "Project Name" },
         { data: "pic", title: "PIC" },
         {
@@ -257,7 +257,7 @@ export default function EngineerDashboard() {
     } else if (type === "onTrack") {
       setModalData(stats.projectOnTrackList);
       setModalColumns([
-        { data: "pn_number", title: "PN Number" },
+        { data: "project_number", title: "Project Number" },
         { data: "project_name", title: "Project Name" },
         { data: "pic", title: "PIC" },
         {
@@ -331,28 +331,28 @@ export default function EngineerDashboard() {
 
   const cards = [
     {
-      title: "Project Outstanding (Overdue)",
+      title: "Project Overdue",
       value: stats.projectOverdue,
       color: { bg: "bg-red-100", text: "text-red-600" },
       icon: <FaExclamationTriangle size={22} />,
       onViewClick: () => handleViewClick("overdue"),
     },
     {
-      title: "Due This Month",
+      title: "Target Project Due Less Than 1 Month",
       value: stats.projectDueThisMonth,
       color: { bg: "bg-yellow-100", text: "text-yellow-600" },
       icon: <FaClock size={22} />,
       onViewClick: () => handleViewClick("dueThisMonth"),
     },
     {
-      title: "Project Outstanding (Not Overdue)",
+      title: "Target Project Greater Than 1 Month",
       value: stats.projectOnTrack,
       color: { bg: "bg-purple-100", text: "text-purple-600" },
       icon: <FaCheckCircle size={22} />,
       onViewClick: () => handleViewClick("onTrack"),
     },
     {
-      title: "Total Outstanding Projects",
+      title: "Total Open Project",
       value: stats.totalOutstandingProjects,
       color: { bg: "bg-orange-100", text: "text-orange-600" },
       icon: <FaProjectDiagram size={22} />,
@@ -480,8 +480,7 @@ export default function EngineerDashboard() {
 
         <div className="bg-white shadow rounded-xl p-6 flex flex-col min-h-[300px]">
           <h2 className="text-base lg:text-lg font-semibold flex items-center gap-2">
-            <FaProjectDiagram className="text-blue-500" /> Overdue Projects
-            Recap
+            <FaProjectDiagram className="text-blue-500" /> Project Overdue
           </h2>
           {stats.top5Overdue.length === 0 ? (
             <p className="text-center text-gray-500 mt-4">
@@ -493,7 +492,7 @@ export default function EngineerDashboard() {
                 <HotTable
                   data={stats.top5Overdue}
                   colHeaders={[
-                    "PN Number",
+                    "Project Number",
                     "Project Name",
                     "Client Name",
                     "PIC",
@@ -502,7 +501,7 @@ export default function EngineerDashboard() {
                     "Status",
                   ]}
                   columns={[
-                    { data: "pn_number", type: "text", editor: false },
+                    { data: "project_number", type: "text", editor: false },
                     { data: "project_name", type: "text", editor: false },
                     {
                       data: "client_name",
@@ -542,8 +541,8 @@ export default function EngineerDashboard() {
       {/* Upcoming Projects */}
       <div className="bg-white shadow rounded-xl p-6 flex flex-col min-h-[200px]">
         <h2 className="text-base lg:text-lg font-semibold flex items-center gap-2">
-          <FaCalendarAlt className="text-indigo-500" /> Upcoming Projects Next
-          Month
+          <FaCalendarAlt className="text-indigo-500" /> Target Project Less Than
+          1 Month
         </h2>
         <div className="flex-1 mt-4">
           {stats.upcomingProjects.length === 0 ? (
@@ -556,14 +555,14 @@ export default function EngineerDashboard() {
                 <HotTable
                   data={stats.upcomingProjects}
                   colHeaders={[
-                    "PN Number",
+                    "Project Number",
                     "Project Name",
                     "Client Name",
                     "Target Date",
                     "Status",
                   ]}
                   columns={[
-                    { data: "pn_number", type: "text" },
+                    { data: "project_number", type: "text" },
                     { data: "project_name", type: "text" },
                     {
                       data: "client_name",
@@ -646,20 +645,16 @@ export default function EngineerDashboard() {
               Work Orders page for full details.
             </Typography>
           ) : (
-            <div className="table-wrapper" style={{ height: "100%" }}>
-              <div className="table-inner">
-                <HotTable
-                  data={modalData}
-                  colHeaders={modalColumns.map((c) => c.title)}
-                  columns={modalColumns}
-                  height={500}
-                  stretchH="all"
-                  manualColumnResize={true}
-                  licenseKey="non-commercial-and-evaluation"
-                  className="ht-theme-horizon"
-                />
-              </div>
-            </div>
+            <HotTable
+              data={modalData}
+              colHeaders={modalColumns.map((c) => c.title)}
+              columns={modalColumns}
+              height={500}
+              stretchH="all"
+              manualColumnResize={true}
+              licenseKey="non-commercial-and-evaluation"
+              className="ht-theme-horizon"
+            />
           )}
         </Box>
       </Modal>

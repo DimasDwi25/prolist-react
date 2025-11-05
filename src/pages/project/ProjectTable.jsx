@@ -28,6 +28,7 @@ import ViewProjectsModalForFinance from "../../components/modal/ViewProjectsModa
 import { getUser } from "../../utils/storage";
 import LoadingOverlay from "../../components/loading/LoadingOverlay";
 import ColumnVisibilityModal from "../../components/ColumnVisibilityModal";
+import FilterBar from "../../components/filter/FilterBar";
 import { filterBySearch } from "../../utils/filter";
 import { formatDate } from "../../utils/FormatDate";
 import { getClientName } from "../../utils/getClientName";
@@ -58,6 +59,16 @@ export default function ProjectTable() {
   const [openViewProjectsModal, setOpenViewProjectsModal] = useState(false);
   const [selectedPnNumberForViewProjects, setSelectedPnNumberForViewProjects] =
     useState(null);
+
+  const [filters, setFilters] = useState({
+    year: new Date().getFullYear(),
+    rangeType: "monthly",
+    month: null,
+    from: "",
+    to: "",
+  });
+  const [availableYears, setAvailableYears] = useState([]);
+  const [filtering, setFiltering] = useState(false);
 
   const user = getUser();
   const userRole = user?.role?.name?.toLowerCase();
@@ -146,7 +157,7 @@ export default function ProjectTable() {
         data: "actions",
         title: "Actions",
         readOnly: true,
-        width: 60,
+        width: 90,
         renderer: (instance, td, row) => {
           td.innerHTML = "";
 
@@ -160,12 +171,31 @@ export default function ProjectTable() {
           const viewBtn = document.createElement("button");
           viewBtn.style.cursor = "pointer";
           viewBtn.style.border = "none";
-          viewBtn.style.background = "transparent";
+          viewBtn.style.background = "#e8f5e8";
+          viewBtn.style.padding = "8px";
+          viewBtn.style.borderRadius = "4px";
+          viewBtn.style.color = "#2e7d32";
+          viewBtn.style.display = "flex";
+          viewBtn.style.alignItems = "center";
+          viewBtn.style.justifyContent = "center";
+          viewBtn.style.width = "40px";
+          viewBtn.style.transition = "all 0.15s cubic-bezier(0.4, 0, 0.2, 1)";
+          viewBtn.style.boxShadow = "0 1px 2px rgba(0,0,0,0.1)";
           viewBtn.title = "View";
-
-          const icon = document.createElement("span");
-          icon.innerHTML = "👁️";
-          viewBtn.appendChild(icon);
+          viewBtn.innerHTML =
+            '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>';
+          viewBtn.onmouseover = () => {
+            viewBtn.style.backgroundColor = "#2e7d32";
+            viewBtn.style.color = "#fff";
+            viewBtn.style.boxShadow = "0 2px 6px rgba(46, 125, 50, 0.3)";
+            viewBtn.style.transform = "translateY(-1px)";
+          };
+          viewBtn.onmouseout = () => {
+            viewBtn.style.backgroundColor = "#e8f5e8";
+            viewBtn.style.color = "#2e7d32";
+            viewBtn.style.boxShadow = "0 1px 2px rgba(0,0,0,0.1)";
+            viewBtn.style.transform = "translateY(0)";
+          };
 
           viewBtn.onclick = () => {
             const project = instance.getSourceDataAtRow(row);
@@ -196,9 +226,31 @@ export default function ProjectTable() {
             const editBtn = document.createElement("button");
             editBtn.style.cursor = "pointer";
             editBtn.style.border = "none";
-            editBtn.style.background = "transparent";
+            editBtn.style.background = "#e3f2fd";
+            editBtn.style.padding = "8px";
+            editBtn.style.borderRadius = "4px";
+            editBtn.style.color = "#1976d2";
+            editBtn.style.display = "flex";
+            editBtn.style.alignItems = "center";
+            editBtn.style.justifyContent = "center";
+            editBtn.style.width = "40px";
+            editBtn.style.transition = "all 0.15s cubic-bezier(0.4, 0, 0.2, 1)";
+            editBtn.style.boxShadow = "0 1px 2px rgba(0,0,0,0.1)";
             editBtn.title = "Edit";
-            editBtn.innerHTML = "✏️";
+            editBtn.innerHTML =
+              '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>';
+            editBtn.onmouseover = () => {
+              editBtn.style.backgroundColor = "#1976d2";
+              editBtn.style.color = "#fff";
+              editBtn.style.boxShadow = "0 2px 6px rgba(25, 118, 210, 0.3)";
+              editBtn.style.transform = "translateY(-1px)";
+            };
+            editBtn.onmouseout = () => {
+              editBtn.style.backgroundColor = "#e3f2fd";
+              editBtn.style.color = "#1976d2";
+              editBtn.style.boxShadow = "0 1px 2px rgba(0,0,0,0.1)";
+              editBtn.style.transform = "translateY(0)";
+            };
             editBtn.onclick = () => {
               const rowData = instance.getSourceDataAtRow(row); // ⬅️ ambil data row
 
@@ -346,9 +398,24 @@ export default function ProjectTable() {
     }));
   };
 
-  const fetchProjects = async () => {
+  const fetchProjects = async (filterParams = {}) => {
     try {
-      const resProjects = await api.get("/projects");
+      setFiltering(true);
+      const queryParams = new URLSearchParams();
+
+      if (filterParams.year) queryParams.append("year", filterParams.year);
+      if (filterParams.range_type)
+        queryParams.append("range_type", filterParams.range_type);
+      if (filterParams.month) queryParams.append("month", filterParams.month);
+      if (filterParams.from_date)
+        queryParams.append("from_date", filterParams.from_date);
+      if (filterParams.to_date)
+        queryParams.append("to_date", filterParams.to_date);
+
+      const url = queryParams.toString()
+        ? `/projects?${queryParams.toString()}`
+        : "/projects";
+      const resProjects = await api.get(url);
 
       const projectsData = resProjects.data?.data?.map((p) => {
         return {
@@ -364,8 +431,11 @@ export default function ProjectTable() {
       });
 
       setProjects(projectsData);
+      setAvailableYears(resProjects.data?.filters?.available_years || []);
     } catch (err) {
       console.error(err.response?.data || err);
+    } finally {
+      setFiltering(false);
     }
   };
 
@@ -395,30 +465,27 @@ export default function ProjectTable() {
     loadData();
   }, []);
 
+  const handleFilterChange = (newFilters) => {
+    setFilters(newFilters);
+    const apiFilters = {
+      year: newFilters.year,
+      range_type: newFilters.rangeType,
+      month: newFilters.month,
+      from_date: newFilters.from,
+      to_date: newFilters.to,
+    };
+    fetchProjects(apiFilters);
+  };
+
   // Expose refresh function to window for modal communication
   useEffect(() => {
     window.parentRefreshProjects = async () => {
-      await fetchProjects();
-      // Refresh the table data after fetching
-      const resProjects = await api.get("/projects");
-      const projectsData = resProjects.data?.data?.map((p) => {
-        return {
-          pn_number: p.pn_number,
-          ...p,
-          client_name: getClientName(p),
-          no_quotation: p.quotation?.no_quotation || "-",
-          categories_name: p.category?.name || "-",
-          status_project: p.status_project || {
-            id: Number(p.status_project_id),
-          },
-        };
-      });
-      setProjects(projectsData);
+      await fetchProjects(filters);
     };
     return () => {
       delete window.parentRefreshProjects;
     };
-  }, []);
+  }, [filters]);
 
   const handleCellChange = async (changes, source) => {
     if (source === "loadData" || !changes) return;
@@ -469,7 +536,7 @@ export default function ProjectTable() {
   };
 
   const filteredData = filterBySearch(projects, searchTerm).map((p) => ({
-    actions: "👁️",
+    actions: "",
     pn_number: p.pn_number, // untuk navigasi (pastikan konsisten)
     project_number: p.project_number,
     project_name: p.project_name,
@@ -498,12 +565,20 @@ export default function ProjectTable() {
     page * pageSize + pageSize
   );
 
-  const tableHeight = Math.min(pageSize * 40 + 50, window.innerHeight - 250);
+  const tableHeight = Math.min(pageSize * 50 + 50, window.innerHeight - 250);
 
   return (
     <Box sx={{ position: "relative" }}>
       {/* Loading Overlay */}
       <LoadingOverlay loading={loading} />
+
+      {/* Filter Bar */}
+      <FilterBar
+        stats={{ availableYears }}
+        onFilter={handleFilterChange}
+        initialFilters={filters}
+        loading={filtering}
+      />
 
       {/* Top Controls */}
       <Stack
@@ -627,7 +702,7 @@ export default function ProjectTable() {
                 : "Project created successfully!",
               severity: "success",
             });
-            loadData();
+            fetchProjects(filters);
           }}
           project={selectedProject}
         />

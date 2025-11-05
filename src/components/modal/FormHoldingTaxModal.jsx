@@ -11,8 +11,9 @@ import {
   TextField,
   Divider,
   Alert,
+  Paper,
 } from "@mui/material";
-import { Save } from "lucide-react";
+import { Save, Calculator, Receipt } from "lucide-react";
 import api from "../../api/api";
 import LoadingOverlay from "../loading/LoadingOverlay";
 
@@ -185,122 +186,187 @@ const FormHoldingTaxModal = ({ open, onClose, invoiceId, onSave }) => {
 
           <Grid container spacing={3}>
             <Grid item xs={12}>
-              <Typography variant="h6" gutterBottom>
-                PPh 23 Details
-              </Typography>
-              <Divider sx={{ mb: 2 }} />
-              <Grid container spacing={2}>
-                <Grid item xs={6}>
-                  <TextField
-                    fullWidth
-                    label="PPh 23 Rate (%)"
-                    type="number"
-                    value={formData.pph23_rate}
-                    onChange={(e) =>
-                      handleInputChange("pph23_rate", e.target.value)
-                    }
-                    size="small"
-                    inputProps={{ min: 0, max: 1, step: 0.01 }}
-                    helperText="Enter rate as decimal (e.g., 0.02 for 2%)"
+              <Paper elevation={2} sx={{ p: 3, borderRadius: 2 }}>
+                <Box display="flex" alignItems="center" mb={2}>
+                  <Calculator
+                    size={20}
+                    color="#1976d2"
+                    style={{ marginRight: 8 }}
                   />
+                  <Typography variant="h6" color="primary">
+                    PPh 23 Details
+                  </Typography>
+                </Box>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      label="PPh 23 Rate (%)"
+                      type="number"
+                      value={formData.pph23_rate}
+                      onChange={(e) =>
+                        handleInputChange("pph23_rate", e.target.value)
+                      }
+                      size="small"
+                      inputProps={{ min: 0, max: 1, step: 0.01 }}
+                      helperText="Enter rate as decimal (e.g., 0.02 for 2%)"
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      label="Nilai PPh 23"
+                      value={
+                        formData.nilai_pph23
+                          ? Number(formData.nilai_pph23).toLocaleString("id-ID")
+                          : ""
+                      }
+                      onChange={(e) =>
+                        handleInputChange(
+                          "nilai_pph23",
+                          e.target.value.replace(/[^0-9]/g, "")
+                        )
+                      }
+                      size="small"
+                      inputProps={{ min: 0, step: 0.01 }}
+                      InputProps={{
+                        startAdornment: (
+                          <Typography sx={{ mr: 1, color: "text.secondary" }}>
+                            Rp
+                          </Typography>
+                        ),
+                      }}
+                    />
+                  </Grid>
                 </Grid>
-                <Grid item xs={6}>
-                  <TextField
-                    fullWidth
-                    label="Nilai PPh 23"
-                    type="number"
-                    value={formData.nilai_pph23}
-                    onChange={(e) =>
-                      handleInputChange("nilai_pph23", e.target.value)
-                    }
-                    size="small"
-                    inputProps={{ min: 0, step: 0.01 }}
-                  />
-                </Grid>
-              </Grid>
+              </Paper>
             </Grid>
 
             <Grid item xs={12}>
-              <Typography variant="h6" gutterBottom>
-                PPh 42 Details
-              </Typography>
-              <Divider sx={{ mb: 2 }} />
-              <Grid container spacing={2}>
-                <Grid item xs={6}>
-                  <TextField
-                    fullWidth
-                    label="PPh 42 Rate (%)"
-                    type="number"
-                    value={formData.pph42_rate}
-                    onChange={(e) =>
-                      handleInputChange("pph42_rate", e.target.value)
-                    }
-                    size="small"
-                    inputProps={{ min: 0, max: 1, step: 0.01 }}
-                    helperText="Enter rate as decimal (e.g., 0.04 for 4%)"
+              <Paper elevation={2} sx={{ p: 3, borderRadius: 2 }}>
+                <Box display="flex" alignItems="center" mb={2}>
+                  <Calculator
+                    size={20}
+                    color="#1976d2"
+                    style={{ marginRight: 8 }}
                   />
+                  <Typography variant="h6" color="primary">
+                    PPh 42 Details
+                  </Typography>
+                </Box>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      label="PPh 42 Rate (%)"
+                      type="number"
+                      value={formData.pph42_rate}
+                      onChange={(e) =>
+                        handleInputChange("pph42_rate", e.target.value)
+                      }
+                      size="small"
+                      inputProps={{ min: 0, max: 1, step: 0.01 }}
+                      helperText="Enter rate as decimal (e.g., 0.04 for 4%)"
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      label="Nilai PPh 42"
+                      value={
+                        formData.nilai_pph42
+                          ? Number(formData.nilai_pph42).toLocaleString("id-ID")
+                          : ""
+                      }
+                      onChange={(e) =>
+                        handleInputChange(
+                          "nilai_pph42",
+                          e.target.value.replace(/[^0-9]/g, "")
+                        )
+                      }
+                      size="small"
+                      inputProps={{ min: 0, step: 0.01 }}
+                      InputProps={{
+                        startAdornment: (
+                          <Typography sx={{ mr: 1, color: "text.secondary" }}>
+                            Rp
+                          </Typography>
+                        ),
+                      }}
+                    />
+                  </Grid>
                 </Grid>
-                <Grid item xs={6}>
-                  <TextField
-                    fullWidth
-                    label="Nilai PPh 42"
-                    type="number"
-                    value={formData.nilai_pph42}
-                    onChange={(e) =>
-                      handleInputChange("nilai_pph42", e.target.value)
-                    }
-                    size="small"
-                    inputProps={{ min: 0, step: 0.01 }}
-                  />
-                </Grid>
-              </Grid>
+              </Paper>
             </Grid>
 
             <Grid item xs={12}>
-              <Typography variant="h6" gutterBottom>
-                Additional Information
-              </Typography>
-              <Divider sx={{ mb: 2 }} />
-              <Grid container spacing={2}>
-                <Grid item xs={6}>
-                  <TextField
-                    fullWidth
-                    label="No Bukti Potong"
-                    value={formData.no_bukti_potong}
-                    onChange={(e) =>
-                      handleInputChange("no_bukti_potong", e.target.value)
-                    }
-                    size="small"
+              <Paper elevation={2} sx={{ p: 3, borderRadius: 2 }}>
+                <Box display="flex" alignItems="center" mb={2}>
+                  <Receipt
+                    size={20}
+                    color="#1976d2"
+                    style={{ marginRight: 8 }}
                   />
+                  <Typography variant="h6" color="primary">
+                    Additional Information
+                  </Typography>
+                </Box>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      label="No Bukti Potong"
+                      value={formData.no_bukti_potong}
+                      onChange={(e) =>
+                        handleInputChange("no_bukti_potong", e.target.value)
+                      }
+                      size="small"
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      label="Nilai Potongan"
+                      value={
+                        formData.nilai_potongan
+                          ? Number(formData.nilai_potongan).toLocaleString(
+                              "id-ID"
+                            )
+                          : ""
+                      }
+                      onChange={(e) =>
+                        handleInputChange(
+                          "nilai_potongan",
+                          e.target.value.replace(/[^0-9]/g, "")
+                        )
+                      }
+                      size="small"
+                      inputProps={{ min: 0, step: 0.01 }}
+                      helperText="Auto-calculated from PPh values if not set manually"
+                      InputProps={{
+                        startAdornment: (
+                          <Typography sx={{ mr: 1, color: "text.secondary" }}>
+                            Rp
+                          </Typography>
+                        ),
+                      }}
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      label="Tanggal WHT"
+                      type="date"
+                      value={formData.tanggal_wht}
+                      onChange={(e) =>
+                        handleInputChange("tanggal_wht", e.target.value)
+                      }
+                      size="small"
+                      InputLabelProps={{ shrink: true }}
+                    />
+                  </Grid>
                 </Grid>
-                <Grid item xs={6}>
-                  <TextField
-                    fullWidth
-                    label="Nilai Potongan"
-                    type="number"
-                    value={formData.nilai_potongan}
-                    onChange={(e) =>
-                      handleInputChange("nilai_potongan", e.target.value)
-                    }
-                    size="small"
-                    inputProps={{ min: 0, step: 0.01 }}
-                    helperText="Auto-calculated from PPh values if not set manually"
-                  />
-                </Grid>
-                <Grid item xs={6}>
-                  <TextField
-                    fullWidth
-                    label="Tanggal WHT"
-                    type="date"
-                    value={formData.tanggal_wht}
-                    onChange={(e) =>
-                      handleInputChange("tanggal_wht", e.target.value)
-                    }
-                    size="small"
-                    InputLabelProps={{ shrink: true }}
-                  />
-                </Grid>
-              </Grid>
+              </Paper>
             </Grid>
           </Grid>
         </Box>

@@ -175,7 +175,7 @@ export default function PackingListPage() {
       data: "actions",
       title: "Actions",
       readOnly: true,
-      width: 60,
+      width: 90,
       renderer: (instance, td, row) => {
         td.innerHTML = "";
 
@@ -190,18 +190,18 @@ export default function PackingListPage() {
         editBtn.style.cursor = "pointer";
         editBtn.style.border = "none";
         editBtn.style.background = "#e3f2fd";
-        editBtn.style.padding = "4px 6px";
+        editBtn.style.padding = "8px";
         editBtn.style.borderRadius = "4px";
         editBtn.style.color = "#1976d2";
-        editBtn.style.fontSize = "10px";
-        editBtn.style.fontWeight = "600";
         editBtn.style.display = "flex";
         editBtn.style.alignItems = "center";
-        editBtn.style.gap = "2px";
+        editBtn.style.justifyContent = "center";
+        editBtn.style.width = "40px";
         editBtn.style.transition = "all 0.15s cubic-bezier(0.4, 0, 0.2, 1)";
         editBtn.style.boxShadow = "0 1px 2px rgba(0,0,0,0.1)";
         editBtn.title = "Edit";
-        editBtn.innerHTML = '<span style="font-size: 11px;">✏️</span> Edit';
+        editBtn.innerHTML =
+          '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>';
         editBtn.onmouseover = () => {
           editBtn.style.backgroundColor = "#1976d2";
           editBtn.style.color = "#fff";
@@ -226,18 +226,18 @@ export default function PackingListPage() {
         deleteBtn.style.cursor = "pointer";
         deleteBtn.style.border = "none";
         deleteBtn.style.background = "#ffebee";
-        deleteBtn.style.padding = "4px 6px";
+        deleteBtn.style.padding = "8px";
         deleteBtn.style.borderRadius = "4px";
         deleteBtn.style.color = "#d32f2f";
-        deleteBtn.style.fontSize = "10px";
-        deleteBtn.style.fontWeight = "600";
         deleteBtn.style.display = "flex";
         deleteBtn.style.alignItems = "center";
-        deleteBtn.style.gap = "2px";
+        deleteBtn.style.justifyContent = "center";
+        deleteBtn.style.width = "40px";
         deleteBtn.style.transition = "all 0.15s cubic-bezier(0.4, 0, 0.2, 1)";
         deleteBtn.style.boxShadow = "0 1px 2px rgba(0,0,0,0.1)";
         deleteBtn.title = "Delete";
-        deleteBtn.innerHTML = '<span style="font-size: 11px;">🗑️</span> Delete';
+        deleteBtn.innerHTML =
+          '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>';
         deleteBtn.onmouseover = () => {
           deleteBtn.style.backgroundColor = "#d32f2f";
           deleteBtn.style.color = "#fff";

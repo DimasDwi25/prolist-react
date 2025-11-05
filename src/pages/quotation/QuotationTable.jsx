@@ -22,6 +22,7 @@ import api from "../../api/api";
 import ColumnVisibilityModal from "../../components/ColumnVisibilityModal";
 import QuotationFormModal from "./QuotationFormModal";
 import QuotationDetailModal from "./QuotationDetailModal";
+import FilterBar from "../../components/filter/FilterBar";
 import { formatDate } from "../../utils/FormatDate";
 import { filterBySearch } from "../../utils/filter"; // gunakan util filter yang sama dengan ProjectTable
 import { getClientName } from "../../utils/getClientName";
@@ -55,23 +56,48 @@ export default function QuotationTable() {
   // column visibility
   const [columnVisibility, setColumnVisibility] = useState({});
 
+  // Filter states
+  const [filters, setFilters] = useState({
+    year: new Date().getFullYear(),
+    rangeType: "monthly",
+    month: null,
+    from: "",
+    to: "",
+  });
+  const [availableYears, setAvailableYears] = useState([]);
+  const [filtering, setFiltering] = useState(false);
+
   // fetch quotations
-  const fetchQuotations = async () => {
+  const fetchQuotations = async (filterParams = {}) => {
     try {
+      setFiltering(true);
       setLoading(true);
-      const res = await api.get("/quotations");
+      const params = new URLSearchParams();
+
+      // Add filter params
+      if (filterParams.year) params.append("year", filterParams.year);
+      if (filterParams.range_type)
+        params.append("range_type", filterParams.range_type);
+      if (filterParams.month) params.append("month", filterParams.month);
+      if (filterParams.from_date)
+        params.append("from_date", filterParams.from_date);
+      if (filterParams.to_date) params.append("to_date", filterParams.to_date);
+
+      const res = await api.get(`/quotations?${params.toString()}`);
       setQuotations(
-        res.data.map((q) => ({
+        res.data.data.map((q) => ({
           ...q,
           id: q.quotation_number,
           client_name: getClientName(q),
           quotation_value: Number(q.quotation_value) || null,
         }))
       );
+      setAvailableYears(res.data.filters.available_years);
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
+      setFiltering(false);
     }
   };
 
@@ -92,6 +118,19 @@ export default function QuotationTable() {
   useEffect(() => {
     fetchQuotations();
   }, []);
+
+  // Handle filter changes
+  const handleFilterChange = (newFilters) => {
+    setFilters(newFilters);
+    const apiFilters = {
+      year: newFilters.year,
+      range_type: newFilters.rangeType,
+      month: newFilters.month,
+      from_date: newFilters.from,
+      to_date: newFilters.to,
+    };
+    fetchQuotations(apiFilters);
+  };
 
   // delete quotation
   // const handleDelete = async (quotation_number) => {
@@ -234,36 +273,50 @@ export default function QuotationTable() {
 
   const actionsRenderer = (instance, td, row) => {
     td.innerHTML = "";
+
+    // wrapper flex
     const wrapper = document.createElement("div");
     wrapper.style.display = "flex";
-    wrapper.style.gap = "6px";
+    wrapper.style.alignItems = "center";
+    wrapper.style.gap = "6px"; // jarak antar tombol
 
-    // View
+    // 👁️ View button
     const viewBtn = document.createElement("button");
-    viewBtn.innerText = "👁️";
-    viewBtn.title = "View";
-    viewBtn.style.border = "none";
-    viewBtn.style.background = "transparent";
     viewBtn.style.cursor = "pointer";
+    viewBtn.style.border = "none";
+    viewBtn.style.background = "#e8f5e8";
+    viewBtn.style.padding = "8px";
+    viewBtn.style.borderRadius = "4px";
+    viewBtn.style.color = "#2e7d32";
+    viewBtn.style.display = "flex";
+    viewBtn.style.alignItems = "center";
+    viewBtn.style.justifyContent = "center";
+    viewBtn.style.width = "40px";
+    viewBtn.style.transition = "all 0.15s cubic-bezier(0.4, 0, 0.2, 1)";
+    viewBtn.style.boxShadow = "0 1px 2px rgba(0,0,0,0.1)";
+    viewBtn.title = "View";
+    viewBtn.innerHTML =
+      '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>';
+    viewBtn.onmouseover = () => {
+      viewBtn.style.backgroundColor = "#2e7d32";
+      viewBtn.style.color = "#fff";
+      viewBtn.style.boxShadow = "0 2px 6px rgba(46, 125, 50, 0.3)";
+      viewBtn.style.transform = "translateY(-1px)";
+    };
+    viewBtn.onmouseout = () => {
+      viewBtn.style.backgroundColor = "#e8f5e8";
+      viewBtn.style.color = "#2e7d32";
+      viewBtn.style.boxShadow = "0 1px 2px rgba(0,0,0,0.1)";
+      viewBtn.style.transform = "translateY(0)";
+    };
+
     viewBtn.onclick = () => {
       const quotation = instance.getSourceDataAtRow(row);
       setSelectedQuotationId(quotation.id);
       setOpenDetailModal(true);
     };
-    wrapper.appendChild(viewBtn);
 
-    // // Delete
-    // const delBtn = document.createElement("button");
-    // delBtn.innerText = "🗑️";
-    // delBtn.title = "Delete";
-    // delBtn.style.border = "none";
-    // delBtn.style.background = "transparent";
-    // delBtn.style.cursor = "pointer";
-    // delBtn.onclick = () => {
-    //   const quotation = instance.getSourceDataAtRow(row);
-    //   handleDelete(quotation.quotation_number);
-    // };
-    // wrapper.appendChild(delBtn);
+    wrapper.appendChild(viewBtn);
 
     td.appendChild(wrapper);
     return td;
@@ -443,11 +496,19 @@ export default function QuotationTable() {
     setPage(0);
   };
 
-  const tableHeight = Math.min(pageSize * 40 + 50, window.innerHeight - 250);
+  const tableHeight = Math.min(pageSize * 50 + 50, window.innerHeight - 250);
 
   return (
     <Box>
       <LoadingOverlay loading={loading} />
+      {/* Filter Bar */}
+      <FilterBar
+        stats={{ availableYears }}
+        onFilter={handleFilterChange}
+        initialFilters={filters}
+        loading={filtering}
+      />
+
       {/* Top Controls */}
       <Stack
         direction="row"
@@ -492,6 +553,15 @@ export default function QuotationTable() {
           />
         </Box>
       </Stack>
+
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        sx={{ display: "block", mb: 1, fontStyle: "italic" }}
+      >
+        Tip: Double-click on editable cells (e.g., Client, Value, Status) to
+        edit values.
+      </Typography>
 
       <HotTable
         ref={hotTableRef}

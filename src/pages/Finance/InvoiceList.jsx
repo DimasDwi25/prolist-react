@@ -19,6 +19,7 @@ import LoadingOverlay from "../../components/loading/LoadingOverlay";
 import FilterBar from "../../components/filter/FilterBar";
 import { filterBySearch } from "../../utils/filter";
 import { formatValue } from "../../utils/formatValue";
+import ViewInvoiceModal from "../../components/modal/ViewInvoiceModal";
 
 export default function InvoiceList() {
   const hotTableRef = useRef(null);
@@ -27,6 +28,8 @@ export default function InvoiceList() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
+  const [openViewModal, setOpenViewModal] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState(null);
 
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -51,6 +54,75 @@ export default function InvoiceList() {
   // Definisi kolom
   const allColumns = useMemo(
     () => [
+      {
+        data: "actions",
+        title: "Actions",
+        renderer: (instance, td, row, col, prop, value, cellProperties) => {
+          const invoice = cellProperties.instance.getSourceDataAtRow(row);
+
+          // Clear existing content
+          td.innerHTML = "";
+
+          // Create container
+          const container = document.createElement("div");
+          container.style.display = "flex";
+          container.style.alignItems = "center";
+          container.style.justifyContent = "center";
+          container.style.height = "100%";
+
+          // Create view button
+          const viewBtn = document.createElement("button");
+          viewBtn.style.display = "flex";
+          viewBtn.style.alignItems = "center";
+          viewBtn.style.gap = "4px";
+          viewBtn.style.padding = "6px 12px";
+          viewBtn.style.border = "1px solid #1976d2";
+          viewBtn.style.borderRadius = "6px";
+          viewBtn.style.fontSize = "0.75rem";
+          viewBtn.style.background = "#1976d2";
+          viewBtn.style.color = "#fff";
+          viewBtn.style.cursor = "pointer";
+          viewBtn.style.transition = "all 0.2s ease";
+
+          // Hover effect
+          viewBtn.addEventListener("mouseenter", () => {
+            viewBtn.style.background = "#125ea6";
+            viewBtn.style.borderColor = "#125ea6";
+          });
+          viewBtn.addEventListener("mouseleave", () => {
+            viewBtn.style.background = "#1976d2";
+            viewBtn.style.borderColor = "#1976d2";
+          });
+
+          // Icon and text
+          viewBtn.innerHTML = `
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+            <span>View</span>
+          `;
+
+          // Click handler
+          viewBtn.addEventListener("click", () => {
+            setSelectedInvoice(invoice);
+            setOpenViewModal(true);
+          });
+
+          container.appendChild(viewBtn);
+          td.appendChild(container);
+
+          // Cell styling
+          td.style.textAlign = "center";
+          td.style.verticalAlign = "middle";
+          td.style.padding = "4px";
+
+          return td;
+        },
+        readOnly: true,
+        width: 100,
+      },
       { data: "invoice_id", title: "Invoice ID" },
       { data: "project_name", title: "Project Name" },
       { data: "client_name", title: "Client Name" },
@@ -296,6 +368,16 @@ export default function InvoiceList() {
           rowsPerPageOptions={[10, 25, 50]}
         />
       </Box>
+
+      {/* View Invoice Modal */}
+      <ViewInvoiceModal
+        open={openViewModal}
+        onClose={() => {
+          setOpenViewModal(false);
+          setSelectedInvoice(null);
+        }}
+        invoice={selectedInvoice}
+      />
     </Box>
   );
 }

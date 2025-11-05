@@ -49,6 +49,20 @@ export default function RequestInvoiceTable() {
     availableYears: [new Date().getFullYear()],
   });
 
+  const statusRenderer = (instance, td, row, col, prop, value) => {
+    const statusColors = {
+      pending: "#ff9800", // orange
+      approved: "#4caf50", // green
+      rejected: "#f44336", // red
+      draft: "#9e9e9e", // grey
+    };
+    const color = statusColors[value?.toLowerCase()] || "#000"; // default black
+    td.innerText = value || "-";
+    td.style.color = color;
+    td.style.fontWeight = "600";
+    return td;
+  };
+
   // Definisi kolom
   const allColumns = useMemo(
     () => [
@@ -70,12 +84,31 @@ export default function RequestInvoiceTable() {
           const viewBtn = document.createElement("button");
           viewBtn.style.cursor = "pointer";
           viewBtn.style.border = "none";
-          viewBtn.style.background = "transparent";
+          viewBtn.style.background = "#e8f5e8";
+          viewBtn.style.padding = "8px";
+          viewBtn.style.borderRadius = "4px";
+          viewBtn.style.color = "#2e7d32";
+          viewBtn.style.display = "flex";
+          viewBtn.style.alignItems = "center";
+          viewBtn.style.justifyContent = "center";
+          viewBtn.style.width = "40px";
+          viewBtn.style.transition = "all 0.15s cubic-bezier(0.4, 0, 0.2, 1)";
+          viewBtn.style.boxShadow = "0 1px 2px rgba(0,0,0,0.1)";
           viewBtn.title = "View";
-
-          const icon = document.createElement("span");
-          icon.innerHTML = "👁️";
-          viewBtn.appendChild(icon);
+          viewBtn.innerHTML =
+            '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>';
+          viewBtn.onmouseover = () => {
+            viewBtn.style.backgroundColor = "#2e7d32";
+            viewBtn.style.color = "#fff";
+            viewBtn.style.boxShadow = "0 2px 6px rgba(46, 125, 50, 0.3)";
+            viewBtn.style.transform = "translateY(-1px)";
+          };
+          viewBtn.onmouseout = () => {
+            viewBtn.style.backgroundColor = "#e8f5e8";
+            viewBtn.style.color = "#2e7d32";
+            viewBtn.style.boxShadow = "0 1px 2px rgba(0,0,0,0.1)";
+            viewBtn.style.transform = "translateY(0)";
+          };
 
           viewBtn.onclick = () => {
             const requestInvoice = instance.getSourceDataAtRow(row);
@@ -103,7 +136,7 @@ export default function RequestInvoiceTable() {
           return td;
         },
       },
-      { data: "status", title: "Status" },
+      { data: "status", title: "Status", renderer: statusRenderer },
     ],
     []
   );
