@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import Chart from "chart.js/auto";
 import Highcharts from "highcharts";
 import {
@@ -40,7 +40,8 @@ const textRenderer = (instance, td, row, col, prop, value) => {
 };
 
 const logRenderer = (instance, td, row, col, prop, value) => {
-  td.innerHTML = `<div style="font-size: 54px; text-align: left; vertical-align: top; white-space: normal; word-wrap: break-word; overflow-wrap: break-word; padding: 10px; line-height: 1.2; max-height: 180px; overflow-y: auto;">${
+  td.style.overflow = "visible";
+  td.innerHTML = `<div style="font-size: 54px; text-align: left; vertical-align: top; white-space: normal; word-wrap: break-word; overflow-wrap: break-word; padding: 10px; line-height: 1.2;">${
     value || "-"
   }</div>`;
   return td;
@@ -113,7 +114,38 @@ export default function EngineerDashboard4K() {
   const [currentPageOverdue, setCurrentPageOverdue] = useState(0);
   const [currentPageUpcoming, setCurrentPageUpcoming] = useState(0);
   const [currentPageDueThisMonth, setCurrentPageDueThisMonth] = useState(0);
-  const itemsPerPage = 10;
+
+  const [overduePages, setOverduePages] = useState([]);
+  const [dueThisMonthPages, setDueThisMonthPages] = useState([]);
+  const [onTrackPages, setOnTrackPages] = useState([]);
+  const overdueTableRef = useRef(null);
+  const dueThisMonthTableRef = useRef(null);
+  const onTrackTableRef = useRef(null);
+  const availableHeight = window.innerHeight - 100; // Estimate for 4K minus headers
+
+  const calculatePages = useCallback(
+    (data) => {
+      if (!data || data.length === 0) return [data];
+      const pages = [];
+      let currentPage = [];
+      let currentHeight = 0;
+      data.forEach((row) => {
+        const logLength = row.latest_log ? row.latest_log.length : 0;
+        const estimatedRowHeight = 120 + Math.floor(logLength / 50) * 10; // Base 120px + 10px per 50 chars
+        if (currentHeight + estimatedRowHeight > availableHeight) {
+          pages.push(currentPage);
+          currentPage = [row];
+          currentHeight = estimatedRowHeight;
+        } else {
+          currentPage.push(row);
+          currentHeight += estimatedRowHeight;
+        }
+      });
+      if (currentPage.length > 0) pages.push(currentPage);
+      return pages;
+    },
+    [availableHeight]
+  );
 
   const renderCharts = useCallback((data) => {
     // Destroy existing pie chart if it exists
@@ -267,43 +299,81 @@ export default function EngineerDashboard4K() {
   }, [stats, renderCharts, currentSlide]);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % totalSlides);
-    }, 30000); // Auto-slide every 30 seconds
-    return () => clearInterval(interval);
-  }, [totalSlides]);
+    let interval;
+    if (currentSlide === 0) {
+      interval = setInterval(() => {
+        setCurrentSlide((prev) => (prev + 1) % totalSlides);
+      }, 15000); // 10 seconds for slide 0
+    } else if (currentSlide === 1) {
+      interval = setInterval(() => {
+        setCurrentSlide((prev) => (prev + 1) % totalSlides);
+      }, (overduePages.length || 1) * 5000);
+    } else if (currentSlide === 2) {
+      interval = setInterval(() => {
+        setCurrentSlide((prev) => (prev + 1) % totalSlides);
+      }, (dueThisMonthPages.length || 1) * 5000);
+    } else if (currentSlide === 3) {
+      interval = setInterval(() => {
+        setCurrentSlide((prev) => (prev + 1) % totalSlides);
+      }, (onTrackPages.length || 1) * 5000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [
+    currentSlide,
+    totalSlides,
+    overduePages.length,
+    dueThisMonthPages.length,
+    onTrackPages.length,
+  ]);
+
+  useEffect(() => {
+    if (stats?.top5Overdue) {
+      const pages = calculatePages(stats.top5Overdue);
+      setOverduePages(pages);
+      setCurrentPageOverdue(0);
+    }
+  }, [stats?.top5Overdue, calculatePages]);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentPageOverdue(
-        (prev) =>
-          (prev + 1) % Math.ceil(stats?.top5Overdue?.length / itemsPerPage || 1)
-      );
-    }, 10000); // Auto-page every 10 seconds for overdue
+      setCurrentPageOverdue((prev) => (prev + 1) % (overduePages.length || 1));
+    }, 5000); // Auto-page every 5 seconds for overdue
     return () => clearInterval(interval);
-  }, [stats?.top5Overdue?.length, itemsPerPage]);
+  }, [overduePages.length]);
+
+  useEffect(() => {
+    if (stats?.projectOnTrackList) {
+      const pages = calculatePages(stats.projectOnTrackList);
+      setOnTrackPages(pages);
+      setCurrentPageUpcoming(0);
+    }
+  }, [stats?.projectOnTrackList, calculatePages]);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentPageUpcoming(
-        (prev) =>
-          (prev + 1) %
-          Math.ceil(stats?.projectOnTrackList?.length / itemsPerPage || 1)
-      );
-    }, 10000); // Auto-page every 10 seconds for upcoming
+      setCurrentPageUpcoming((prev) => (prev + 1) % (onTrackPages.length || 1));
+    }, 5000); // Auto-page every 5 seconds for upcoming
     return () => clearInterval(interval);
-  }, [stats?.projectOnTrackList?.length, itemsPerPage]);
+  }, [onTrackPages.length]);
+
+  useEffect(() => {
+    if (stats?.projectDueThisMonthList) {
+      const pages = calculatePages(stats.projectDueThisMonthList);
+      setDueThisMonthPages(pages);
+      setCurrentPageDueThisMonth(0);
+    }
+  }, [stats?.projectDueThisMonthList, calculatePages]);
 
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentPageDueThisMonth(
-        (prev) =>
-          (prev + 1) %
-          Math.ceil(stats?.projectDueThisMonthList?.length / itemsPerPage || 1)
+        (prev) => (prev + 1) % (dueThisMonthPages.length || 1)
       );
-    }, 10000); // Auto-page every 10 seconds for due this month
+    }, 5000); // Auto-page every 5 seconds for due this month
     return () => clearInterval(interval);
-  }, [stats?.projectDueThisMonthList?.length, itemsPerPage]);
+  }, [dueThisMonthPages.length]);
 
   // Auto-refresh data at midnight every day
   useEffect(() => {
@@ -546,10 +616,8 @@ export default function EngineerDashboard4K() {
                 style={{ marginTop: "20px", overflowX: "hidden" }}
               >
                 <HotTable
-                  data={stats.top5Overdue.slice(
-                    currentPageOverdue * itemsPerPage,
-                    (currentPageOverdue + 1) * itemsPerPage
-                  )}
+                  ref={overdueTableRef}
+                  data={overduePages[currentPageOverdue] || []}
                   colHeaders={[
                     createHeader("Project Number"),
                     createHeader("Project Name"),
@@ -564,14 +632,14 @@ export default function EngineerDashboard4K() {
                     { data: "client_name", renderer: textRenderer },
                     { data: "pic", renderer: textRenderer },
                     { data: "target_dates", renderer: dateRenderer },
-                    { data: "latest_log", renderer: logRenderer, width: 400 },
+                    { data: "latest_log", renderer: logRenderer, width: 600 },
                   ]}
                   height="auto"
                   stretchH="all"
                   manualColumnResize={false}
                   licenseKey="non-commercial-and-evaluation"
                   className="ht-theme-horizon"
-                  rowHeights={120}
+                  rowHeights="auto"
                 />
               </div>
             )}
@@ -597,10 +665,8 @@ export default function EngineerDashboard4K() {
                 style={{ marginTop: "20px", overflowX: "hidden" }}
               >
                 <HotTable
-                  data={stats.projectDueThisMonthList.slice(
-                    currentPageDueThisMonth * itemsPerPage,
-                    (currentPageDueThisMonth + 1) * itemsPerPage
-                  )}
+                  ref={dueThisMonthTableRef}
+                  data={dueThisMonthPages[currentPageDueThisMonth] || []}
                   colHeaders={[
                     createHeader("Project Number"),
                     createHeader("Project Name"),
@@ -615,14 +681,14 @@ export default function EngineerDashboard4K() {
                     { data: "client_name", renderer: textRenderer },
                     { data: "pic", renderer: textRenderer },
                     { data: "target_dates", renderer: dateRenderer },
-                    { data: "latest_log", renderer: logRenderer, width: 400 },
+                    { data: "latest_log", renderer: logRenderer, width: 600 },
                   ]}
                   height="auto"
                   stretchH="all"
                   manualColumnResize={false}
                   licenseKey="non-commercial-and-evaluation"
                   className="ht-theme-horizon"
-                  rowHeights={120}
+                  rowHeights="auto"
                 />
               </div>
             )}
@@ -643,19 +709,20 @@ export default function EngineerDashboard4K() {
                 No upcoming projects in the next 30 days.
               </p>
             ) : (
-              <div className="flex-1" style={{ marginTop: "20px" }}>
+              <div
+                className="flex-1"
+                style={{ marginTop: "20px", overflowX: "hidden" }}
+              >
                 <HotTable
-                  data={stats.projectOnTrackList.slice(
-                    currentPageUpcoming * itemsPerPage,
-                    (currentPageUpcoming + 1) * itemsPerPage
-                  )}
+                  ref={onTrackTableRef}
+                  data={onTrackPages[currentPageUpcoming] || []}
                   colHeaders={[
                     createHeader("Project Number"),
                     createHeader("Project Name"),
                     createHeader("Client Name"),
                     createHeader("PIC"),
                     createHeader("Target Date"),
-                    createHeader("Status"),
+                    createHeader("Latest Log"),
                   ]}
                   columns={[
                     { data: "project_number", renderer: textRenderer },
@@ -663,14 +730,14 @@ export default function EngineerDashboard4K() {
                     { data: "client_name", renderer: textRenderer },
                     { data: "pic", renderer: textRenderer },
                     { data: "target_dates", renderer: dateRenderer },
-                    { data: "status", renderer: textRenderer },
+                    { data: "latest_log", renderer: logRenderer, width: 600 },
                   ]}
                   height="auto"
                   stretchH="all"
-                  manualColumnResize={true}
+                  manualColumnResize={false}
                   licenseKey="non-commercial-and-evaluation"
                   className="ht-theme-horizon"
-                  rowHeights={120}
+                  rowHeights="auto"
                 />
               </div>
             )}

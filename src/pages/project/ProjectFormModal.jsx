@@ -73,10 +73,22 @@ export default function ProjectFormModal({
 
   const prevPoDate = useRef("");
 
-  const memoClients = useMemo(() => clients, [clients]);
-  const memoQuotations = useMemo(() => quotations, [quotations]);
-  const memoProjects = useMemo(() => projects, [projects]);
-  const memoCategories = useMemo(() => categories, [categories]);
+  const memoClients = useMemo(
+    () => (Array.isArray(clients) ? clients : []),
+    [clients]
+  );
+  const memoQuotations = useMemo(
+    () => (Array.isArray(quotations) ? quotations : []),
+    [quotations]
+  );
+  const memoProjects = useMemo(
+    () => (Array.isArray(projects) ? projects : []),
+    [projects]
+  );
+  const memoCategories = useMemo(
+    () => (Array.isArray(categories) ? categories : []),
+    [categories]
+  );
   const [selectedQuotation, setSelectedQuotation] = useState(null);
 
   // Memo filter quotation by client_id dan status A/D
@@ -192,7 +204,7 @@ export default function ProjectFormModal({
       }));
 
       // quotation yg terpilih
-      const q = quotations.find(
+      const q = memoQuotations.find(
         (q) => q.quotation_number === project?.quotations_id
       );
 

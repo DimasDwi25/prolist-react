@@ -40,6 +40,7 @@ const ViewInvoiceModal = ({ open, onClose, invoice }) => {
           invoice.invoice_id
         )}`
       );
+
       setHoldingTax(response.data.data.holding_tax);
     } catch (err) {
       console.error("Failed to fetch holding tax:", err);
@@ -56,7 +57,6 @@ const ViewInvoiceModal = ({ open, onClose, invoice }) => {
   }, [open, invoice?.invoice_id]);
 
   if (!invoice) return null;
-
   return (
     <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
       <DialogTitle
@@ -69,7 +69,7 @@ const ViewInvoiceModal = ({ open, onClose, invoice }) => {
         }}
       >
         <InfoIcon />
-        <Typography variant="h6" fontWeight="bold">
+        <Typography variant="body1" fontWeight="bold">
           Invoice Details - {invoice.invoice_id}
         </Typography>
       </DialogTitle>
@@ -88,7 +88,7 @@ const ViewInvoiceModal = ({ open, onClose, invoice }) => {
                 </Box>
                 <Divider sx={{ mb: 2 }} />
                 <Grid container spacing={2}>
-                  <Grid item xs={12} sm={6} md={4}>
+                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <Typography
                       variant="body2"
                       color="text.secondary"
@@ -101,7 +101,7 @@ const ViewInvoiceModal = ({ open, onClose, invoice }) => {
                     </Typography>
                   </Grid>
 
-                  <Grid item xs={12} sm={6} md={4}>
+                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <Typography
                       variant="body2"
                       color="text.secondary"
@@ -110,11 +110,11 @@ const ViewInvoiceModal = ({ open, onClose, invoice }) => {
                       Project Number
                     </Typography>
                     <Typography variant="body1" fontWeight="medium">
-                      {invoice.project?.pn_number || "-"}
+                      {invoice.project_number || "-"}
                     </Typography>
                   </Grid>
 
-                  <Grid item xs={12} sm={6} md={4}>
+                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <Typography
                       variant="body2"
                       color="text.secondary"
@@ -129,7 +129,7 @@ const ViewInvoiceModal = ({ open, onClose, invoice }) => {
                     </Typography>
                   </Grid>
 
-                  <Grid item xs={12} sm={6} md={4}>
+                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <Typography
                       variant="body2"
                       color="text.secondary"
@@ -145,7 +145,7 @@ const ViewInvoiceModal = ({ open, onClose, invoice }) => {
                     </Typography>
                   </Grid>
 
-                  <Grid item xs={12} sm={6} md={4}>
+                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <Typography
                       variant="body2"
                       color="text.secondary"
@@ -154,11 +154,11 @@ const ViewInvoiceModal = ({ open, onClose, invoice }) => {
                       PO Number
                     </Typography>
                     <Typography variant="body1" fontWeight="medium">
-                      {invoice.project?.po_number || "-"}
+                      {invoice.po_number || "-"}
                     </Typography>
                   </Grid>
 
-                  <Grid item xs={12} sm={6} md={4}>
+                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <Typography
                       variant="body2"
                       color="text.secondary"
@@ -166,14 +166,14 @@ const ViewInvoiceModal = ({ open, onClose, invoice }) => {
                     >
                       PO Value
                     </Typography>
-                    <Typography variant="body1" fontWeight="medium">
-                      {invoice.project?.po_value
-                        ? formatValue(invoice.project.po_value).formatted
+                    <Typography variant="body1" fontWeight="bold" color="green">
+                      {invoice.po_value
+                        ? formatValue(invoice.po_value).formatted
                         : "-"}
                     </Typography>
                   </Grid>
 
-                  <Grid item xs={12} sm={6} md={4}>
+                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <Typography
                       variant="body2"
                       color="text.secondary"
@@ -186,7 +186,7 @@ const ViewInvoiceModal = ({ open, onClose, invoice }) => {
                     </Typography>
                   </Grid>
 
-                  <Grid item xs={12} sm={6} md={4}>
+                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <Typography
                       variant="body2"
                       color="text.secondary"
@@ -199,7 +199,7 @@ const ViewInvoiceModal = ({ open, onClose, invoice }) => {
                     </Typography>
                   </Grid>
 
-                  <Grid item xs={12} sm={6} md={4}>
+                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <Typography
                       variant="body2"
                       color="text.secondary"
@@ -212,7 +212,7 @@ const ViewInvoiceModal = ({ open, onClose, invoice }) => {
                     </Typography>
                   </Grid>
 
-                  <Grid item xs={12}>
+                  <Grid size={{ xs: 12 }}>
                     <Typography
                       variant="body2"
                       color="text.secondary"
@@ -239,7 +239,7 @@ const ViewInvoiceModal = ({ open, onClose, invoice }) => {
                 </Box>
                 <Divider sx={{ mb: 2 }} />
                 <Grid container spacing={2}>
-                  <Grid item xs={12} sm={6} md={4}>
+                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <Typography
                       variant="body2"
                       color="text.secondary"
@@ -252,7 +252,7 @@ const ViewInvoiceModal = ({ open, onClose, invoice }) => {
                     </Typography>
                   </Grid>
 
-                  <Grid item xs={12} sm={6} md={4}>
+                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <Typography
                       variant="body2"
                       color="text.secondary"
@@ -265,7 +265,7 @@ const ViewInvoiceModal = ({ open, onClose, invoice }) => {
                     </Typography>
                   </Grid>
 
-                  <Grid item xs={12} sm={6} md={4}>
+                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <Typography
                       variant="body2"
                       color="text.secondary"
@@ -278,7 +278,7 @@ const ViewInvoiceModal = ({ open, onClose, invoice }) => {
                     </Typography>
                   </Grid>
 
-                  <Grid item xs={12} sm={6} md={4}>
+                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <Typography
                       variant="body2"
                       color="text.secondary"
@@ -291,7 +291,7 @@ const ViewInvoiceModal = ({ open, onClose, invoice }) => {
                     </Typography>
                   </Grid>
 
-                  <Grid item xs={12} sm={6} md={4}>
+                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <Typography
                       variant="body2"
                       color="text.secondary"
@@ -306,7 +306,7 @@ const ViewInvoiceModal = ({ open, onClose, invoice }) => {
                     </Typography>
                   </Grid>
 
-                  <Grid item xs={12} sm={6} md={4}>
+                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <Typography
                       variant="body2"
                       color="text.secondary"
@@ -333,7 +333,7 @@ const ViewInvoiceModal = ({ open, onClose, invoice }) => {
                 </Box>
                 <Divider sx={{ mb: 2 }} />
                 <Grid container spacing={2}>
-                  <Grid item xs={12}>
+                  <Grid size={{ xs: 12 }}>
                     <Typography
                       variant="body2"
                       color="text.secondary"
@@ -347,7 +347,7 @@ const ViewInvoiceModal = ({ open, onClose, invoice }) => {
                   </Grid>
 
                   {invoice.created_at && (
-                    <Grid item xs={12} sm={6}>
+                    <Grid size={{ xs: 12, sm: 6 }}>
                       <Typography
                         variant="body2"
                         color="text.secondary"
@@ -376,7 +376,7 @@ const ViewInvoiceModal = ({ open, onClose, invoice }) => {
                   </Box>
                   <Divider sx={{ mb: 2 }} />
                   <Grid container spacing={2}>
-                    <Grid item xs={12} sm={6} md={4}>
+                    <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                       <Typography
                         variant="body2"
                         color="text.secondary"
@@ -391,7 +391,7 @@ const ViewInvoiceModal = ({ open, onClose, invoice }) => {
                           : "-"}
                       </Typography>
                     </Grid>
-                    <Grid item xs={12} sm={6} md={4}>
+                    <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                       <Typography
                         variant="body2"
                         color="text.secondary"
@@ -406,7 +406,7 @@ const ViewInvoiceModal = ({ open, onClose, invoice }) => {
                           : "-"}
                       </Typography>
                     </Grid>
-                    <Grid item xs={12} sm={6} md={4}>
+                    <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                       <Typography
                         variant="body2"
                         color="text.secondary"
@@ -421,7 +421,7 @@ const ViewInvoiceModal = ({ open, onClose, invoice }) => {
                           : "-"}
                       </Typography>
                     </Grid>
-                    <Grid item xs={12} sm={6} md={4}>
+                    <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                       <Typography
                         variant="body2"
                         color="text.secondary"
@@ -436,7 +436,7 @@ const ViewInvoiceModal = ({ open, onClose, invoice }) => {
                           : "-"}
                       </Typography>
                     </Grid>
-                    <Grid item xs={12} sm={6} md={4}>
+                    <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                       <Typography
                         variant="body2"
                         color="text.secondary"
@@ -448,7 +448,7 @@ const ViewInvoiceModal = ({ open, onClose, invoice }) => {
                         {holdingTax.no_bukti_potong || "-"}
                       </Typography>
                     </Grid>
-                    <Grid item xs={12} sm={6} md={4}>
+                    <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                       <Typography
                         variant="body2"
                         color="text.secondary"
@@ -463,7 +463,7 @@ const ViewInvoiceModal = ({ open, onClose, invoice }) => {
                           : "-"}
                       </Typography>
                     </Grid>
-                    <Grid item xs={12} sm={6} md={4}>
+                    <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                       <Typography
                         variant="body2"
                         color="text.secondary"

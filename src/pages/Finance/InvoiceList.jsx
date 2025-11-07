@@ -124,7 +124,19 @@ export default function InvoiceList() {
         width: 100,
       },
       { data: "invoice_id", title: "Invoice ID" },
+      { data: "project_number", title: "Project Number" },
       { data: "project_name", title: "Project Name" },
+      {
+        data: "po_value",
+        title: "PO Value",
+        renderer: (instance, td, row, col, prop, value) => {
+          td.style.fontWeight = "600";
+          td.style.color = "green";
+          td.innerText = formatValue(value).formatted;
+          return td;
+        },
+      },
+      { data: "po_number", title: "PO Number" },
       { data: "client_name", title: "Client Name" },
       { data: "invoice_type", title: "Invoice Type" },
       { data: "no_faktur", title: "No Faktur" },
@@ -225,6 +237,9 @@ export default function InvoiceList() {
   const filteredData = filterBySearch(invoices, searchTerm).map((item) => ({
     invoice_id: item.invoice_id || "",
     project_name: item.project_name || "",
+    project_number: item.project_number || "",
+    po_value: item.po_value || 0,
+    po_number: item.po_number || "",
     client_name: item.client_name || "",
     invoice_type: item.invoice_type || "",
     no_faktur: item.no_faktur || "",

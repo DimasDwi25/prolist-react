@@ -417,21 +417,27 @@ export default function ProjectTable() {
         : "/projects";
       const resProjects = await api.get(url);
 
-      const projectsData = resProjects.data?.data?.map((p) => {
-        return {
-          pn_number: p.pn_number,
-          ...p,
-          client_name: getClientName(p),
-          no_quotation: p.quotation?.no_quotation || "-",
-          categories_name: p.category?.name || "-",
-          status_project: p.status_project || {
-            id: Number(p.status_project_id),
-          },
-        };
-      });
+      const projectsData = resProjects.data?.data
+        ? resProjects.data.data.map((p) => {
+            return {
+              pn_number: p.pn_number,
+              ...p,
+              client_name: getClientName(p),
+              no_quotation: p.quotation?.no_quotation || "-",
+              categories_name: p.category?.name || "-",
+              status_project: p.status_project || {
+                id: Number(p.status_project_id),
+              },
+            };
+          })
+        : [];
 
       setProjects(projectsData);
-      setAvailableYears(resProjects.data?.filters?.available_years || []);
+      setAvailableYears(
+        resProjects.data?.filters?.available_years
+          ? resProjects.data.filters.available_years
+          : []
+      );
     } catch (err) {
       console.error(err.response?.data || err);
     } finally {
@@ -443,17 +449,30 @@ export default function ProjectTable() {
     setLoading(true);
     try {
       const resClients = await api.get("/clients");
-      setClients(resClients.data.map((c) => ({ ...c, id: Number(c.id) })));
+      setClients(
+        resClients.data
+          ? resClients.data.map((c) => ({ ...c, id: Number(c.id) }))
+          : []
+      );
 
       await fetchProjects();
 
       const resQuotations = await api.get("/quotations");
       setQuotations(
-        resQuotations.data?.map((q) => ({ ...q, id: q.quotation_number }))
+        resQuotations.data?.data
+          ? resQuotations.data.data.map((q) => ({
+              ...q,
+              id: q.quotation_number,
+            }))
+          : []
       );
 
       const resCategory = await api.get("/categories-project");
-      setCategories(resCategory.data?.map((q) => ({ ...q, id: q.id })));
+      setCategories(
+        resCategory.data
+          ? resCategory.data.map((q) => ({ ...q, id: q.id }))
+          : []
+      );
     } catch (err) {
       console.error(err.response?.data || err);
     } finally {
