@@ -23,6 +23,9 @@ export default function PackingListPage() {
   const [mode, setMode] = useState("create"); // 'create' or 'edit'
   const [projects, setProjects] = useState([]);
   const [users, setUsers] = useState([]);
+  const [expeditions, setExpeditions] = useState([]);
+  const [plTypes, setPlTypes] = useState([]);
+  const [destinations, setDestinations] = useState([]);
 
   const textRenderer = (instance, td, row, col, prop, value) => {
     td.innerText = value || "-";
@@ -33,10 +36,10 @@ export default function PackingListPage() {
   const [formValues, setFormValues] = useState({
     pn_id: "",
     destination: "",
-    expedition_name: "",
+    expedition_id: "",
     pl_date: "",
     ship_date: "",
-    pl_type: "internal",
+    pl_type_id: "",
     client_pic: "",
     int_pic: "",
     receive_date: "",
@@ -57,15 +60,15 @@ export default function PackingListPage() {
           pn_id: pl.project?.project_number,
           client_pic: pl.client_pic || null,
           int_pic: pl.int_pic?.name || null,
-          destination: pl.destination,
-          expedition_name: pl.expedition_name,
+          destination: pl.destination?.destination || "",
+          expedition_name: pl.expedition?.name || "",
           pl_date: pl.pl_date ? new Date(pl.pl_date) : null,
           ship_date: pl.ship_date ? new Date(pl.ship_date) : null,
           receive_date: pl.receive_date ? new Date(pl.receive_date) : null,
           pl_return_date: pl.pl_return_date
             ? new Date(pl.pl_return_date)
             : null,
-          pl_type: pl.pl_type,
+          pl_type: pl.pl_type?.name || "",
           remark: pl.remark,
           created_by: pl.creator?.name || null,
         }))
@@ -82,9 +85,18 @@ export default function PackingListPage() {
 
   const fetchProjectsAndUsers = async () => {
     try {
-      const [projectsRes, usersRes] = await Promise.all([
+      const [
+        projectsRes,
+        usersRes,
+        expeditionsRes,
+        plTypesRes,
+        destinationsRes,
+      ] = await Promise.all([
         api.get("/projects"),
         api.get("/users"),
+        api.get("/master-expeditions"),
+        api.get("/master-type-packing-lists"),
+        api.get("/destinations"),
       ]);
       setProjects(
         Array.isArray(projectsRes.data)
@@ -94,8 +106,26 @@ export default function PackingListPage() {
       setUsers(
         Array.isArray(usersRes.data) ? usersRes.data : usersRes.data?.data || []
       );
+      setExpeditions(
+        Array.isArray(expeditionsRes.data)
+          ? expeditionsRes.data
+          : expeditionsRes.data?.data || []
+      );
+      setPlTypes(
+        Array.isArray(plTypesRes.data)
+          ? plTypesRes.data
+          : plTypesRes.data?.data || []
+      );
+      setDestinations(
+        Array.isArray(destinationsRes.data)
+          ? destinationsRes.data
+          : destinationsRes.data?.data || []
+      );
     } catch (err) {
-      console.error("Failed to fetch projects and users", err);
+      console.error(
+        "Failed to fetch projects, users, expeditions, PL types, and destinations",
+        err
+      );
     }
   };
 
@@ -131,17 +161,17 @@ export default function PackingListPage() {
       const pl = res.data;
       setFormValues({
         pn_id: pl.project?.project_number || "",
-        destination: pl.destination || "",
-        expedition_name: pl.expedition_name || "",
+        destination_id: pl.destination_id || "",
+        expedition_id: pl.expedition_id || "",
         pl_date: pl.pl_date
           ? new Date(pl.pl_date).toISOString().split("T")[0]
           : "",
         ship_date: pl.ship_date
           ? new Date(pl.ship_date).toISOString().split("T")[0]
           : "",
-        pl_type: pl.pl_type || "internal",
+        pl_type_id: pl.pl_type_id || "",
         client_pic: pl.client_pic || "",
-        int_pic: pl.int_pic || "",
+        int_pic: pl.int_pic?.id || "",
         receive_date: pl.receive_date
           ? new Date(pl.receive_date).toISOString().split("T")[0]
           : "",
@@ -161,10 +191,12 @@ export default function PackingListPage() {
   const handleCreateSuccess = (newItem) => {
     if (mode === "create") {
       setRows((prev) => [newItem, ...prev]);
+      fetchPackingLists(); // Refresh the list to show the new item
     } else if (mode === "edit") {
       setRows((prev) =>
         prev.map((row) => (row.pl_id === newItem.pl_id ? newItem : row))
       );
+      fetchPackingLists(); // Refresh to get updated data
     }
     setOpenModal(false);
   };
@@ -417,6 +449,9 @@ export default function PackingListPage() {
           mode={mode}
           projects={projects}
           users={users}
+          expeditions={expeditions}
+          plTypes={plTypes}
+          destinations={destinations}
         />
       </Stack>
     </Box>

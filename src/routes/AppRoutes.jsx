@@ -59,6 +59,10 @@ import EngineerDashboard4K from "../pages/dashboard/EngineerDashboard4K";
 import ActivityLogPage from "../pages/activity-log/ActivityLogPage";
 import TaxTable from "../pages/Finance/TaxTable";
 import RetentionTable from "../pages/Finance/RetentionTable";
+import StatusMaterialRequestTable from "../pages/status-material-request/StatusMaterialRequestTable";
+import TypePackingListTable from "../pages/type-packing-list/TypePackingListTable";
+import ExpeditionTable from "../pages/expedition/ExpeditionTable";
+import DestinationTable from "../pages/destination/DestinationTable";
 
 function AppRoutes() {
   return (
@@ -421,7 +425,6 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/engineer4k"
           element={
@@ -516,7 +519,6 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/work-order/summary"
           element={
@@ -536,7 +538,6 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/man-power/:pn_number"
           element={
@@ -633,7 +634,74 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
-
+        <Route
+          path="/status-material-request"
+          element={
+            <ProtectedRoute
+              roles={[
+                "warehouse",
+                "super_admin",
+                "marketing_director",
+                "engineering_director",
+              ]}
+            >
+              <MainLayout>
+                <StatusMaterialRequestTable />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/type-packing-list"
+          element={
+            <ProtectedRoute
+              roles={[
+                "warehouse",
+                "super_admin",
+                "marketing_director",
+                "engineering_director",
+              ]}
+            >
+              <MainLayout>
+                <TypePackingListTable />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/expedition"
+          element={
+            <ProtectedRoute
+              roles={[
+                "warehouse",
+                "super_admin",
+                "marketing_director",
+                "engineering_director",
+              ]}
+            >
+              <MainLayout>
+                <ExpeditionTable />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/destination"
+          element={
+            <ProtectedRoute
+              roles={[
+                "warehouse",
+                "super_admin",
+                "marketing_director",
+                "engineering_director",
+              ]}
+            >
+              <MainLayout>
+                <DestinationTable />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/admin"
           element={
@@ -650,7 +718,6 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/user"
           element={
@@ -667,7 +734,6 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/role"
           element={
@@ -684,7 +750,6 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/department"
           element={
@@ -701,7 +766,6 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/man-power"
           element={
@@ -722,7 +786,6 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/document"
           element={
@@ -742,7 +805,6 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/categorie-log"
           element={
@@ -762,7 +824,6 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/purpose-work-order"
           element={
@@ -782,7 +843,6 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/outstanding-project"
           element={
@@ -802,7 +862,6 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/man-power/project"
           element={
@@ -824,7 +883,6 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/profile"
           element={
@@ -835,7 +893,6 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/update-password"
           element={
@@ -846,7 +903,6 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/update-pin"
           element={
@@ -857,7 +913,6 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/man-power/work-order"
           element={
@@ -868,7 +923,6 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/man-power/work-order/:pn_number"
           element={
@@ -879,7 +933,6 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
-
         {/* Finance */}
         <Route
           path="/finance"

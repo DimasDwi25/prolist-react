@@ -336,6 +336,32 @@ const menuByRole = {
   suc: [
     { name: "Dashboard", path: "/suc", icon: <FaTachometerAlt /> },
     {
+      name: "Data Master",
+      icon: <FaTools />,
+      submenu: [
+        {
+          name: "Status Material Request",
+          path: "/status-material-request",
+          icon: <FaTasks />,
+        },
+        {
+          name: "Type Packing List",
+          path: "/type-packing-list",
+          icon: <FaTasks />,
+        },
+        {
+          name: "Expedition",
+          path: "/expedition",
+          icon: <FaTasks />,
+        },
+        {
+          name: "Destination",
+          path: "/destination",
+          icon: <FaTasks />,
+        },
+      ],
+    },
+    {
       name: "Material Request",
       icon: <FaTools />,
       submenu: [
@@ -347,6 +373,7 @@ const menuByRole = {
         { name: "Packing List", path: "/packing-list", icon: <FaTasks /> },
       ],
     },
+
     { name: "Projects", path: "/projects", icon: <FaTools /> },
   ],
   manPower: [

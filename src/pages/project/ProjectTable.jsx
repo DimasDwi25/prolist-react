@@ -674,6 +674,8 @@ export default function ProjectTable() {
             dropdownMenu
             className="ht-theme-horizon"
             manualColumnMove
+            rowHeights={50}
+            autoRowSize={false}
             hiddenColumns={{
               columns: filteredColumns
                 .map((col, i) => (columnVisibility[col.data] ? null : i))

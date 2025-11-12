@@ -3,7 +3,10 @@ import loadingImg from "../../../public/assets/CITASys-Logo.gif";
 
 export default function LoadingScreen() {
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-white z-50">
+    <div
+      className="fixed inset-0 flex items-center justify-center bg-white z-50"
+      aria-hidden="false"
+    >
       <img
         src={loadingImg}
         alt="Loading..."

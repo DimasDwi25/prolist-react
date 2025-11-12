@@ -16,6 +16,7 @@ import {
 import CloseIcon from "@mui/icons-material/Close";
 import api from "../../api/api";
 import { sortOptions } from "../../helper/SortOptions";
+import ConfirmCreateDeliveryOrderModal from "./ConfirmCreateDeliveryOrderModal";
 
 export default function FormPackingListModal({
   open,
@@ -26,13 +27,41 @@ export default function FormPackingListModal({
   mode = "create",
   projects = [],
   users = [],
+  expeditions = [],
+  plTypes = [],
+  destinations = [],
 }) {
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+  const [createdPackingList, setCreatedPackingList] = useState(null);
+  const [confirmLoading, setConfirmLoading] = useState(false);
+  const [confirmData, setConfirmData] = useState(null);
 
   useEffect(() => {
     setLoadingData(false); // Data is passed as props, no need to fetch
   }, [projects, users]);
+
+  // Reset form when modal opens for create mode
+  useEffect(() => {
+    if (open && mode === "create") {
+      setFormValues({
+        pn_id: "",
+        destination_id: "",
+        expedition_id: "",
+        pl_date: "",
+        ship_date: "",
+        pl_type_id: "",
+        client_pic: "",
+        int_pic: "",
+        receive_date: "",
+        pl_return_date: "",
+        remark: "",
+        pl_number: formValues.pl_number || "",
+        pl_id: formValues.pl_id || "",
+      });
+    }
+  }, [open, mode, setFormValues, formValues.pl_number, formValues.pl_id]);
 
   const handleInputChange = (field, value) =>
     setFormValues((prev) => ({ ...prev, [field]: value }));
@@ -43,17 +72,83 @@ export default function FormPackingListModal({
       let res;
       if (mode === "create") {
         res = await api.post("/packing-lists", formValues);
+        const packingList = res.data.data || res.data;
+
+        // Check if Finance type and ship_date is set
+        const selectedPlType = plTypes.find(
+          (pt) => pt.id === formValues.pl_type_id
+        );
+
+        if (
+          selectedPlType &&
+          selectedPlType.name === "Finance" &&
+          formValues.ship_date
+        ) {
+          setCreatedPackingList(packingList);
+          // Fetch confirmation data
+          const data = await fetchConfirmData(packingList.pl_id);
+          setConfirmData(data);
+          setConfirmModalOpen(true);
+          setLoading(false);
+          return; // Don't close modal yet
+        }
+
+        onSuccess(packingList);
+        onClose();
       } else if (mode === "edit") {
         res = await api.put(`/packing-lists/${formValues.pl_id}`, formValues);
+        onSuccess(res.data.data || res.data);
+        onClose();
       }
-      onSuccess(res.data.data || res.data);
-      onClose();
     } catch (err) {
       console.error(err.response?.data || err);
-      alert(`Failed to ${mode} packing list`);
+      alert(
+        `Failed to ${mode} packing list: ${
+          err.response?.data?.message || err.message
+        }`
+      );
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleConfirmCreateDeliveryOrder = async () => {
+    setConfirmLoading(true);
+    try {
+      await api.post(
+        `/packing-lists/${createdPackingList.pl_id}/create-delivery-order`
+      );
+      onSuccess(createdPackingList);
+      setConfirmModalOpen(false);
+      onClose();
+    } catch (err) {
+      console.error(err.response?.data || err);
+      alert(
+        `Failed to create delivery order: ${
+          err.response?.data?.message || err.message
+        }`
+      );
+    } finally {
+      setConfirmLoading(false);
+    }
+  };
+
+  const fetchConfirmData = async (packingListId) => {
+    try {
+      const response = await api.get(
+        `/packing-lists/${packingListId}/confirm-delivery-order`
+      );
+      return response.data.data;
+    } catch (err) {
+      console.error("Failed to fetch confirmation data:", err);
+      return null;
+    }
+  };
+
+  const handleSkipDeliveryOrder = () => {
+    onSuccess(createdPackingList);
+    setConfirmModalOpen(false);
+    onClose();
   };
 
   return (
@@ -65,12 +160,12 @@ export default function FormPackingListModal({
           alignItems: "center",
         }}
       >
-        <Typography variant="h5" fontWeight="600">
+        <div style={{ fontWeight: 600, fontSize: "1.25rem", lineHeight: 1.6 }}>
           {mode === "create" ? "Create New Packing List" : "Edit Packing List"}
-        </Typography>
-        <Typography variant="subtitle2" color="text.secondary">
+        </div>
+        <div style={{ fontSize: "0.875rem", color: "rgba(0, 0, 0, 0.6)" }}>
           PL Number: {formValues.pl_number || "-"}
-        </Typography>
+        </div>
         <IconButton onClick={onClose}>
           <CloseIcon />
         </IconButton>
@@ -85,21 +180,17 @@ export default function FormPackingListModal({
           {/* Project Autocomplete */}
           <Autocomplete
             size="small"
-            options={sortOptions(projects || [], "project_number")}
-            getOptionLabel={(option) => option.project_number || ""}
+            options={sortOptions(projects || [], "pn_number")}
+            getOptionLabel={(option) => option.pn_number || ""}
             loading={loadingData}
             value={
-              projects?.find((p) => p.project_number === formValues.pn_id) ||
-              null
+              projects?.find((p) => p.pn_number === formValues.pn_id) || null
             }
             onChange={(_, newValue) =>
-              handleInputChange(
-                "pn_id",
-                newValue ? newValue.project_number : ""
-              )
+              handleInputChange("pn_id", newValue ? newValue.pn_number : "")
             }
             isOptionEqualToValue={(option, value) =>
-              option.project_number === value?.pn_id
+              option.pn_number === value?.pn_id
             }
             renderInput={(params) => (
               <TextField
@@ -122,23 +213,75 @@ export default function FormPackingListModal({
           />
 
           {/* Destination */}
-          <TextField
-            label="Destination"
+          <Autocomplete
             size="small"
-            fullWidth
-            value={formValues.destination}
-            onChange={(e) => handleInputChange("destination", e.target.value)}
+            options={sortOptions(destinations || [], "destination")}
+            getOptionLabel={(option) => option.destination || ""}
+            loading={loadingData}
+            value={
+              destinations?.find((d) => d.id === formValues.destination_id) ||
+              null
+            }
+            onChange={(_, newValue) =>
+              handleInputChange("destination_id", newValue ? newValue.id : "")
+            }
+            isOptionEqualToValue={(option, value) =>
+              option.id === value?.destination_id
+            }
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Destination"
+                placeholder="Select destination..."
+                InputProps={{
+                  ...params.InputProps,
+                  endAdornment: (
+                    <>
+                      {loadingData ? (
+                        <CircularProgress color="inherit" size={20} />
+                      ) : null}
+                      {params.InputProps.endAdornment}
+                    </>
+                  ),
+                }}
+              />
+            )}
           />
 
-          {/* Expedition Name */}
-          <TextField
-            label="Expedition Name"
+          {/* Expedition */}
+          <Autocomplete
             size="small"
-            fullWidth
-            value={formValues.expedition_name}
-            onChange={(e) =>
-              handleInputChange("expedition_name", e.target.value)
+            options={sortOptions(expeditions || [], "name")}
+            getOptionLabel={(option) => option.name || ""}
+            loading={loadingData}
+            value={
+              expeditions?.find((e) => e.id === formValues.expedition_id) ||
+              null
             }
+            onChange={(_, newValue) =>
+              handleInputChange("expedition_id", newValue ? newValue.id : "")
+            }
+            isOptionEqualToValue={(option, value) =>
+              option.id === value?.expedition_id
+            }
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Expedition"
+                placeholder="Select expedition..."
+                InputProps={{
+                  ...params.InputProps,
+                  endAdornment: (
+                    <>
+                      {loadingData ? (
+                        <CircularProgress color="inherit" size={20} />
+                      ) : null}
+                      {params.InputProps.endAdornment}
+                    </>
+                  ),
+                }}
+              />
+            )}
           />
 
           {/* Client pic Name */}
@@ -185,20 +328,39 @@ export default function FormPackingListModal({
           </Stack>
 
           {/* PL Type */}
-          <TextField
-            select
-            label="PL Type"
+          <Autocomplete
             size="small"
-            fullWidth
-            value={formValues.pl_type}
-            onChange={(e) => handleInputChange("pl_type", e.target.value)}
-          >
-            <MenuItem value="internal">Internal</MenuItem>
-            <MenuItem value="client">Client</MenuItem>
-            <MenuItem value="expedition">Expedition</MenuItem>
-          </TextField>
+            options={sortOptions(plTypes || [], "name")}
+            getOptionLabel={(option) => option.name || ""}
+            loading={loadingData}
+            value={plTypes?.find((p) => p.id === formValues.pl_type_id) || null}
+            onChange={(_, newValue) =>
+              handleInputChange("pl_type_id", newValue ? newValue.id : "")
+            }
+            isOptionEqualToValue={(option, value) =>
+              option.id === value?.pl_type_id
+            }
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="PL Type"
+                placeholder="Select PL type..."
+                InputProps={{
+                  ...params.InputProps,
+                  endAdornment: (
+                    <>
+                      {loadingData ? (
+                        <CircularProgress color="inherit" size={20} />
+                      ) : null}
+                      {params.InputProps.endAdornment}
+                    </>
+                  ),
+                }}
+              />
+            )}
+          />
 
-          {/* Client PIC Autocomplete */}
+          {/* Internal PIC Autocomplete */}
           <Autocomplete
             size="small"
             options={sortOptions(users || [], "name")}
@@ -215,6 +377,7 @@ export default function FormPackingListModal({
               <TextField
                 {...params}
                 label="Internal PIC"
+                placeholder="Select internal PIC..."
                 InputProps={{
                   ...params.InputProps,
                   endAdornment: (
@@ -298,6 +461,19 @@ export default function FormPackingListModal({
             : "Update Packing List"}
         </Button>
       </DialogActions>
+
+      {/* Confirm Create Delivery Order Modal */}
+      <ConfirmCreateDeliveryOrderModal
+        open={confirmModalOpen}
+        onClose={() => {
+          setConfirmModalOpen(false);
+          handleSkipDeliveryOrder();
+        }}
+        onConfirm={handleConfirmCreateDeliveryOrder}
+        loading={confirmLoading}
+        packingList={createdPackingList}
+        confirmData={confirmData}
+      />
     </Dialog>
   );
 }
